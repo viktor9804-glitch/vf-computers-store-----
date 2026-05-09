@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-premium-v3",
+  "name": "vf-computers-v5-backend",
   "private": true,
-  "version": "3.0.0",
+  "version": "5.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -13,7 +13,8 @@
     "vite": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "lucide-react": "latest"
+    "lucide-react": "latest",
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {}
 }

@@ -344,3 +344,17 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
     font-size:23px;
   }
 }
+
+.notice{
+  margin-top:14px;
+  border:1px solid rgba(239,68,68,.35);
+  background:rgba(239,68,68,.12);
+  color:#fecaca;
+  border-radius:18px;
+  padding:13px 15px;
+  font-weight:900;
+}
+button:disabled{
+  opacity:.62;
+  cursor:not-allowed;
+}

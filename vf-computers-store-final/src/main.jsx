@@ -8,6 +8,7 @@ import {
   User, SlidersHorizontal, ChevronDown, Bot, Gauge, Server, MemoryStick,
   Cable, Fan, Power, Send
 } from "lucide-react";
+import { supabase } from "./supabaseClient";
 import "./style.css";
 
 const LOGO_URL = "/VF_logo_1.png";
@@ -153,6 +154,9 @@ function App() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [priceLimit, setPriceLimit] = useState(2000);
+  const [notice, setNotice] = useState("");
+  const [sendingBuilder, setSendingBuilder] = useState(false);
+  const [sendingOrder, setSendingOrder] = useState(false);
   const [builder, setBuilder] = useState({
     name: "",
     phone: "",
@@ -170,23 +174,87 @@ function App() {
     setBuilder((current) => ({ ...current, [field]: value }));
   };
 
-  const sendBuilderRequest = () => {
-    const subject = encodeURIComponent("Заявка за custom PC конфигурация");
-    const body = encodeURIComponent(
-      `Здравейте, ВФ Компютри!\n\nИскам оферта за компютърна конфигурация.\n\n` +
-      `Име: ${builder.name}\n` +
-      `Телефон: ${builder.phone}\n` +
-      `Бюджет: ${builder.budget}\n` +
-      `Платформа: ${builder.platform}\n` +
-      `Видеокарта / цел: ${builder.gpu}\n` +
-      `RAM: ${builder.ram}\n` +
-      `SSD: ${builder.storage}\n` +
-      `Предназначение: ${builder.usage}\n` +
-      `Игри / програми: ${builder.games}\n` +
-      `Допълнителни бележки: ${builder.notes}\n\n` +
-      `Моля, изпратете ми предложение.`
-    );
-    window.location.href = `mailto:${storeInfo.email}?subject=${subject}&body=${body}`;
+  const sendBuilderRequest = async () => {
+    if (!builder.name.trim() || !builder.phone.trim()) {
+      setNotice("Моля, въведи име и телефон за връзка.");
+      return;
+    }
+
+    setSendingBuilder(true);
+    setNotice("");
+
+    const { error } = await supabase.from("pc_requests").insert({
+      name: builder.name,
+      phone: builder.phone,
+      budget: builder.budget,
+      platform: builder.platform,
+      gpu: builder.gpu,
+      ram: builder.ram,
+      storage: builder.storage,
+      usage: builder.usage,
+      games: builder.games,
+      notes: builder.notes,
+    });
+
+    setSendingBuilder(false);
+
+    if (error) {
+      setNotice("Заявката не беше записана. Провери RLS policy в Supabase.");
+      console.error(error);
+      return;
+    }
+
+    setNotice("Заявката е изпратена успешно! Ще се свържем с теб.");
+    setBuilder({
+      name: "",
+      phone: "",
+      budget: "1500-2000 лв.",
+      platform: "Няма значение",
+      gpu: "Gaming 1080p",
+      ram: "16GB",
+      storage: "1TB NVMe",
+      usage: "Gaming",
+      games: "",
+      notes: "",
+    });
+  };
+
+  const sendOrder = async () => {
+    const customerName = window.prompt("Име и фамилия за поръчката:");
+    const phone = window.prompt("Телефон за връзка:");
+
+    if (!customerName || !phone) {
+      setNotice("Поръчката не е изпратена — липсва име или телефон.");
+      return;
+    }
+
+    setSendingOrder(true);
+    setNotice("");
+
+    const { error } = await supabase.from("orders").insert({
+      customer_name: customerName,
+      phone,
+      items: cartItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      total,
+    });
+
+    setSendingOrder(false);
+
+    if (error) {
+      setNotice("Поръчката не беше записана. Провери RLS policy в Supabase.");
+      console.error(error);
+      return;
+    }
+
+    setNotice("Поръчката е изпратена успешно!");
+    setCart({});
+    setCartOpen(false);
+    setCheckoutOpen(false);
   };
 
   const filteredProducts = useMemo(() => {
@@ -297,7 +365,7 @@ function App() {
             <div className="hero-trust">
               <span><CheckCircle2 /> Тествани системи</span>
               <span><ShieldCheck /> Гаранция</span>
-              <span><Truck /> Доставка</span>
+              <span><Truck /> Доставка</span><span><Server /> Backend active</span>
             </div>
           </div>
 
@@ -489,8 +557,10 @@ function App() {
               <p>{builder.budget} • {builder.platform} • {builder.gpu} • {builder.ram} • {builder.storage}</p>
             </div>
 
+            {notice && <div className="notice">{notice}</div>}
+
             <div className="builder-actions">
-              <button className="btn primary" onClick={sendBuilderRequest}>Изпрати заявка</button>
+              <button className="btn primary" onClick={sendBuilderRequest} disabled={sendingBuilder}>{sendingBuilder ? "Изпращане..." : "Изпрати заявка"}</button>
               <a className="btn ghost" href={`tel:${storeInfo.rawPhone}`}>Обади се</a>
             </div>
           </div>
@@ -627,7 +697,7 @@ function App() {
               <CreditCard />
               <span>Обща сума: <b>{total} лв.</b></span>
             </div>
-            <button className="send-order">Изпрати поръчка</button>
+            <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>{sendingOrder ? "Изпращане..." : "Изпрати поръчка"}</button>
           </div>
         </div>
       )}
