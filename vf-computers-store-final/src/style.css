@@ -221,3 +221,126 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
   .checkout-form .wide{grid-column:auto}
   .footer{padding-bottom:86px}
 }
+
+
+/* V4 PC Builder Form */
+.builder-layout{
+  display:grid;
+  grid-template-columns:.82fr 1.18fr;
+  gap:32px;
+  align-items:start;
+}
+.builder-intro{
+  position:sticky;
+  top:108px;
+}
+.builder-steps.compact{
+  grid-template-columns:1fr;
+  margin-top:24px;
+}
+.pc-builder-form{
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
+  border:1px solid rgba(239,68,68,.25);
+  border-radius:30px;
+  padding:24px;
+  box-shadow:0 25px 80px rgba(239,68,68,.13);
+}
+.form-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  border-bottom:1px solid var(--line);
+  padding-bottom:18px;
+  margin-bottom:18px;
+}
+.form-head h3{
+  margin:0;
+  font-size:28px;
+  letter-spacing:-.04em;
+}
+.form-head p{
+  margin:6px 0 0;
+  color:var(--muted);
+}
+.form-head svg{
+  color:#f87171;
+  width:34px;
+  height:34px;
+}
+.builder-form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.builder-form-grid label{
+  display:grid;
+  gap:8px;
+  color:#e5e5ea;
+  font-weight:900;
+  font-size:14px;
+}
+.builder-form-grid label.wide{
+  grid-column:span 2;
+}
+.builder-form-grid input,
+.builder-form-grid select,
+.builder-form-grid textarea{
+  width:100%;
+  background:rgba(0,0,0,.24);
+  border:1px solid var(--line);
+  color:white;
+  border-radius:16px;
+  padding:13px 14px;
+  outline:0;
+}
+.builder-form-grid textarea{
+  min-height:92px;
+  resize:vertical;
+}
+.builder-form-grid input:focus,
+.builder-form-grid select:focus,
+.builder-form-grid textarea:focus{
+  border-color:rgba(239,68,68,.75);
+  box-shadow:0 0 0 3px rgba(239,68,68,.13);
+}
+.builder-preview{
+  margin-top:16px;
+  background:rgba(239,68,68,.10);
+  border:1px solid rgba(239,68,68,.25);
+  border-radius:20px;
+  padding:15px;
+}
+.builder-preview b{
+  display:block;
+  margin-bottom:6px;
+}
+.builder-preview p{
+  margin:0;
+  color:#fecaca;
+  line-height:1.5;
+}
+
+@media (max-width:860px){
+  .builder-layout{
+    grid-template-columns:1fr;
+  }
+  .builder-intro{
+    position:static;
+  }
+}
+@media (max-width:560px){
+  .pc-builder-form{
+    padding:18px;
+    border-radius:24px;
+  }
+  .builder-form-grid{
+    grid-template-columns:1fr;
+  }
+  .builder-form-grid label.wide{
+    grid-column:auto;
+  }
+  .form-head h3{
+    font-size:23px;
+  }
+}

@@ -1,12 +1,7 @@
-# ВФ Компютри - Premium V3
+# ВФ Компютри - V4 PC Builder
 
-Готова Vite + React версия за Vercel.
-
-## Локален старт
-```bash
-npm install
-npm run dev
-```
+Добавена е реална форма „Сглоби си компютър“, която генерира имейл заявка към v.f-computers@abv.bg.
 
 ## Качване
-Замени старите файлове в проекта, после Commit + Push в GitHub Desktop. Vercel ще обнови сайта автоматично.
+Замени старите файлове в `vf-computers-store-final`, после Commit + Push в GitHub Desktop.
+Vercel ще обнови сайта автоматично.

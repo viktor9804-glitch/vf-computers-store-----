@@ -153,6 +153,41 @@ function App() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [priceLimit, setPriceLimit] = useState(2000);
+  const [builder, setBuilder] = useState({
+    name: "",
+    phone: "",
+    budget: "1500-2000 лв.",
+    platform: "Няма значение",
+    gpu: "Gaming 1080p",
+    ram: "16GB",
+    storage: "1TB NVMe",
+    usage: "Gaming",
+    games: "",
+    notes: "",
+  });
+
+  const updateBuilder = (field, value) => {
+    setBuilder((current) => ({ ...current, [field]: value }));
+  };
+
+  const sendBuilderRequest = () => {
+    const subject = encodeURIComponent("Заявка за custom PC конфигурация");
+    const body = encodeURIComponent(
+      `Здравейте, ВФ Компютри!\n\nИскам оферта за компютърна конфигурация.\n\n` +
+      `Име: ${builder.name}\n` +
+      `Телефон: ${builder.phone}\n` +
+      `Бюджет: ${builder.budget}\n` +
+      `Платформа: ${builder.platform}\n` +
+      `Видеокарта / цел: ${builder.gpu}\n` +
+      `RAM: ${builder.ram}\n` +
+      `SSD: ${builder.storage}\n` +
+      `Предназначение: ${builder.usage}\n` +
+      `Игри / програми: ${builder.games}\n` +
+      `Допълнителни бележки: ${builder.notes}\n\n` +
+      `Моля, изпратете ми предложение.`
+    );
+    window.location.href = `mailto:${storeInfo.email}?subject=${subject}&body=${body}`;
+  };
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -344,28 +379,120 @@ function App() {
       </section>
 
       <section id="builder" className="builder-section">
-        <div className="container builder-grid">
-          <div>
+        <div className="container builder-layout">
+          <div className="builder-intro">
             <p className="section-label">Custom Build</p>
             <h2>Сглоби си компютър</h2>
             <p className="lead">
-              Изпрати заявка за конфигурация според бюджет, игри и нужди. Ще получиш оферта с правилно подбрани части.
+              Попълни кратка заявка и ще получиш оферта за конфигурация според бюджет, игри, програми и бъдещи ъпгрейди.
             </p>
-            <div className="builder-actions">
-              <a className="btn primary" href={`mailto:${storeInfo.email}?subject=Заявка за custom PC конфигурация`}>Изпрати заявка</a>
-              <a className="btn ghost" href={`tel:${storeInfo.rawPhone}`}>Обади се</a>
+            <div className="builder-steps compact">
+              {pcBuilderSteps.map(({ icon: Icon, title, text }) => (
+                <div className="builder-step" key={title}>
+                  <Icon />
+                  <div>
+                    <b>{title}</b>
+                    <p>{text}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="builder-steps">
-            {pcBuilderSteps.map(({ icon: Icon, title, text }) => (
-              <div className="builder-step" key={title}>
-                <Icon />
-                <div>
-                  <b>{title}</b>
-                  <p>{text}</p>
-                </div>
+
+          <div className="pc-builder-form">
+            <div className="form-head">
+              <div>
+                <h3>Заявка за custom PC</h3>
+                <p>Данните ще се подготвят като имейл към {storeInfo.email}</p>
               </div>
-            ))}
+              <Sparkles />
+            </div>
+
+            <div className="builder-form-grid">
+              <label>
+                Име
+                <input value={builder.name} onChange={(event) => updateBuilder("name", event.target.value)} placeholder="Вашето име" />
+              </label>
+              <label>
+                Телефон
+                <input value={builder.phone} onChange={(event) => updateBuilder("phone", event.target.value)} placeholder="Телефон за връзка" />
+              </label>
+              <label>
+                Бюджет
+                <select value={builder.budget} onChange={(event) => updateBuilder("budget", event.target.value)}>
+                  <option>до 1000 лв.</option>
+                  <option>1000-1500 лв.</option>
+                  <option>1500-2000 лв.</option>
+                  <option>2000-3000 лв.</option>
+                  <option>над 3000 лв.</option>
+                </select>
+              </label>
+              <label>
+                Платформа
+                <select value={builder.platform} onChange={(event) => updateBuilder("platform", event.target.value)}>
+                  <option>Няма значение</option>
+                  <option>AMD Ryzen</option>
+                  <option>Intel Core</option>
+                </select>
+              </label>
+              <label>
+                Видеокарта / цел
+                <select value={builder.gpu} onChange={(event) => updateBuilder("gpu", event.target.value)}>
+                  <option>Офис / без външна видеокарта</option>
+                  <option>Gaming 1080p</option>
+                  <option>Gaming 1440p</option>
+                  <option>Streaming</option>
+                  <option>Работа / монтаж / AI</option>
+                </select>
+              </label>
+              <label>
+                RAM памет
+                <select value={builder.ram} onChange={(event) => updateBuilder("ram", event.target.value)}>
+                  <option>16GB</option>
+                  <option>32GB</option>
+                  <option>64GB</option>
+                  <option>Не знам, препоръчайте</option>
+                </select>
+              </label>
+              <label>
+                SSD
+                <select value={builder.storage} onChange={(event) => updateBuilder("storage", event.target.value)}>
+                  <option>512GB NVMe</option>
+                  <option>1TB NVMe</option>
+                  <option>2TB NVMe</option>
+                  <option>SSD + HDD</option>
+                </select>
+              </label>
+              <label>
+                Предназначение
+                <select value={builder.usage} onChange={(event) => updateBuilder("usage", event.target.value)}>
+                  <option>Gaming</option>
+                  <option>Офис</option>
+                  <option>Училище / работа</option>
+                  <option>Видео монтаж</option>
+                  <option>Streaming</option>
+                  <option>AI / тежка работа</option>
+                </select>
+              </label>
+              <label className="wide">
+                Игри или програми
+                <input value={builder.games} onChange={(event) => updateBuilder("games", event.target.value)} placeholder="Пример: CS2, GTA V, LoL, Photoshop, AutoCAD..." />
+              </label>
+              <label className="wide">
+                Допълнителни бележки
+                <textarea value={builder.notes} onChange={(event) => updateBuilder("notes", event.target.value)} placeholder="RGB, тиха работа, Wi-Fi, бяла кутия, бъдещ ъпгрейд..." />
+              </label>
+            </div>
+
+            <div className="builder-preview">
+              <b>Обобщение:</b>
+              <p>{builder.budget} • {builder.platform} • {builder.gpu} • {builder.ram} • {builder.storage}</p>
+            </div>
+
+            <div className="builder-actions">
+              <button className="btn primary" onClick={sendBuilderRequest}>Изпрати заявка</button>
+              <a className="btn ghost" href={`tel:${storeInfo.rawPhone}`}>Обади се</a>
+            </div>
           </div>
         </div>
       </section>
