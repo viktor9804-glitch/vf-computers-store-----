@@ -1,14 +1,12 @@
-# ВФ Компютри - онлайн магазин
+# ВФ Компютри - Premium V3
 
-## Стартиране локално
+Готова Vite + React версия за Vercel.
+
+## Локален старт
 ```bash
 npm install
 npm run dev
 ```
 
-## Build за Vercel
-```bash
-npm run build
-```
-
-Проектът е Vite + React.
+## Качване
+Замени старите файлове в проекта, после Commit + Push в GitHub Desktop. Vercel ще обнови сайта автоматично.

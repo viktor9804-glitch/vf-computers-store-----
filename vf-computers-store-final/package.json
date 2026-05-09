@@ -1,16 +1,19 @@
-
 {
-  "name":"vf-v2",
+  "name": "vf-computers-premium-v3",
   "private": true,
-  "scripts":{
-    "dev":"vite",
-    "build":"vite build"
+  "version": "3.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "dependencies":{
-    "react":"latest",
-    "react-dom":"latest",
-    "lucide-react":"latest",
-    "vite":"latest",
-    "@vitejs/plugin-react":"latest"
-  }
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {}
 }
