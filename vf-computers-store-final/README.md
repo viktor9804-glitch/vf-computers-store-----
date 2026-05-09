@@ -1,23 +1,26 @@
-# ВФ Компютри - V8 OpenAI Assistant
+# ВФ Компютри - V10 Gemini Assistant
 
-Добавен е истински OpenAI чат бот към сайта.
-
-## Как работи
-- В браузъра има floating бутон `AI Асистент`
-- Сайтът изпраща въпросите към `/api/chat`
-- `/api/chat` е Vercel serverless function
-- API ключът се пази във Vercel Environment Variable `OPENAI_API_KEY`
-- Ключът НЕ се вижда в браузъра
+Тази версия заменя OpenAI chatbot-а с Gemini AI от Google AI Studio.
 
 ## Нужно във Vercel
+
 Project → Settings → Environment Variables:
 
-`OPENAI_API_KEY=sk-...`
+`GEMINI_API_KEY=AIza...`
 
-След добавяне на ключа направи redeploy.
+След добавяне на ключа направи Redeploy.
+
+## Как работи
+
+- Сайтът показва floating AI асистент.
+- Въпросите отиват към `/api/chat`.
+- `/api/chat` използва `GEMINI_API_KEY` от Vercel.
+- Ключът НЕ се вижда в браузъра.
 
 ## Качване
-Замени файловете в проекта, после:
-GitHub Desktop → Commit → Push.
 
-Vercel ще deploy-не автоматично.
+1. Разархивирай ZIP файла.
+2. Замени файловете в проекта.
+3. GitHub Desktop → Commit → Push.
+4. Vercel ще deploy-не автоматично.
+5. Ако ключът е добавен след deploy — направи Redeploy.

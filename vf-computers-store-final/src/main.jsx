@@ -593,7 +593,7 @@ function App() {
         ...current,
         {
           role: "assistant",
-          content: "В момента AI асистентът не може да отговори. Провери дали OPENAI_API_KEY е добавен във Vercel и дали сайтът е redeploy-нат.",
+          content: "В момента AI асистентът не може да отговори. Провери дали GEMINI_API_KEY е добавен във Vercel и дали сайтът е redeploy-нат.",
         },
       ]);
     } finally {

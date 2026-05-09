@@ -5,17 +5,19 @@ export default async function handler(req, res) {
 
   try {
     const { messages = [] } = req.body || {};
+    const geminiApiKey = process.env.GEMINI_API_KEY;
 
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-
-    if (!openaiApiKey) {
-      return res.status(500).json({ error: "OPENAI_API_KEY is missing in Vercel Environment Variables." });
+    if (!geminiApiKey) {
+      return res.status(500).json({
+        error: "GEMINI_API_KEY is missing in Vercel Environment Variables.",
+      });
     }
 
     const systemContext = `
 Ти си AI асистент на онлайн магазина "ВФ Компютри" в България.
 Отговаряй само на български език.
 Бъди полезен, кратък, професионален и приятелски.
+
 Магазинът се занимава с:
 - продажба на компютри
 - gaming конфигурации
@@ -33,58 +35,69 @@ export default async function handler(req, res) {
 
 Валута: евро (€).
 
-Когато клиент пита за конфигурация:
-- попитай за бюджет
-- попитай за игри/програми
-- попитай дали иска AMD или Intel
-- препоръчай разумно
-- насочи го към секция "Сглоби си компютър"
-
-Когато клиент пита за сервиз:
-- попитай какъв е проблемът
-- предложи диагностика
-- насочи към телефон или посещение на адреса
-
-Не измисляй наличности. Ако не си сигурен, кажи да се свърже с магазина.
-Не обещавай точна цена без потвърждение от магазина.
+Правила:
+- Не измисляй наличности.
+- Не обещавай точна цена без потвърждение от магазина.
+- При custom PC попитай за бюджет, игри/програми, AMD/Intel и дали иска RGB/тиха работа.
+- При сервиз попитай какъв е проблемът и насочи към диагностика.
+- Отговаряй като продавач/сервизен консултант на ВФ Компютри.
 `;
 
-    const input = [
-      { role: "system", content: systemContext },
-      ...messages.slice(-12),
-    ];
+    const conversationText = messages
+      .slice(-12)
+      .map((message) => {
+        const role = message.role === "user" ? "Клиент" : "Асистент";
+        return `${role}: ${message.content}`;
+      })
+      .join("\n");
 
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input,
-        temperature: 0.4,
-        max_output_tokens: 700,
-      }),
-    });
+    const prompt = `${systemContext}\n\nРазговор:\n${conversationText}\n\nОтговори като асистент на ВФ Компютри:`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.45,
+            maxOutputTokens: 700,
+          },
+        }),
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("OpenAI API error:", data);
-      return res.status(response.status).json({ error: data?.error?.message || "OpenAI API error" });
+      console.error("Gemini API error:", data);
+      return res.status(response.status).json({
+        error:
+          data?.error?.message ||
+          "Gemini API error. Check GEMINI_API_KEY and Google AI Studio quota.",
+      });
     }
 
-    const text =
-      data.output_text ||
-      data.output?.flatMap((item) => item.content || [])
-        ?.map((content) => content.text || "")
-        ?.join("") ||
+    const reply =
+      data?.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text || "")
+        .join("")
+        .trim() ||
       "Не успях да генерирам отговор. Моля, опитай отново.";
 
-    return res.status(200).json({ reply: text });
+    return res.status(200).json({ reply });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "Server error while contacting AI assistant." });
+    return res.status(500).json({
+      error: "Server error while contacting Gemini assistant.",
+    });
   }
 }
