@@ -24,13 +24,21 @@ const storeInfo = {
 const ADMIN_PASSWORD = "vfadmin123"; // Смени тази парола след като качиш сайта.
 const STORAGE_BUCKET = "product-images";
 
+const formatPrice = (value) => {
+  return new Intl.NumberFormat("bg-BG", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+};
+
 const fallbackProducts = [
   {
     id: 1,
     name: "VF Gaming Beast RTX 4060",
     category: "Gaming PC",
-    price: 1599,
-    oldPrice: 1799,
+    price: 819,
+    oldPrice: 919,
     rating: 4.9,
     stock: "В наличност",
     badge: "HOT",
@@ -41,8 +49,8 @@ const fallbackProducts = [
     id: 2,
     name: "VF Office Pro i5",
     category: "Компютри",
-    price: 699,
-    oldPrice: 799,
+    price: 359,
+    oldPrice: 409,
     rating: 4.7,
     stock: "В наличност",
     badge: "OFFICE",
@@ -53,8 +61,8 @@ const fallbackProducts = [
     id: 3,
     name: "GeForce RTX 4060 8GB",
     category: "Видеокарти",
-    price: 649,
-    oldPrice: 729,
+    price: 329,
+    oldPrice: 189,
     rating: 4.9,
     stock: "Ограничено",
     badge: "NEW",
@@ -65,8 +73,8 @@ const fallbackProducts = [
     id: 4,
     name: "AMD Ryzen 7 5700X",
     category: "Процесори",
-    price: 319,
-    oldPrice: 369,
+    price: 165,
+    oldPrice: 189,
     rating: 4.8,
     stock: "В наличност",
     badge: "SALE",
@@ -77,8 +85,8 @@ const fallbackProducts = [
     id: 5,
     name: "NVMe SSD 1TB Gen4",
     category: "SSD / HDD",
-    price: 139,
-    oldPrice: 169,
+    price: 72,
+    oldPrice: 87,
     rating: 4.9,
     stock: "В наличност",
     badge: "FAST",
@@ -89,8 +97,8 @@ const fallbackProducts = [
     id: 6,
     name: "Gaming Monitor 27” 165Hz",
     category: "Монитори",
-    price: 389,
-    oldPrice: 459,
+    price: 199,
+    oldPrice: 235,
     rating: 4.8,
     stock: "В наличност",
     badge: "165HZ",
@@ -101,8 +109,8 @@ const fallbackProducts = [
     id: 7,
     name: "Lenovo IdeaPad 15",
     category: "Лаптопи",
-    price: 899,
-    oldPrice: 999,
+    price: 459,
+    oldPrice: 509,
     rating: 4.7,
     stock: "По заявка",
     badge: "BEST",
@@ -113,8 +121,8 @@ const fallbackProducts = [
     id: 8,
     name: "RGB Mechanical Keyboard",
     category: "Периферия",
-    price: 79,
-    oldPrice: 99,
+    price: 39,
+    oldPrice: 49,
     rating: 4.6,
     stock: "В наличност",
     badge: "RGB",
@@ -307,8 +315,8 @@ function AdminPanel({ onBack }) {
             </label>
             <div className="admin-two">
               <label>
-                Цена
-                <input type="number" value={form.price} onChange={(event) => updateForm("price", event.target.value)} placeholder="1599" />
+                Цена (€)
+                <input type="number" value={form.price} onChange={(event) => updateForm("price", event.target.value)} placeholder="819" />
               </label>
               <label>
                 Наличност
@@ -339,7 +347,7 @@ function AdminPanel({ onBack }) {
                     {product.image ? <img src={product.image} alt={product.title} /> : <div className="admin-no-img">IMG</div>}
                     <div>
                       <b>{product.title}</b>
-                      <p>{product.category} • {product.price} лв. • наличност: {product.stock}</p>
+                      <p>{product.category} • {formatPrice(product.price)} • наличност: {product.stock}</p>
                     </div>
                   </div>
                 ))}
@@ -407,7 +415,7 @@ function App() {
   const [builder, setBuilder] = useState({
     name: "",
     phone: "",
-    budget: "1500-2000 лв.",
+    budget: "750-1000 €",
     platform: "Няма значение",
     gpu: "Gaming 1080p",
     ram: "16GB",
@@ -455,7 +463,7 @@ function App() {
     setBuilder({
       name: "",
       phone: "",
-      budget: "1500-2000 лв.",
+      budget: "750-1000 €",
       platform: "Няма значение",
       gpu: "Gaming 1080p",
       ram: "16GB",
@@ -643,7 +651,7 @@ function App() {
         <div><b>24ч</b><span>бърза оферта</span></div>
         <div><b>100%</b><span>тестване преди предаване</span></div>
         <div><b>2 г.</b><span>гаранция според продукта</span></div>
-        <div><b>0 лв.</b><span>консултация за конфигурация</span></div>
+        <div><b>0 €</b><span>консултация за конфигурация</span></div>
       </section>
 
       <section id="products" className="container products-section">
@@ -654,7 +662,7 @@ function App() {
             {loadingProducts && <p className="loading-products">Зареждане на продукти от базата...</p>}
           </div>
           <div className="filter-card">
-            <label>Макс. цена: <b>{priceLimit} лв.</b></label>
+            <label>Макс. цена: <b>{priceLimit} €</b></label>
             <input type="range" min="80" max="2000" step="20" value={priceLimit} onChange={(event) => setPriceLimit(Number(event.target.value))} />
           </div>
         </div>
@@ -688,8 +696,8 @@ function App() {
                 <p className="stock"><CheckCircle2 size={15} /> {product.stock}</p>
                 <div className="product-buy">
                   <div>
-                    <b>{product.price} лв.</b>
-                    <del>{product.oldPrice} лв.</del>
+                    <b>{formatPrice(product.price)}</b>
+                    <del>{formatPrice(product.oldPrice)}</del>
                   </div>
                   <button onClick={() => addToCart(product.id)}>Добави</button>
                 </div>
@@ -741,11 +749,11 @@ function App() {
               <label>
                 Бюджет
                 <select value={builder.budget} onChange={(event) => updateBuilder("budget", event.target.value)}>
-                  <option>до 1000 лв.</option>
-                  <option>1000-1500 лв.</option>
-                  <option>1500-2000 лв.</option>
-                  <option>2000-3000 лв.</option>
-                  <option>над 3000 лв.</option>
+                  <option>до 500 €</option>
+                  <option>500-750 €</option>
+                  <option>750-1000 €</option>
+                  <option>1000-1500 €</option>
+                  <option>над 1500 €</option>
                 </select>
               </label>
               <label>
@@ -901,7 +909,7 @@ function App() {
                     <img src={item.image} alt={item.name} />
                     <div className="cart-item-body">
                       <b>{item.name}</b>
-                      <p>{item.price} лв.</p>
+                      <p>{formatPrice(item.price)}</p>
                       <div className="qty">
                         <button onClick={() => updateQuantity(item.id, -1)}><Minus size={14} /></button>
                         <span>{item.quantity}</span>
@@ -914,9 +922,9 @@ function App() {
               )}
             </div>
             <div className="drawer-total">
-              <p><span>Междинна сума</span><b>{subtotal} лв.</b></p>
-              <p><span>Доставка</span><b>{delivery === 0 ? "Безплатна" : `${delivery} лв.`}</b></p>
-              <h3><span>Общо</span><b>{total} лв.</b></h3>
+              <p><span>Междинна сума</span><b>{formatPrice(subtotal)}</b></p>
+              <p><span>Доставка</span><b>{delivery === 0 ? "Безплатна" : formatPrice(delivery)}</b></p>
+              <h3><span>Общо</span><b>{formatPrice(total)}</b></h3>
               <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>Завърши поръчката</button>
             </div>
           </aside>
@@ -948,7 +956,7 @@ function App() {
             </form>
             <div className="checkout-summary">
               <CreditCard />
-              <span>Обща сума: <b>{total} лв.</b></span>
+              <span>Обща сума: <b>{formatPrice(total)}</b></span>
             </div>
             <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>{sendingOrder ? "Изпращане..." : "Изпрати поръчка"}</button>
           </div>

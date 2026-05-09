@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v6-simple-admin",
+  "name": "vf-computers-v7-euro-edition",
   "private": true,
-  "version": "6.0.0",
+  "version": "7.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
