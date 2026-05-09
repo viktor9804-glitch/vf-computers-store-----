@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v5-backend",
+  "name": "vf-computers-v6-simple-admin",
   "private": true,
-  "version": "5.0.0",
+  "version": "6.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

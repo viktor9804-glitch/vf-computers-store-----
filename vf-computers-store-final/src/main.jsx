@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Cpu, Monitor, Laptop, HardDrive, Gamepad2, Search, ShoppingCart, Menu, X,
@@ -21,7 +21,10 @@ const storeInfo = {
   address: "гр. Елхово, ул. Славянска №5",
 };
 
-const products = [
+const ADMIN_PASSWORD = "vfadmin123"; // Смени тази парола след като качиш сайта.
+const STORAGE_BUCKET = "product-images";
+
+const fallbackProducts = [
   {
     id: 1,
     name: "VF Gaming Beast RTX 4060",
@@ -146,7 +149,251 @@ const pcBuilderSteps = [
   { icon: Power, title: "Захранване и кутия", text: "Сигурност, охлаждане и бъдещ ъпгрейд." },
 ];
 
+
+function AdminPanel({ onBack }) {
+  const [password, setPassword] = useState("");
+  const [unlocked, setUnlocked] = useState(() => localStorage.getItem("vf_admin_unlocked") === "yes");
+  const [saving, setSaving] = useState(false);
+  const [adminNotice, setAdminNotice] = useState("");
+  const [adminProducts, setAdminProducts] = useState([]);
+  const [form, setForm] = useState({
+    title: "",
+    category: "Gaming PC",
+    price: "",
+    stock: "1",
+    description: "",
+  });
+  const [imageFile, setImageFile] = useState(null);
+
+  const loadAdminProducts = async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) setAdminProducts(data);
+  };
+
+  useEffect(() => {
+    if (unlocked) loadAdminProducts();
+  }, [unlocked]);
+
+  const unlock = () => {
+    if (password === ADMIN_PASSWORD) {
+      localStorage.setItem("vf_admin_unlocked", "yes");
+      setUnlocked(true);
+      setAdminNotice("");
+    } else {
+      setAdminNotice("Грешна парола.");
+    }
+  };
+
+  const updateForm = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const saveProduct = async () => {
+    if (!form.title.trim() || !form.price) {
+      setAdminNotice("Попълни поне име и цена.");
+      return;
+    }
+
+    setSaving(true);
+    setAdminNotice("");
+
+    let imageUrl = "";
+
+    if (imageFile) {
+      const safeName = imageFile.name.replaceAll(" ", "-").toLowerCase();
+      const filePath = `${Date.now()}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(filePath, imageFile, { upsert: false });
+
+      if (uploadError) {
+        setSaving(false);
+        setAdminNotice("Грешка при качване на снимката. Провери Storage bucket и policies.");
+        console.error(uploadError);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(filePath);
+
+      imageUrl = publicUrlData.publicUrl;
+    }
+
+    const { error } = await supabase.from("products").insert({
+      title: form.title,
+      description: form.description,
+      price: Number(form.price),
+      image: imageUrl,
+      category: form.category,
+      stock: Number(form.stock || 0),
+    });
+
+    setSaving(false);
+
+    if (error) {
+      setAdminNotice("Продуктът не беше записан. Провери RLS policy за products insert.");
+      console.error(error);
+      return;
+    }
+
+    setAdminNotice("Продуктът е добавен успешно.");
+    setForm({
+      title: "",
+      category: "Gaming PC",
+      price: "",
+      stock: "1",
+      description: "",
+    });
+    setImageFile(null);
+    await loadAdminProducts();
+  };
+
+  if (!unlocked) {
+    return (
+      <div className="admin-page">
+        <div className="admin-login">
+          <h1>Админ панел</h1>
+          <p>Въведи паролата, за да добавяш продукти.</p>
+          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Парола" />
+          {adminNotice && <div className="notice">{adminNotice}</div>}
+          <button onClick={unlock}>Вход</button>
+          <button className="admin-secondary" onClick={onBack}>Към магазина</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-page">
+      <div className="admin-shell">
+        <div className="admin-top">
+          <div>
+            <p className="section-label">VF Admin</p>
+            <h1>Опростен админ панел</h1>
+            <p>Добавяне на продукти със снимка, цена, категория и наличност.</p>
+          </div>
+          <div className="admin-actions">
+            <button onClick={loadAdminProducts}>Обнови</button>
+            <button className="admin-secondary" onClick={onBack}>Към магазина</button>
+            <button className="admin-danger" onClick={() => { localStorage.removeItem("vf_admin_unlocked"); setUnlocked(false); }}>Изход</button>
+          </div>
+        </div>
+
+        <div className="admin-grid">
+          <div className="admin-card">
+            <h2>Нов продукт</h2>
+            <label>
+              Име на продукта
+              <input value={form.title} onChange={(event) => updateForm("title", event.target.value)} placeholder="Пример: Gaming PC Ryzen 5 RTX 4060" />
+            </label>
+            <label>
+              Категория
+              <select value={form.category} onChange={(event) => updateForm("category", event.target.value)}>
+                <option>Gaming PC</option>
+                <option>Компютри</option>
+                <option>Видеокарти</option>
+                <option>Процесори</option>
+                <option>SSD / HDD</option>
+                <option>Лаптопи</option>
+                <option>Монитори</option>
+                <option>Периферия</option>
+              </select>
+            </label>
+            <div className="admin-two">
+              <label>
+                Цена
+                <input type="number" value={form.price} onChange={(event) => updateForm("price", event.target.value)} placeholder="1599" />
+              </label>
+              <label>
+                Наличност
+                <input type="number" value={form.stock} onChange={(event) => updateForm("stock", event.target.value)} placeholder="1" />
+              </label>
+            </div>
+            <label>
+              Описание
+              <textarea value={form.description} onChange={(event) => updateForm("description", event.target.value)} placeholder="Ryzen 5, 16GB RAM, 1TB NVMe..." />
+            </label>
+            <label>
+              Снимка
+              <input type="file" accept="image/*" onChange={(event) => setImageFile(event.target.files?.[0] || null)} />
+            </label>
+            {imageFile && <p className="admin-file">Избрана снимка: {imageFile.name}</p>}
+            {adminNotice && <div className="notice">{adminNotice}</div>}
+            <button className="admin-save" onClick={saveProduct} disabled={saving}>{saving ? "Записване..." : "Добави продукт"}</button>
+          </div>
+
+          <div className="admin-card">
+            <h2>Последни продукти</h2>
+            {adminProducts.length === 0 ? (
+              <p className="admin-empty">Все още няма добавени продукти в базата.</p>
+            ) : (
+              <div className="admin-list">
+                {adminProducts.map((product) => (
+                  <div className="admin-product-row" key={product.id}>
+                    {product.image ? <img src={product.image} alt={product.title} /> : <div className="admin-no-img">IMG</div>}
+                    <div>
+                      <b>{product.title}</b>
+                      <p>{product.category} • {product.price} лв. • наличност: {product.stock}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function App() {
+  const [page, setPage] = useState(() => window.location.hash === "#admin" ? "admin" : "store");
+  const [dbProducts, setDbProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
+
+  useEffect(() => {
+    const onHashChange = () => setPage(window.location.hash === "#admin" ? "admin" : "store");
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoadingProducts(true);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      setLoadingProducts(false);
+
+      if (!error && data && data.length > 0) {
+        setDbProducts(data.map((product) => ({
+          id: product.id,
+          name: product.title,
+          category: product.category || "Компютри",
+          price: Number(product.price || 0),
+          oldPrice: Number(product.price || 0),
+          rating: 4.9,
+          stock: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
+          badge: "NEW",
+          image: product.image || "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
+          specs: product.description ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4) : ["ВФ Компютри", "Проверен продукт"],
+        })));
+      }
+    };
+
+    loadProducts();
+  }, []);
+
   const [activeCategory, setActiveCategory] = useState("Всички");
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState({});
@@ -301,8 +548,13 @@ function App() {
       <a href="#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
       <a href="#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
       <a href="#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
+      <a href="#admin" onClick={() => setMobileOpen(false)}>Админ</a>
     </>
   );
+
+  if (page === "admin") {
+    return <AdminPanel onBack={() => { window.location.hash = ""; setPage("store"); }} />;
+  }
 
   return (
     <div className="site">
@@ -399,6 +651,7 @@ function App() {
           <div>
             <p className="section-label">Каталог</p>
             <h2>Продукти и оферти</h2>
+            {loadingProducts && <p className="loading-products">Зареждане на продукти от базата...</p>}
           </div>
           <div className="filter-card">
             <label>Макс. цена: <b>{priceLimit} лв.</b></label>
