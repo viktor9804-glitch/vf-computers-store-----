@@ -1,21 +1,23 @@
-# ВФ Компютри - V7 Euro Edition
+# ВФ Компютри - V8 OpenAI Assistant
 
-## Какво е променено
-- Основната валута е сменена на евро `€`
-- Цените се форматират автоматично като EUR
-- PC Builder бюджетите са в евро
-- Количката, checkout-ът и админ панелът показват евро
-- Подходящо за работа след преминаване към евро
+Добавен е истински OpenAI чат бот към сайта.
 
-## Админ панел
-Адрес:
-`https://vf-computers-store.vercel.app/#admin`
+## Как работи
+- В браузъра има floating бутон `AI Асистент`
+- Сайтът изпраща въпросите към `/api/chat`
+- `/api/chat` е Vercel serverless function
+- API ключът се пази във Vercel Environment Variable `OPENAI_API_KEY`
+- Ключът НЕ се вижда в браузъра
 
-Парола:
-`vfadmin123`
+## Нужно във Vercel
+Project → Settings → Environment Variables:
+
+`OPENAI_API_KEY=sk-...`
+
+След добавяне на ключа направи redeploy.
 
 ## Качване
-1. Разархивирай ZIP файла.
-2. Копирай файловете от `vf-v7-euro-edition` в папката на проекта.
-3. GitHub Desktop → Commit → Push.
-4. Vercel ще обнови сайта автоматично.
+Замени файловете в проекта, после:
+GitHub Desktop → Commit → Push.
+
+Vercel ще deploy-не автоматично.

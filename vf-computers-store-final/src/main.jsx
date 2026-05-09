@@ -412,6 +412,15 @@ function App() {
   const [notice, setNotice] = useState("");
   const [sendingBuilder, setSendingBuilder] = useState(false);
   const [sendingOrder, setSendingOrder] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiMessages, setAiMessages] = useState([
+    {
+      role: "assistant",
+      content: "Здравей! Аз съм AI асистентът на ВФ Компютри. Мога да помогна с избор на компютър, компоненти, сервиз или custom конфигурация.",
+    },
+  ]);
   const [builder, setBuilder] = useState({
     name: "",
     phone: "",
@@ -548,6 +557,48 @@ function App() {
       }
       return { ...current, [id]: nextQuantity };
     });
+  };
+
+  const sendAiMessage = async () => {
+    const text = aiInput.trim();
+    if (!text || aiLoading) return;
+
+    const nextMessages = [...aiMessages, { role: "user", content: text }];
+    setAiMessages(nextMessages);
+    setAiInput("");
+    setAiLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: nextMessages.map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "AI assistant error");
+      }
+
+      setAiMessages((current) => [...current, { role: "assistant", content: data.reply }]);
+    } catch (error) {
+      console.error(error);
+      setAiMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: "В момента AI асистентът не може да отговори. Провери дали OPENAI_API_KEY е добавен във Vercel и дали сайтът е redeploy-нат.",
+        },
+      ]);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const navLinks = (
@@ -885,10 +936,49 @@ function App() {
         </div>
       </footer>
 
-      <button className="floating-chat" onClick={() => window.location.href = `mailto:${storeInfo.email}?subject=Въпрос от сайта`}>
-        <Send size={18} />
-        <span>Питай ни</span>
+      <button className="floating-chat" onClick={() => setAiOpen(true)}>
+        <Bot size={18} />
+        <span>AI Асистент</span>
       </button>
+
+      {aiOpen && (
+        <div className="ai-chat-window">
+          <div className="ai-chat-head">
+            <div>
+              <b>AI Асистент</b>
+              <p>ВФ Компютри • онлайн помощник</p>
+            </div>
+            <button onClick={() => setAiOpen(false)}><X size={18} /></button>
+          </div>
+
+          <div className="ai-chat-body">
+            {aiMessages.map((message, index) => (
+              <div key={index} className={`ai-message ${message.role === "user" ? "user" : "assistant"}`}>
+                {message.content}
+              </div>
+            ))}
+            {aiLoading && <div className="ai-message assistant">Мисля...</div>}
+          </div>
+
+          <div className="ai-quick-actions">
+            <button onClick={() => setAiInput("Искам gaming компютър до 1000 евро")}>Gaming PC</button>
+            <button onClick={() => setAiInput("Имам проблем с лаптопа, какво да направя?")}>Сервиз</button>
+            <button onClick={() => setAiInput("Помогни ми да избера видеокарта")}>Видеокарта</button>
+          </div>
+
+          <div className="ai-chat-input">
+            <input
+              value={aiInput}
+              onChange={(event) => setAiInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") sendAiMessage();
+              }}
+              placeholder="Напиши въпрос..."
+            />
+            <button onClick={sendAiMessage} disabled={aiLoading}><Send size={17} /></button>
+          </div>
+        </div>
+      )}
 
       {cartOpen && (
         <div className="overlay" onClick={() => setCartOpen(false)}>
