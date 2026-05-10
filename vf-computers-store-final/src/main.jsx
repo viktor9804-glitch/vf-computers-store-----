@@ -144,10 +144,19 @@ const categories = [
 ];
 
 const services = [
-  { icon: Wrench, title: "Диагностика", text: "Проверка на хардуер, температури, захранване, RAM, SSD и видеокарта." },
-  { icon: Fan, title: "Профилактика", text: "Почистване, смяна на термопаста и оптимизация на охлаждане." },
-  { icon: Settings, title: "Инсталация", text: "Windows, драйвери, програми, BIOS настройки и оптимизация." },
-  { icon: MemoryStick, title: "Ъпгрейд", text: "RAM, SSD, CPU, GPU, захранване, кутия и охлаждане." },
+  { id:"diagnostics", icon:Wrench, title:"Диагностика", category:"Сервиз", image:"/services/diagnostics.svg", price:"50€", note:"при отказан ремонт", altPrice:"25€", altNote:"ако клиентът желае да бъде извършен ремонт", text:"Проверка на хардуер, температури, захранване, RAM, SSD, видеокарта и общо състояние." },
+  { id:"windows", icon:Monitor, title:"Инсталиране на Windows", category:"Софтуер", image:"/services/windows.svg", price:"55€", note:"операционна система Windows", text:"Инсталация на Windows, базова настройка и подготовка на системата за работа." },
+  { id:"pc-clean", icon:Fan, title:"Профилактика на настолен PC", category:"Профилактика", image:"/services/pc-clean.svg", price:"32€", note:"настолен компютър", text:"Почистване на кутия, вентилатори, охлаждане и проверка на температури." },
+  { id:"laptop-clean", icon:Laptop, title:"Профилактика на лаптоп", category:"Профилактика", image:"/services/laptop-clean.svg", price:"39€", note:"лаптоп", text:"Разглобяване, почистване на охлаждане и смяна на термопаста при нужда." },
+  { id:"ram", icon:MemoryStick, title:"Смяна / подмяна на RAM", category:"Ъпгрейд", image:"/services/ram.svg", price:"10€", note:"RAM памет", text:"Монтаж или подмяна на RAM памет и базов тест за стабилност." },
+  { id:"ssd", icon:HardDrive, title:"Смяна / подмяна на SSD", category:"Ъпгрейд", image:"/services/ssd.svg", price:"20€", note:"SSD диск", text:"Монтаж или подмяна на SSD, проверка и подготовка за работа." },
+  { id:"cpu", icon:Cpu, title:"Смяна на процесор", category:"Ъпгрейд", image:"/services/cpu.svg", price:"30€", note:"към различен модел", altPrice:"15€", altNote:"подмяна на процесор", text:"Смяна на процесор, монтаж на охлаждане и проверка на температури." },
+  { id:"gpu", icon:Server, title:"Смяна на видеокарта", category:"Ъпгрейд", image:"/services/gpu.svg", price:"20.45€", note:"без инсталиране на драйвери", altPrice:"43.46€", altNote:"с включено инсталиране на драйвери", text:"Монтаж на видеокарта, проверка на захранване и тест на изображение." },
+  { id:"motherboard", icon:Settings, title:"Смяна на дънна платка", category:"Хардуер", image:"/services/motherboard.svg", price:"17.90€", note:"подмяна със същата, ако е възможно", altPrice:"25.56€", altNote:"смяна с друга / ъпгрейд", text:"Подмяна или ъпгрейд на дънна платка според съвместимостта на компонентите." },
+  { id:"clone-ssd", icon:HardDrive, title:"Клониране HDD → SSD", category:"Данни", image:"/services/clone-ssd.svg", price:"35.79€ – 51.13€", note:"според обема и сложността", text:"Прехвърляне на система и данни от стар HDD към нов SSD." },
+  { id:"clone-hdd", icon:HardDrive, title:"Клониране HDD → HDD", category:"Данни", image:"/services/clone-hdd.svg", price:"40.90€ – 61.36€", note:"според обема и сложността", text:"Клониране на диск към друг HDD с цел запазване на система и файлове." },
+  { id:"games", icon:Gamepad2, title:"Инсталиране на игри", category:"Софтуер", image:"/services/games.svg", price:"10.23€ – 23.52€", note:"зависи от играта и размера", text:"Инсталиране и базова настройка на игри според платформата и изискванията." },
+  { id:"programs", icon:PackageCheck, title:"Инсталиране на програми", category:"Софтуер", image:"/services/programs.svg", price:"5.11€ – 12.78€", note:"според програмата", text:"Инсталиране на основни програми, драйвери и приложения за работа." },
 ];
 
 
@@ -1807,22 +1816,44 @@ function App() {
         </div>
       </section>
 
-      <section id="services" className="container services-section">
-        <div className="section-head">
+      <section id="services" className="container services-section service-pricing-section">
+        <div className="section-head services-pricing-head">
           <div>
-            <p className="section-label">Сервиз</p>
-            <h2>Ремонт и поддръжка</h2>
+            <p className="section-label">Услуги и цени</p>
+            <h2>Ценоразпис</h2>
+            <p className="services-pricing-lead">Професионални сервизни услуги за компютри, лаптопи, компоненти, софтуер и ъпгрейди. Цените са ориентировъчни и са посочени в евро.</p>
           </div>
-          <a className="btn primary" href={`tel:${storeInfo.rawPhone}`}>Заяви сервиз</a>
+          <a className="btn primary" href={`tel:${storeInfo.rawPhone}`}>Заяви услуга</a>
         </div>
-        <div className="service-grid">
-          {services.map(({ icon: Icon, title, text }) => (
-            <div className="service-card" key={title}>
-              <Icon />
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </div>
+
+        <div className="services-trust-row">
+          <span><ShieldCheck size={17} /> Гаранция на услугата</span>
+          <span><Gauge size={17} /> Тестване след ремонт</span>
+          <span><Truck size={17} /> Прием и предаване</span>
+          <span><Wrench size={17} /> Професионален сервиз</span>
+        </div>
+
+        <div className="service-price-grid">
+          {services.map(({ icon: Icon, title, category, image, price, note, altPrice, altNote, text }) => (
+            <article className="service-price-card" key={title}>
+              <div className="service-price-image">
+                <img src={image} alt={title} loading="lazy" />
+                <span>{category}</span>
+              </div>
+              <div className="service-price-body">
+                <div className="service-price-title"><Icon size={20} /><h3>{title}</h3></div>
+                <p>{text}</p>
+                <div className="service-price-main"><b>{price}</b><small>{note}</small></div>
+                {altPrice && <div className="service-price-alt"><span>{altPrice}</span><small>{altNote}</small></div>}
+                <a className="service-request-btn" href={`mailto:${storeInfo.email}?subject=Заявка за услуга: ${encodeURIComponent(title)}`}>Заяви услуга</a>
+              </div>
+            </article>
           ))}
+        </div>
+
+        <div className="service-important-note">
+          <b>Важно:</b>
+          <span>Посочените цени са ориентировъчни. Крайната цена може да зависи от състоянието на устройството, сложността на ремонта и необходимите части.</span>
         </div>
       </section>
 
@@ -1853,9 +1884,7 @@ function App() {
         <div className="partners-grid">
           {partners.map((partner) => (
             <a className="partner-card" href={partner.url} target="_blank" rel="noreferrer" key={partner.name} aria-label={`Отвори сайта на ${partner.name}`}>
-              <div className="partner-logo-img-wrap">
-  <img src={partner.logoSrc} alt={`${partner.name} logo`} loading="lazy" />
-</div>
+              <div className={`partner-logo partner-logo-${partner.name.toLowerCase().replaceAll(" ", "-").replaceAll("13", "")}`}>{partner.logo}</div>
               <span className="partner-divider" />
               <div className="partner-body"><span>{partner.tag}</span><h3>{partner.name}</h3><p>{partner.text}</p></div>
               <div className="partner-action">Посети сайта <ExternalLink size={15} /></div>

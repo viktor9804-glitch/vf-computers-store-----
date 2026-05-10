@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v20-partners-logo-style",
+  "name": "vf-computers-v21-services-prices",
   "private": true,
-  "version": "20.0.0",
+  "version": "21.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
