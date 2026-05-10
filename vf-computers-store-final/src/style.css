@@ -1076,3 +1076,32 @@ button:disabled{
     flex:1;
   }
 }
+
+
+/* V13 Customer profile, orders, warranty and service */
+.profile-overlay{position:fixed;inset:0;z-index:135;background:rgba(0,0,0,.72);backdrop-filter:blur(12px);display:grid;place-items:center;padding:18px}
+.profile-modal{width:min(980px,100%);max-height:90vh;overflow:auto;border:1px solid rgba(239,68,68,.35);background:linear-gradient(180deg,rgba(18,20,31,.98),rgba(7,8,13,.98));border-radius:30px;padding:26px;box-shadow:0 25px 90px rgba(0,0,0,.6),0 0 55px rgba(239,68,68,.18)}
+.profile-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.profile-head h2{margin:4px 0 6px;font-size:34px}
+.profile-head p{margin:0;color:var(--muted)}
+.profile-close{width:42px;height:42px;border-radius:15px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:white;display:grid;place-items:center;cursor:pointer}
+.profile-tabs{display:flex;gap:10px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.10);padding:18px 0 14px;margin-bottom:18px}
+.profile-tabs button{border:1px solid rgba(239,68,68,.28);background:rgba(255,255,255,.06);color:white;border-radius:999px;padding:11px 15px;font-weight:1000;cursor:pointer}
+.profile-tabs button.active{background:linear-gradient(135deg,#ef4444,#b91c1c);border-color:transparent}
+.profile-panel{min-height:300px}
+.profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.profile-grid label,.service-create{color:white;font-weight:900}
+.profile-grid input,.service-create input,.service-create textarea{width:100%;margin-top:8px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;border-radius:17px;padding:14px 15px;outline:0;font-weight:800}
+.service-create textarea{min-height:100px;resize:vertical}
+.profile-primary{border:0;background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;border-radius:18px;padding:14px 18px;font-weight:1000;cursor:pointer;margin-top:16px}
+.profile-list{display:grid;gap:12px}
+.profile-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);border-radius:20px;padding:15px}
+.profile-row b{display:block;margin-bottom:5px}
+.profile-row p{margin:0 0 6px;color:var(--muted)}
+.profile-row small{color:#a1a1aa}
+.profile-row strong{color:#f87171;font-size:20px;white-space:nowrap}
+.profile-empty{color:var(--muted);border:1px dashed rgba(255,255,255,.14);border-radius:20px;padding:24px;text-align:center}
+.status-chip{display:inline-flex;border:1px solid rgba(74,222,128,.25);background:rgba(74,222,128,.10);color:#86efac;border-radius:999px;padding:8px 11px;font-weight:1000;white-space:nowrap}
+.service-create{border:1px solid rgba(239,68,68,.20);background:rgba(239,68,68,.06);border-radius:22px;padding:16px;margin-bottom:18px}
+.service-create h3{margin-top:0}.profile-footer{display:flex;justify-content:flex-end;gap:10px;border-top:1px solid rgba(255,255,255,.10);margin-top:20px;padding-top:16px}.profile-notice{margin-bottom:16px}
+@media(max-width:760px){.profile-modal{padding:18px}.profile-grid{grid-template-columns:1fr}.profile-row{flex-direction:column}.profile-footer{flex-direction:column}}

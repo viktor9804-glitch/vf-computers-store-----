@@ -208,7 +208,7 @@ function AuthModal({ mode, onClose, onModeChange }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://vf-computers-store.vercel.app",
+        redirectTo: window.location.origin,
       },
     });
 
@@ -325,6 +325,246 @@ function CookieConsent() {
         <button className="cookie-accept" onClick={() => saveConsent(true, showSettings ? analyticsAllowed : true)}>
           Приемам
         </button>
+      </div>
+    </div>
+  );
+}
+
+
+function CustomerProfileModal({ session, onClose, onLogout }) {
+  const user = session?.user;
+  const [tab, setTab] = useState("profile");
+  const [profileNotice, setProfileNotice] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [serviceLoading, setServiceLoading] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [serviceTickets, setServiceTickets] = useState([]);
+  const [profileForm, setProfileForm] = useState({
+    full_name: user?.user_metadata?.full_name || "",
+    phone: "",
+    city: "",
+    address: "",
+  });
+  const [serviceForm, setServiceForm] = useState({
+    device: "",
+    problem: "",
+  });
+
+  const loadProfile = async () => {
+    if (!user?.id) return;
+    const { data, error } = await supabase.from("customer_profiles").select("*").eq("user_id", user.id).maybeSingle();
+    if (!error && data) {
+      setProfileForm({
+        full_name: data.full_name || user?.user_metadata?.full_name || "",
+        phone: data.phone || "",
+        city: data.city || "",
+        address: data.address || "",
+      });
+    }
+  };
+
+  const loadOrders = async () => {
+    if (!user?.id) return;
+    setOrdersLoading(true);
+    const { data, error } = await supabase.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setOrdersLoading(false);
+    if (error) {
+      console.error(error);
+      setOrders([]);
+      return;
+    }
+    setOrders(data || []);
+  };
+
+  const loadServiceTickets = async () => {
+    if (!user?.id) return;
+    setServiceLoading(true);
+    const { data, error } = await supabase.from("service_tickets").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setServiceLoading(false);
+    if (error) {
+      console.error(error);
+      setServiceTickets([]);
+      return;
+    }
+    setServiceTickets(data || []);
+  };
+
+  useEffect(() => {
+    loadProfile();
+    loadOrders();
+    loadServiceTickets();
+  }, [user?.id]);
+
+  const updateProfileForm = (field, value) => {
+    setProfileForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const saveProfile = async () => {
+    if (!user?.id) return;
+    setProfileSaving(true);
+    setProfileNotice("");
+
+    const { error } = await supabase.from("customer_profiles").upsert({
+      user_id: user.id,
+      email: user.email,
+      full_name: profileForm.full_name,
+      phone: profileForm.phone,
+      city: profileForm.city,
+      address: profileForm.address,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+
+    setProfileSaving(false);
+
+    if (error) {
+      console.error(error);
+      setProfileNotice("Не успях да запазя профила. Провери таблицата customer_profiles и policies.");
+      return;
+    }
+
+    setProfileNotice("Профилът е запазен успешно.");
+  };
+
+  const createServiceTicket = async () => {
+    if (!serviceForm.device.trim() || !serviceForm.problem.trim()) {
+      setProfileNotice("Попълни устройство и описание на проблема.");
+      return;
+    }
+
+    const { error } = await supabase.from("service_tickets").insert({
+      user_id: user.id,
+      customer_name: profileForm.full_name || user.email,
+      phone: profileForm.phone,
+      device: serviceForm.device,
+      problem: serviceForm.problem,
+      status: "Нова заявка",
+    });
+
+    if (error) {
+      console.error(error);
+      setProfileNotice("Не успях да създам сервизна заявка. Провери таблицата service_tickets и policies.");
+      return;
+    }
+
+    setProfileNotice("Сервизната заявка е създадена успешно.");
+    setServiceForm({ device: "", problem: "" });
+    await loadServiceTickets();
+  };
+
+  const warrantyText = (order) => {
+    const created = order.created_at ? new Date(order.created_at) : null;
+    if (!created || Number.isNaN(created.getTime())) return "Гаранция според продукта";
+    const warrantyUntil = new Date(created);
+    warrantyUntil.setFullYear(warrantyUntil.getFullYear() + 2);
+    return `Гаранция до ${warrantyUntil.toLocaleDateString("bg-BG")}`;
+  };
+
+  return (
+    <div className="profile-overlay" onClick={onClose}>
+      <div className="profile-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="profile-head">
+          <div>
+            <p className="section-label">Моят профил</p>
+            <h2>{profileForm.full_name || user?.email}</h2>
+            <p>{user?.email}</p>
+          </div>
+          <button className="profile-close" onClick={onClose}><X size={18} /></button>
+        </div>
+
+        <div className="profile-tabs">
+          <button className={tab === "profile" ? "active" : ""} onClick={() => setTab("profile")}>Данни</button>
+          <button className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}>Поръчки</button>
+          <button className={tab === "warranty" ? "active" : ""} onClick={() => setTab("warranty")}>Гаранции</button>
+          <button className={tab === "service" ? "active" : ""} onClick={() => setTab("service")}>Сервиз</button>
+        </div>
+
+        {profileNotice && <div className="notice profile-notice">{profileNotice}</div>}
+
+        {tab === "profile" && (
+          <div className="profile-panel">
+            <div className="profile-grid">
+              <label>Име и фамилия<input value={profileForm.full_name} onChange={(event) => updateProfileForm("full_name", event.target.value)} placeholder="Име и фамилия" /></label>
+              <label>Телефон<input value={profileForm.phone} onChange={(event) => updateProfileForm("phone", event.target.value)} placeholder="Телефон" /></label>
+              <label>Град<input value={profileForm.city} onChange={(event) => updateProfileForm("city", event.target.value)} placeholder="Град" /></label>
+              <label>Адрес / офис на куриер<input value={profileForm.address} onChange={(event) => updateProfileForm("address", event.target.value)} placeholder="Адрес или офис на Еконт/Спиди" /></label>
+            </div>
+            <button className="profile-primary" onClick={saveProfile} disabled={profileSaving}>{profileSaving ? "Запазване..." : "Запази данните"}</button>
+          </div>
+        )}
+
+        {tab === "orders" && (
+          <div className="profile-panel">
+            {ordersLoading ? <p className="profile-empty">Зареждане на поръчки...</p> : orders.length === 0 ? (
+              <p className="profile-empty">Все още няма поръчки към този профил.</p>
+            ) : (
+              <div className="profile-list">
+                {orders.map((order) => (
+                  <div className="profile-row" key={order.id}>
+                    <div>
+                      <b>Поръчка #{order.id}</b>
+                      <p>{order.created_at ? new Date(order.created_at).toLocaleString("bg-BG") : "Без дата"}</p>
+                      <small>{Array.isArray(order.items) ? order.items.map((item) => `${item.name} x${item.quantity}`).join(", ") : "Продукти"}</small>
+                    </div>
+                    <strong>{formatPrice(order.total || 0)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "warranty" && (
+          <div className="profile-panel">
+            {orders.length === 0 ? <p className="profile-empty">Гаранциите ще се показват тук след първа поръчка.</p> : (
+              <div className="profile-list">
+                {orders.map((order) => (
+                  <div className="profile-row" key={order.id}>
+                    <div>
+                      <b>Поръчка #{order.id}</b>
+                      <p>{warrantyText(order)}</p>
+                      <small>Ориентировъчно: 2 години гаранция според продукта.</small>
+                    </div>
+                    <span className="status-chip">Активна</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "service" && (
+          <div className="profile-panel">
+            <div className="service-create">
+              <h3>Нова сервизна заявка</h3>
+              <input value={serviceForm.device} onChange={(event) => setServiceForm((current) => ({ ...current, device: event.target.value }))} placeholder="Устройство: лаптоп, компютър, видеокарта..." />
+              <textarea value={serviceForm.problem} onChange={(event) => setServiceForm((current) => ({ ...current, problem: event.target.value }))} placeholder="Опиши проблема..." />
+              <button className="profile-primary" onClick={createServiceTicket}>Изпрати сервизна заявка</button>
+            </div>
+            <h3>Моите сервизни заявки</h3>
+            {serviceLoading ? <p className="profile-empty">Зареждане...</p> : serviceTickets.length === 0 ? (
+              <p className="profile-empty">Все още няма сервизни заявки.</p>
+            ) : (
+              <div className="profile-list">
+                {serviceTickets.map((ticket) => (
+                  <div className="profile-row" key={ticket.id}>
+                    <div>
+                      <b>{ticket.device}</b>
+                      <p>{ticket.problem}</p>
+                      <small>{ticket.created_at ? new Date(ticket.created_at).toLocaleString("bg-BG") : "Без дата"}</small>
+                    </div>
+                    <span className="status-chip">{ticket.status || "Нова заявка"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="profile-footer">
+          <button className="admin-secondary" onClick={() => { loadOrders(); loadServiceTickets(); }}>Обнови</button>
+          <button className="admin-danger" onClick={onLogout}>Изход</button>
+        </div>
       </div>
     </div>
   );
@@ -659,6 +899,7 @@ function App() {
   const [userSession, setUserSession] = useState(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
+  const [profileOpen, setProfileOpen] = useState(false);
   const [dbProducts, setDbProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
@@ -690,6 +931,7 @@ function App() {
   const logoutUser = async () => {
     await supabase.auth.signOut();
     setUserSession(null);
+    setProfileOpen(false);
   };
 
 
@@ -964,7 +1206,7 @@ function App() {
           <div className="header-actions">
             <a className="phone-chip" href={`tel:${storeInfo.rawPhone}`}><Phone size={16} /> {storeInfo.phone}</a>
             {userSession ? (
-              <button className="account-chip" onClick={logoutUser} title="Изход">
+              <button className="account-chip" onClick={() => setProfileOpen(true)} title="Моят профил">
                 <User size={16} />
                 <span>{userSession.user?.user_metadata?.full_name || userSession.user?.email?.split("@")[0] || "Профил"}</span>
               </button>
@@ -990,7 +1232,7 @@ function App() {
           <nav>{navLinks}</nav>
           <a className="mobile-call" href={`tel:${storeInfo.rawPhone}`}>Обади се: {storeInfo.phone}</a>
           {userSession ? (
-            <button className="mobile-auth" onClick={logoutUser}>Изход от профила</button>
+            <button className="mobile-auth" onClick={() => { setMobileOpen(false); setProfileOpen(true); }}>Моят профил</button>
           ) : (
             <button className="mobile-auth" onClick={() => { setMobileOpen(false); openAuth("login"); }}>Вход / Регистрация</button>
           )}
@@ -1337,6 +1579,14 @@ function App() {
             <button onClick={sendAiMessage} disabled={aiLoading}><Send size={17} /></button>
           </div>
         </div>
+      )}
+
+      {profileOpen && userSession && (
+        <CustomerProfileModal
+          session={userSession}
+          onClose={() => setProfileOpen(false)}
+          onLogout={logoutUser}
+        />
       )}
 
       {authOpen && (
