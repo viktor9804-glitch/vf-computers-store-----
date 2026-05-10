@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v18-admin-desktop-app",
+  "name": "vf-computers-v19-partners-section",
   "private": true,
-  "version": "18.0.0",
+  "version": "19.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

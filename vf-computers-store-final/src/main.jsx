@@ -6,7 +6,7 @@ import {
   Star, Heart, ShieldCheck, Truck, Wrench, Phone, Mail, MapPin, Minus, Plus,
   Trash2, CreditCard, Sparkles, Zap, Settings, CheckCircle2, PackageCheck,
   User, SlidersHorizontal, ChevronDown, Bot, Gauge, Server, MemoryStick,
-  Cable, Fan, Power, Send
+  Cable, Fan, Power, Send, ExternalLink
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import "./style.css";
@@ -148,6 +148,16 @@ const services = [
   { icon: Fan, title: "Профилактика", text: "Почистване, смяна на термопаста и оптимизация на охлаждане." },
   { icon: Settings, title: "Инсталация", text: "Windows, драйвери, програми, BIOS настройки и оптимизация." },
   { icon: MemoryStick, title: "Ъпгрейд", text: "RAM, SSD, CPU, GPU, захранване, кутия и охлаждане." },
+];
+
+
+const partners = [
+  { name: "Polycomp", logo: "POLYCOMP", tag: "ICT дистрибутор", text: "Дистрибутор на ИКТ оборудване и потребителска техника.", url: "https://polycomp.bg/poly/home" },
+  { name: "VALI Computers", logo: "VALI", tag: "IT дистрибутор", text: "Широк асортимент от компютърни продукти, компоненти и решения.", url: "https://www.vali.bg/" },
+  { name: "AdminBG", logo: "AdminBG", tag: "Сервиз и части", text: "Специализиран сервиз и решения за компютърна поддръжка.", url: "https://adminbg.net/" },
+  { name: "Katnis13", logo: "KATNIS13", tag: "Счетоводство", text: "Счетоводни и бизнес услуги за фирмени клиенти.", url: "https://www.katnis13.com/" },
+  { name: "TBI Bank", logo: "tbi bank", tag: "Финансиране", text: "Партньор за покупки на изплащане и гъвкави финансови решения.", url: "https://tbibank.bg/" },
+  { name: "Econt", logo: "ECONT", tag: "Доставка", text: "Куриерски услуги и доставки до клиенти в цялата страна.", url: "https://www.econt.com/" },
 ];
 
 const pcBuilderSteps = [
@@ -1464,6 +1474,7 @@ function App() {
       <a href="#products" onClick={() => setMobileOpen(false)}>Продукти</a>
       <a href="#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
       <a href="#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
+      <a href="#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
       <a href="#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
     </>
   );
@@ -1785,6 +1796,27 @@ function App() {
             </p>
           </div>
           <a className="btn ghost" href={`mailto:${storeInfo.email}?subject=Искам консултация за компютър`}>Питай за оферта</a>
+        </div>
+      </section>
+
+
+      <section id="partners" className="container partners-section">
+        <div className="section-head partners-head">
+          <div>
+            <p className="section-label">Партньори</p>
+            <h2>Нашите партньори</h2>
+            <p className="partners-lead">Работим с надеждни доставчици, сервизни, финансови и логистични партньори, за да предлагаме по-добри продукти, услуги и обслужване.</p>
+          </div>
+        </div>
+        <div className="partners-grid">
+          {partners.map((partner) => (
+            <a className="partner-card" href={partner.url} target="_blank" rel="noreferrer" key={partner.name} aria-label={`Отвори сайта на ${partner.name}`}>
+              <div className={`partner-logo partner-logo-${partner.name.toLowerCase().replaceAll(" ", "-").replaceAll("13", "")}`}>{partner.logo}</div>
+              <span className="partner-divider" />
+              <div className="partner-body"><span>{partner.tag}</span><h3>{partner.name}</h3><p>{partner.text}</p></div>
+              <div className="partner-action">Посети сайта <ExternalLink size={15} /></div>
+            </a>
+          ))}
         </div>
       </section>
 
