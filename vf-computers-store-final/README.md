@@ -1,32 +1,40 @@
-# ВФ Компютри - V17 Separated Admin App
+# ВФ Компютри - V18 Admin Desktop App
 
-## Промени
-- Публичният сайт вече няма линк „Админ“.
-- `#admin` вече не отваря админ панел в магазина.
-- Има отделно админ приложение в папка `vf-admin-app`.
+## Какво е добавено
+- Публичният сайт остава без „Админ“
+- Админ панелът е отделно desktop приложение
+- Папка: `vf-admin-app`
+- Electron desktop wrapper
+- Windows installer build чрез electron-builder
 
-## Стартиране на админ приложението
+## Как да го стартираш
+
+Влез в:
+
+```txt
+vf-admin-app
+```
+
+После:
 
 ```bash
-cd vf-admin-app
 npm install
-npm run dev
+npm run desktop
 ```
 
-Отваряш:
+## Как да направиш .exe installer
+
+```bash
+npm run dist
+```
+
+Готовият installer ще е в:
 
 ```txt
-http://localhost:5174
+vf-admin-app/release/
 ```
 
-## Важно
-Създай админ потребител в Supabase:
-
-```txt
-Supabase → Authentication → Users → Add user
-```
-
-После влизаш с този имейл и парола.
-
-Публичния магазин качваш във Vercel както досега.
-Админ приложението можеш да държиш само на твоя компютър или да го качиш като отделен проект.
+## Най-лесно
+Може да използваш файловете:
+- `START_ADMIN_DESKTOP.bat`
+- `BUILD_WINDOWS_INSTALLER.bat`

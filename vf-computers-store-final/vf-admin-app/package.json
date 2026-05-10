@@ -1,11 +1,13 @@
 {
-  "name": "vf-computers-admin-app",
-  "version": "1.0.0",
+  "name": "vf-computers-admin-desktop",
+  "version": "18.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5174",
+    "dev": "vite --host 127.0.0.1 --port 5174",
+    "desktop": "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:5174 && electron .\"",
     "build": "vite build",
+    "dist": "npm run build && electron-builder",
     "preview": "vite preview --port 4174"
   },
   "dependencies": {
@@ -14,7 +16,34 @@
     "react": "latest",
     "react-dom": "latest",
     "@supabase/supabase-js": "latest",
-    "lucide-react": "latest"
+    "lucide-react": "latest",
+    "electron": "latest",
+    "electron-builder": "latest",
+    "concurrently": "latest",
+    "wait-on": "latest"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "bg.vfcomputers.admin",
+    "productName": "VF Computers Admin",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "VF-Computers-Admin-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
 }
