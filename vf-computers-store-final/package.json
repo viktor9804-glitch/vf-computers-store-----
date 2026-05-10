@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v22-exact-service-images",
+  "name": "vf-computers-v23-payment-methods-checkout",
   "private": true,
-  "version": "22.0.0",
+  "version": "23.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

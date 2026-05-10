@@ -1,15 +1,25 @@
-# ВФ Компютри - V22 Exact Service Images
+# ВФ Компютри - V23 Payment Methods Checkout Bank Ready
 
-## Промени
-- Изображенията на услугите са изрязани от одобрения preview дизайн.
-- Използват се локални PNG файлове в `public/services/`.
-- Бутоните „Заяви услуга“ вътре във всяка карта са скрити.
-- Остава само големият бутон „Заяви услуга“ горе.
+## Добавено
+- Наложен платеж
+- Банков превод
+- TBI Bank - на изплащане
+- Реални банкови данни:
 
-## Копирай само
-- `src/main.jsx`
-- `src/style.css`
-- `public/services/`
+```txt
+Beneficiary: V F COMPUTERS LTD
+IBAN: BG29BPBI79341038936401
+BIC: BPBIBGSF
+Bank: Пощенска банка
+```
 
 ## Важно
 Не заменяй `api/`, ако чат ботът работи.
+
+## Копирай
+- `src/main.jsx`
+- `src/style.css`
+
+Ако услугите/партньорите още не са качени:
+- `public/services/`
+- `public/partners/`

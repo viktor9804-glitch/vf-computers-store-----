@@ -21,6 +21,36 @@ const storeInfo = {
   address: "гр. Елхово, ул. Славянска №5",
 };
 
+
+const bankInfo = {
+  bank: "Пощенска банка",
+  iban: "BG29BPBI79341038936401",
+  bic: "BPBIBGSF",
+  holder: "V F COMPUTERS LTD",
+  note: "Моля използвайте номера на поръчката като основание за плащане.",
+};
+
+const paymentMethods = [
+  {
+    id: "cod",
+    title: "Наложен платеж",
+    text: "Плащане при получаване на пратката.",
+    badge: "Най-често",
+  },
+  {
+    id: "bank",
+    title: "Банков превод",
+    text: "Поръчката се обработва след потвърждение на превода.",
+    badge: "За фирми",
+  },
+  {
+    id: "tbi",
+    title: "TBI Bank - на изплащане",
+    text: "Онлайн кандидатстване за покупка на изплащане.",
+    badge: "Изплащане",
+  },
+];
+
 const ADMIN_PASSWORD = "vfadmin123"; // Смени тази парола след като качиш сайта.
 const STORAGE_BUCKET = "product-images";
 
@@ -1253,6 +1283,7 @@ function App() {
   const [tbiLoading, setTbiLoading] = useState(false);
   const [tbiProduct, setTbiProduct] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [priceLimit, setPriceLimit] = useState(2000);
   const [notice, setNotice] = useState("");
@@ -1379,6 +1410,22 @@ function App() {
         billing_address: customerProfile.billing_address,
         address: customerProfile.address,
       } : null,
+      payment_method: paymentMethod,
+      payment_status:
+        paymentMethod === "bank"
+          ? "Очаква банков превод"
+          : paymentMethod === "tbi"
+            ? "Очаква TBI одобрение"
+            : "Наложен платеж",
+      order_status: "Нова поръчка",
+      bank_transfer_details:
+        paymentMethod === "bank"
+          ? {
+              bank: bankInfo.bank,
+              iban: bankInfo.iban,
+              holder: bankInfo.holder,
+            }
+          : null,
     };
 
     const { data: savedOrder, error } = await supabase
@@ -1395,13 +1442,27 @@ function App() {
       return;
     }
 
-    setNotice("Поръчката е изпратена успешно! Документите са генерирани.");
+    setNotice(
+      paymentMethod === "bank"
+        ? "Поръчката е изпратена успешно! Очакваме банков превод."
+        : paymentMethod === "tbi"
+          ? "Поръчката е създадена. Продължи към TBI Bank за кандидатстване."
+          : "Поръчката е изпратена успешно! Документите са генерирани."
+    );
     setDocumentOrder(savedOrder || { ...payload, id: Date.now(), created_at: new Date().toISOString() });
     setDocumentCustomer(customerProfile || {
       full_name: customerName,
       phone,
       account_type: "personal",
     });
+
+    if (paymentMethod === "tbi") {
+      handleTbiCheckout({
+        name: cartItems.map((item) => item.name).join(", "),
+        price: total,
+      });
+    }
+
     setCart({});
     setCartOpen(false);
     setCheckoutOpen(false);
@@ -2135,18 +2196,73 @@ function App() {
               <input placeholder="Имейл" />
               <input placeholder="Град" />
               <input className="wide" placeholder="Адрес или офис на куриер" />
-              <select className="wide">
-                <option>Наложен платеж</option>
-                <option>Банков превод</option>
-                <option>Плащане на място</option>
-              </select>
               <textarea className="wide" placeholder="Коментар към поръчката" />
             </form>
+
+            <div className="payment-box">
+              <div className="payment-title">
+                <CreditCard />
+                <div>
+                  <b>Метод на плащане</b>
+                  <p>Избери как клиентът ще плати поръчката.</p>
+                </div>
+              </div>
+
+              <div className="payment-options">
+                {paymentMethods.map((method) => (
+                  <label
+                    className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
+                    key={method.id}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      value={method.id}
+                      checked={paymentMethod === method.id}
+                      onChange={() => setPaymentMethod(method.id)}
+                    />
+                    <div>
+                      <span>{method.badge}</span>
+                      <b>{method.title}</b>
+                      <p>{method.text}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {paymentMethod === "bank" && (
+                <div className="bank-transfer-box">
+                  <b>Данни за банков превод</b>
+                  <p><span>Банка:</span> {bankInfo.bank}</p>
+                  <p><span>Титуляр:</span> {bankInfo.holder}</p>
+                  <p><span>IBAN:</span> {bankInfo.iban}</p>
+                  <p><span>BIC:</span> {bankInfo.bic}</p>
+                  <p><span>Основание:</span> Поръчка № ще се генерира след изпращане</p>
+                  <small>{bankInfo.note}</small>
+                </div>
+              )}
+
+              {paymentMethod === "tbi" && (
+                <div className="tbi-payment-box">
+                  <b>TBI Bank - покупка на изплащане</b>
+                  <p>След изпращане на поръчката ще се отвори прозорецът за TBI кандидатстване.</p>
+                </div>
+              )}
+            </div>
+
             <div className="checkout-summary">
               <CreditCard />
               <span>Обща сума: <b>{formatPrice(total)}</b></span>
             </div>
-            <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>{sendingOrder ? "Изпращане..." : "Изпрати поръчка"}</button>
+            <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>
+              {sendingOrder
+                ? "Изпращане..."
+                : paymentMethod === "bank"
+                  ? "Изпрати поръчка с банков превод"
+                  : paymentMethod === "tbi"
+                    ? "Продължи към TBI"
+                    : "Изпрати поръчка с наложен платеж"}
+            </button>
           </div>
         </div>
       )}
