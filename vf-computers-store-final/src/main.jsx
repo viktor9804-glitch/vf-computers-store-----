@@ -1853,7 +1853,9 @@ function App() {
         <div className="partners-grid">
           {partners.map((partner) => (
             <a className="partner-card" href={partner.url} target="_blank" rel="noreferrer" key={partner.name} aria-label={`Отвори сайта на ${partner.name}`}>
-              <div className={`partner-logo partner-logo-${partner.name.toLowerCase().replaceAll(" ", "-").replaceAll("13", "")}`}>{partner.logo}</div>
+              <div className="partner-logo-img-wrap">
+  <img src={partner.logoSrc} alt={`${partner.name} logo`} loading="lazy" />
+</div>
               <span className="partner-divider" />
               <div className="partner-body"><span>{partner.tag}</span><h3>{partner.name}</h3><p>{partner.text}</p></div>
               <div className="partner-action">Посети сайта <ExternalLink size={15} /></div>
