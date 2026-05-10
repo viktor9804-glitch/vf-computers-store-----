@@ -1277,3 +1277,26 @@ button:disabled{
   transform: translateY(-2px);
   filter: brightness(1.1);
 }
+.tbi-btn {
+  border: none;
+  background: linear-gradient(135deg, #ff7a00, #ff4d00);
+  color: #fff;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.25s;
+  font-size: 12px;
+
+  width: fit-content;
+  min-width: 90px;
+  max-width: 110px;
+
+  line-height: 1.2;
+  text-align: center;
+}
+
+.tbi-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
