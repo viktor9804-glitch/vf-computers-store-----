@@ -1364,7 +1364,31 @@ function App() {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
     setCartOpen(true);
   };
+const handleTbiCheckout = async (product) => {
+  try {
+    const response = await fetch("/api/tbi", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: product.name,
+        price: product.price,
+      }),
+    });
 
+    const data = await response.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("TBI връзката не е налична.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Грешка при TBI заявката.");
+  }
+};
   const updateQuantity = (id, amount) => {
     setCart((current) => {
       const nextQuantity = (current[id] || 0) + amount;
@@ -1585,6 +1609,12 @@ function App() {
                     <del>{formatPrice(product.oldPrice)}</del>
                   </div>
                   <button onClick={() => addToCart(product.id)}>Добави</button>
+<button
+  className="tbi-btn"
+  onClick={() => handleTbiCheckout(product)}
+>
+  Купи на изплащане с TBI
+</button>
                 </div>
               </div>
             </article>
