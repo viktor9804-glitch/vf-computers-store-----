@@ -1187,6 +1187,7 @@ function App() {
   const [tbiUrl, setTbiUrl] = useState("");
   const [showTbi, setShowTbi] = useState(false);
   const [tbiLoading, setTbiLoading] = useState(false);
+  const [tbiProduct, setTbiProduct] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [priceLimit, setPriceLimit] = useState(2000);
@@ -1389,6 +1390,7 @@ function App() {
 
       if (data.url) {
         setTbiUrl(data.url);
+        setTbiProduct(product);
         setShowTbi(true);
       } else {
         alert("TBI връзката не е налична.");
@@ -1905,25 +1907,55 @@ function App() {
 
       {showTbi && (
         <div className="tbi-modal">
-          <div className="tbi-modal-content">
-            <div className="tbi-modal-head">
+          <div className="tbi-redirect-card">
+            <button className="tbi-redirect-close" onClick={() => setShowTbi(false)}>✕</button>
+
+            <div className="tbi-bank-mark">TBI Bank</div>
+            <h2>Купи на изплащане</h2>
+            <p className="tbi-redirect-lead">
+              Заявката ще продължи в защитената система на TBI Bank.
+              Това е нормално, защото банката не позволява формата да се зарежда вътре в друг сайт.
+            </p>
+
+            <div className="tbi-summary-box">
               <div>
-                <b>TBI Bank изплащане</b>
-                <p>Заявката се отваря директно в сайта на ВФ Компютри.</p>
+                <span>Продукт / поръчка</span>
+                <b>{tbiProduct?.name || "Избрани продукти"}</b>
               </div>
-              <button onClick={() => setShowTbi(false)}>✕</button>
+              <div>
+                <span>Сума</span>
+                <b>{formatPrice(tbiProduct?.price || 0)}</b>
+              </div>
+              <div>
+                <span>Примерна вноска</span>
+                <b>от {formatPrice((Number(tbiProduct?.price || 0) / 24).toFixed(0))} / мес.</b>
+              </div>
             </div>
 
-            {tbiUrl ? (
-              <iframe
-                src={tbiUrl}
-                title="TBI Bank Checkout"
-                width="100%"
-                height="100%"
-              />
-            ) : (
-              <div className="tbi-loading">Зареждане на TBI...</div>
-            )}
+            <div className="tbi-info-list">
+              <span>✓ Бърза онлайн заявка</span>
+              <span>✓ Защитена страница на TBI Bank</span>
+              <span>✓ Връщане към магазина след заявката</span>
+            </div>
+
+            <div className="tbi-redirect-actions">
+              <button
+                className="tbi-continue"
+                onClick={() => {
+                  window.open(tbiUrl, "_blank", "noopener,noreferrer");
+                  setShowTbi(false);
+                }}
+              >
+                Продължи към TBI Bank
+              </button>
+              <button className="tbi-cancel" onClick={() => setShowTbi(false)}>
+                Отказ
+              </button>
+            </div>
+
+            <small>
+              ВФ Компютри не съхранява банкови данни. Одобрението и условията се обработват от TBI Bank.
+            </small>
           </div>
         </div>
       )}

@@ -1,18 +1,7 @@
-# ВФ Компютри - V15 TBI Embedded Checkout
+# ВФ Компютри - V16 TBI Secure Redirect Modal
 
-Добавено:
-- бутон „Купи на изплащане“ на всеки продукт
-- бутон за TBI в количката
-- TBI се отваря в модален прозорец вътре в сайта
-- `/api/tbi.js` използва Vercel Environment Variables
+TBI не позволява iframe embedding чрез browser security policy.
+V16 заменя iframe-а с професионален secure redirect modal.
 
-## Vercel Environment Variables
-Трябва да са добавени:
-- TBI_RESELLER_CODE
-- TBI_RESELLER_KEY
-- TBI_ENCRYPTION_KEY
-- TBI_API_URL
-
-## Важно
-В момента `/api/tbi.js` връща fallback URL към TBI, за да работи embedded прозорецът.
-За пълна production интеграция трябва точният API response от TBI/Fusion Pay.
+Качване:
+Замени файловете → Commit/Push → Redeploy.

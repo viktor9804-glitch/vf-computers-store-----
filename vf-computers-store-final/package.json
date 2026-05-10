@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v15-tbi-embedded-checkout",
+  "name": "vf-computers-v16-tbi-secure-redirect-modal",
   "private": true,
-  "version": "15.0.0",
+  "version": "16.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
