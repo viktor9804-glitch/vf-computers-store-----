@@ -331,6 +331,178 @@ function CookieConsent() {
 }
 
 
+
+function OrderDocumentsModal({ order, customerProfile, onClose }) {
+  if (!order) return null;
+
+  const invoiceNo = `VF-${String(order.id || Date.now()).padStart(6, "0")}`;
+  const orderDate = order.created_at ? new Date(order.created_at) : new Date();
+  const warrantyUntil = new Date(orderDate);
+  warrantyUntil.setFullYear(warrantyUntil.getFullYear() + 2);
+
+  const buyerName =
+    customerProfile?.account_type === "company"
+      ? customerProfile?.company_name || order.customer_name || "Клиент"
+      : customerProfile?.full_name || order.customer_name || "Клиент";
+
+  const buyerDetails =
+    customerProfile?.account_type === "company"
+      ? [
+          customerProfile?.company_eik ? `ЕИК: ${customerProfile.company_eik}` : "",
+          customerProfile?.company_vat ? `ДДС №: ${customerProfile.company_vat}` : "",
+          customerProfile?.company_mol ? `МОЛ: ${customerProfile.company_mol}` : "",
+          customerProfile?.billing_address ? `Адрес: ${customerProfile.billing_address}` : "",
+        ].filter(Boolean).join(" • ")
+      : [
+          customerProfile?.phone || order.phone ? `Телефон: ${customerProfile?.phone || order.phone}` : "",
+          customerProfile?.address ? `Адрес: ${customerProfile.address}` : "",
+        ].filter(Boolean).join(" • ");
+
+  const items = Array.isArray(order.items) ? order.items : [];
+  const total = Number(order.total || 0);
+
+  const printDocuments = () => {
+    window.print();
+  };
+
+  return (
+    <div className="docs-overlay" onClick={onClose}>
+      <div className="docs-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="docs-actions no-print">
+          <div>
+            <p className="section-label">Автоматични документи</p>
+            <h2>Документи за поръчка #{order.id}</h2>
+            <p>Фактура, гаранционна карта и приемно-предавателен протокол.</p>
+          </div>
+          <div>
+            <button className="profile-primary" onClick={printDocuments}>Печат / Запази PDF</button>
+            <button className="admin-secondary" onClick={onClose}>Затвори</button>
+          </div>
+        </div>
+
+        <div className="document-page">
+          <header className="document-header">
+            <div>
+              <h1>ФАКТУРА</h1>
+              <p>№ {invoiceNo}</p>
+              <p>Дата: {orderDate.toLocaleDateString("bg-BG")}</p>
+            </div>
+            <div>
+              <b>ВФ Компютри</b>
+              <p>гр. Елхово, ул. Славянска №5</p>
+              <p>Тел: 0876 126 326</p>
+              <p>Имейл: v.f-computers@abv.bg</p>
+            </div>
+          </header>
+
+          <section className="document-section">
+            <h3>Получател</h3>
+            <p><b>{buyerName}</b></p>
+            <p>{buyerDetails || "Няма въведени допълнителни данни."}</p>
+          </section>
+
+          <table className="document-table">
+            <thead>
+              <tr>
+                <th>Продукт</th>
+                <th>Количество</th>
+                <th>Ед. цена</th>
+                <th>Сума</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.length === 0 ? (
+                <tr><td colSpan="4">Продукти по поръчката</td></tr>
+              ) : items.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.name}</td>
+                  <td>{item.quantity}</td>
+                  <td>{formatPrice(item.price)}</td>
+                  <td>{formatPrice(Number(item.price || 0) * Number(item.quantity || 1))}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan="3">Общо</td>
+                <td>{formatPrice(total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <p className="document-note">Документът е автоматично генериран от онлайн системата на ВФ Компютри.</p>
+        </div>
+
+        <div className="document-page">
+          <header className="document-header">
+            <div>
+              <h1>ГАРАНЦИОННА КАРТА</h1>
+              <p>Към поръчка #{order.id}</p>
+            </div>
+            <div>
+              <b>ВФ Компютри</b>
+              <p>Тел: 0876 126 326</p>
+            </div>
+          </header>
+
+          <section className="document-section">
+            <p><b>Клиент:</b> {buyerName}</p>
+            <p><b>Дата на покупка:</b> {orderDate.toLocaleDateString("bg-BG")}</p>
+            <p><b>Ориентировъчна гаранция до:</b> {warrantyUntil.toLocaleDateString("bg-BG")}</p>
+            <p>Гаранцията е според конкретния продукт и условията на производителя/магазина.</p>
+          </section>
+
+          <table className="document-table">
+            <thead><tr><th>Продукт</th><th>Гаранционен статус</th></tr></thead>
+            <tbody>
+              {items.length === 0 ? (
+                <tr><td>Продукти по поръчката</td><td>Според продукта</td></tr>
+              ) : items.map((item, index) => (
+                <tr key={index}><td>{item.name}</td><td>Активна, според продукта</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="document-page">
+          <header className="document-header">
+            <div>
+              <h1>ПРИЕМНО-ПРЕДАВАТЕЛЕН ПРОТОКОЛ</h1>
+              <p>Към поръчка #{order.id}</p>
+            </div>
+            <div>
+              <b>ВФ Компютри</b>
+              <p>гр. Елхово</p>
+            </div>
+          </header>
+
+          <section className="document-section">
+            <p>Днес, {orderDate.toLocaleDateString("bg-BG")}, ВФ Компютри предава на клиента:</p>
+            <p><b>{buyerName}</b></p>
+            <p>следните стоки/услуги:</p>
+          </section>
+
+          <table className="document-table">
+            <thead><tr><th>Описание</th><th>Количество</th></tr></thead>
+            <tbody>
+              {items.length === 0 ? (
+                <tr><td>Продукти по поръчката</td><td>1</td></tr>
+              ) : items.map((item, index) => (
+                <tr key={index}><td>{item.name}</td><td>{item.quantity}</td></tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="signatures">
+            <div>Предал: ____________________</div>
+            <div>Приел: ____________________</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CustomerProfileModal({ session, onClose, onLogout }) {
   const user = session?.user;
   const [tab, setTab] = useState("profile");
@@ -341,10 +513,16 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
   const [orders, setOrders] = useState([]);
   const [serviceTickets, setServiceTickets] = useState([]);
   const [profileForm, setProfileForm] = useState({
+    account_type: "personal",
     full_name: user?.user_metadata?.full_name || "",
     phone: "",
     city: "",
     address: "",
+    company_name: "",
+    company_eik: "",
+    company_vat: "",
+    company_mol: "",
+    billing_address: "",
   });
   const [serviceForm, setServiceForm] = useState({
     device: "",
@@ -356,10 +534,16 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
     const { data, error } = await supabase.from("customer_profiles").select("*").eq("user_id", user.id).maybeSingle();
     if (!error && data) {
       setProfileForm({
+        account_type: data.account_type || "personal",
         full_name: data.full_name || user?.user_metadata?.full_name || "",
         phone: data.phone || "",
         city: data.city || "",
         address: data.address || "",
+        company_name: data.company_name || "",
+        company_eik: data.company_eik || "",
+        company_vat: data.company_vat || "",
+        company_mol: data.company_mol || "",
+        billing_address: data.billing_address || "",
       });
     }
   };
@@ -408,10 +592,16 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
     const { error } = await supabase.from("customer_profiles").upsert({
       user_id: user.id,
       email: user.email,
+      account_type: profileForm.account_type,
       full_name: profileForm.full_name,
       phone: profileForm.phone,
       city: profileForm.city,
       address: profileForm.address,
+      company_name: profileForm.company_name,
+      company_eik: profileForm.company_eik,
+      company_vat: profileForm.company_vat,
+      company_mol: profileForm.company_mol,
+      billing_address: profileForm.billing_address,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
 
@@ -483,12 +673,36 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
 
         {tab === "profile" && (
           <div className="profile-panel">
+            <div className="billing-type-switch">
+              <button className={profileForm.account_type === "personal" ? "active" : ""} onClick={() => updateProfileForm("account_type", "personal")}>
+                Физическо лице
+              </button>
+              <button className={profileForm.account_type === "company" ? "active" : ""} onClick={() => updateProfileForm("account_type", "company")}>
+                Фирма / фактура
+              </button>
+            </div>
+
+            <h3 className="profile-subtitle">Основни данни</h3>
             <div className="profile-grid">
               <label>Име и фамилия<input value={profileForm.full_name} onChange={(event) => updateProfileForm("full_name", event.target.value)} placeholder="Име и фамилия" /></label>
               <label>Телефон<input value={profileForm.phone} onChange={(event) => updateProfileForm("phone", event.target.value)} placeholder="Телефон" /></label>
               <label>Град<input value={profileForm.city} onChange={(event) => updateProfileForm("city", event.target.value)} placeholder="Град" /></label>
               <label>Адрес / офис на куриер<input value={profileForm.address} onChange={(event) => updateProfileForm("address", event.target.value)} placeholder="Адрес или офис на Еконт/Спиди" /></label>
             </div>
+
+            {profileForm.account_type === "company" && (
+              <>
+                <h3 className="profile-subtitle">Фирмени данни за фактуриране</h3>
+                <div className="profile-grid">
+                  <label>Име на фирма<input value={profileForm.company_name} onChange={(event) => updateProfileForm("company_name", event.target.value)} placeholder="ВФ КОМПЮТРИ ООД" /></label>
+                  <label>ЕИК / Булстат<input value={profileForm.company_eik} onChange={(event) => updateProfileForm("company_eik", event.target.value)} placeholder="ЕИК" /></label>
+                  <label>ДДС номер<input value={profileForm.company_vat} onChange={(event) => updateProfileForm("company_vat", event.target.value)} placeholder="BG..." /></label>
+                  <label>МОЛ<input value={profileForm.company_mol} onChange={(event) => updateProfileForm("company_mol", event.target.value)} placeholder="Материално отговорно лице" /></label>
+                  <label className="profile-wide">Адрес за фактура<input value={profileForm.billing_address} onChange={(event) => updateProfileForm("billing_address", event.target.value)} placeholder="Адрес на фирмата за фактура" /></label>
+                </div>
+              </>
+            )}
+
             <button className="profile-primary" onClick={saveProfile} disabled={profileSaving}>{profileSaving ? "Запазване..." : "Запази данните"}</button>
           </div>
         )}
@@ -900,6 +1114,8 @@ function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [documentOrder, setDocumentOrder] = useState(null);
+  const [documentCustomer, setDocumentCustomer] = useState(null);
   const [dbProducts, setDbProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
@@ -1046,8 +1262,24 @@ function App() {
   };
 
   const sendOrder = async () => {
-    const customerName = window.prompt("Име и фамилия за поръчката:");
-    const phone = window.prompt("Телефон за връзка:");
+    let customerProfile = null;
+
+    if (userSession?.user?.id) {
+      const { data } = await supabase
+        .from("customer_profiles")
+        .select("*")
+        .eq("user_id", userSession.user.id)
+        .maybeSingle();
+
+      customerProfile = data || null;
+    }
+
+    const defaultName = customerProfile?.account_type === "company"
+      ? customerProfile?.company_name
+      : customerProfile?.full_name;
+
+    const customerName = defaultName || window.prompt("Име и фамилия / фирма за поръчката:");
+    const phone = customerProfile?.phone || window.prompt("Телефон за връзка:");
 
     if (!customerName || !phone) {
       setNotice("Поръчката не е изпратена — липсва име или телефон.");
@@ -1057,7 +1289,7 @@ function App() {
     setSendingOrder(true);
     setNotice("");
 
-    const { error } = await supabase.from("orders").insert({
+    const payload = {
       customer_name: customerName,
       phone,
       items: cartItems.map((item) => ({
@@ -1068,7 +1300,24 @@ function App() {
       })),
       total,
       user_id: userSession?.user?.id || null,
-    });
+      invoice_requested: customerProfile?.account_type === "company",
+      billing_data: customerProfile ? {
+        account_type: customerProfile.account_type,
+        full_name: customerProfile.full_name,
+        company_name: customerProfile.company_name,
+        company_eik: customerProfile.company_eik,
+        company_vat: customerProfile.company_vat,
+        company_mol: customerProfile.company_mol,
+        billing_address: customerProfile.billing_address,
+        address: customerProfile.address,
+      } : null,
+    };
+
+    const { data: savedOrder, error } = await supabase
+      .from("orders")
+      .insert(payload)
+      .select("*")
+      .single();
 
     setSendingOrder(false);
 
@@ -1078,7 +1327,13 @@ function App() {
       return;
     }
 
-    setNotice("Поръчката е изпратена успешно!");
+    setNotice("Поръчката е изпратена успешно! Документите са генерирани.");
+    setDocumentOrder(savedOrder || { ...payload, id: Date.now(), created_at: new Date().toISOString() });
+    setDocumentCustomer(customerProfile || {
+      full_name: customerName,
+      phone,
+      account_type: "personal",
+    });
     setCart({});
     setCartOpen(false);
     setCheckoutOpen(false);
@@ -1579,6 +1834,14 @@ function App() {
             <button onClick={sendAiMessage} disabled={aiLoading}><Send size={17} /></button>
           </div>
         </div>
+      )}
+
+      {documentOrder && (
+        <OrderDocumentsModal
+          order={documentOrder}
+          customerProfile={documentCustomer}
+          onClose={() => setDocumentOrder(null)}
+        />
       )}
 
       {profileOpen && userSession && (

@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v13-customer-profile-orders-service",
+  "name": "vf-computers-v14-business-billing-auto-documents",
   "private": true,
-  "version": "13.0.0",
+  "version": "14.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

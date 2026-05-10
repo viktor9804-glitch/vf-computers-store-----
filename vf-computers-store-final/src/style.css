@@ -1105,3 +1105,157 @@ button:disabled{
 .service-create{border:1px solid rgba(239,68,68,.20);background:rgba(239,68,68,.06);border-radius:22px;padding:16px;margin-bottom:18px}
 .service-create h3{margin-top:0}.profile-footer{display:flex;justify-content:flex-end;gap:10px;border-top:1px solid rgba(255,255,255,.10);margin-top:20px;padding-top:16px}.profile-notice{margin-bottom:16px}
 @media(max-width:760px){.profile-modal{padding:18px}.profile-grid{grid-template-columns:1fr}.profile-row{flex-direction:column}.profile-footer{flex-direction:column}}
+
+
+/* V14 Business billing and automatic documents */
+.billing-type-switch{
+  display:flex;
+  gap:10px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+.billing-type-switch button{
+  border:1px solid rgba(239,68,68,.28);
+  background:rgba(255,255,255,.06);
+  color:white;
+  border-radius:999px;
+  padding:12px 16px;
+  font-weight:1000;
+  cursor:pointer;
+}
+.billing-type-switch button.active{
+  background:linear-gradient(135deg,#ef4444,#b91c1c);
+  border-color:transparent;
+}
+.profile-subtitle{
+  margin:18px 0 12px;
+}
+.profile-wide{
+  grid-column:1 / -1;
+}
+.docs-overlay{
+  position:fixed;
+  inset:0;
+  z-index:150;
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(10px);
+  overflow:auto;
+  padding:24px;
+}
+.docs-modal{
+  width:min(980px,100%);
+  margin:0 auto;
+}
+.docs-actions{
+  border:1px solid rgba(239,68,68,.35);
+  background:linear-gradient(180deg,rgba(18,20,31,.98),rgba(7,8,13,.98));
+  border-radius:24px;
+  padding:18px;
+  margin-bottom:18px;
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  color:white;
+}
+.docs-actions h2{
+  margin:4px 0;
+}
+.docs-actions p{
+  margin:0;
+  color:var(--muted);
+}
+.document-page{
+  background:white;
+  color:#111827;
+  padding:34px;
+  margin:0 auto 22px;
+  border-radius:6px;
+  min-height:900px;
+  box-shadow:0 18px 70px rgba(0,0,0,.35);
+}
+.document-header{
+  display:flex;
+  justify-content:space-between;
+  gap:30px;
+  border-bottom:2px solid #111827;
+  padding-bottom:18px;
+  margin-bottom:20px;
+}
+.document-header h1{
+  margin:0 0 8px;
+  font-size:32px;
+}
+.document-header p{
+  margin:4px 0;
+}
+.document-section{
+  margin:18px 0;
+}
+.document-section h3{
+  margin-bottom:8px;
+}
+.document-table{
+  width:100%;
+  border-collapse:collapse;
+  margin:18px 0;
+}
+.document-table th,
+.document-table td{
+  border:1px solid #d1d5db;
+  padding:10px;
+  text-align:left;
+}
+.document-table th{
+  background:#f3f4f6;
+}
+.document-table tfoot td{
+  font-weight:900;
+}
+.document-note{
+  color:#4b5563;
+  margin-top:28px;
+}
+.signatures{
+  display:flex;
+  justify-content:space-between;
+  margin-top:80px;
+  gap:30px;
+}
+@media print{
+  body *{
+    visibility:hidden!important;
+  }
+  .docs-modal,
+  .docs-modal *{
+    visibility:visible!important;
+  }
+  .docs-overlay{
+    position:absolute!important;
+    inset:0!important;
+    background:white!important;
+    padding:0!important;
+  }
+  .docs-modal{
+    width:100%!important;
+  }
+  .no-print{
+    display:none!important;
+  }
+  .document-page{
+    box-shadow:none!important;
+    border-radius:0!important;
+    margin:0!important;
+    min-height:auto!important;
+    page-break-after:always;
+  }
+}
+@media(max-width:760px){
+  .docs-actions,
+  .document-header,
+  .signatures{
+    flex-direction:column;
+  }
+  .document-page{
+    padding:20px;
+  }
+}
