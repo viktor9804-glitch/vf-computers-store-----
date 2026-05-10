@@ -1,0 +1,8 @@
+node_modules
+dist
+release
+.vscode
+
+vf-admin-app/node_modules
+vf-admin-app/dist
+vf-admin-app/release
