@@ -159,19 +159,24 @@ const pcBuilderSteps = [
 
 
 function AdminPanel({ onBack }) {
-  const [password, setPassword] = useState("");
-  const [unlocked, setUnlocked] = useState(() => localStorage.getItem("vf_admin_unlocked") === "yes");
-  const [saving, setSaving] = useState(false);
-  const [adminNotice, setAdminNotice] = useState("");
-  const [adminProducts, setAdminProducts] = useState([]);
-  const [form, setForm] = useState({
+  const emptyForm = {
     title: "",
     category: "Gaming PC",
     price: "",
     stock: "1",
     description: "",
-  });
+  };
+
+  const [password, setPassword] = useState("");
+  const [unlocked, setUnlocked] = useState(() => localStorage.getItem("vf_admin_unlocked") === "yes");
+  const [saving, setSaving] = useState(false);
+  const [adminNotice, setAdminNotice] = useState("");
+  const [adminProducts, setAdminProducts] = useState([]);
+  const [form, setForm] = useState(emptyForm);
   const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [adminSearch, setAdminSearch] = useState("");
 
   const loadAdminProducts = async () => {
     const { data, error } = await supabase
@@ -179,12 +184,30 @@ function AdminPanel({ onBack }) {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) setAdminProducts(data);
+    if (error) {
+      setAdminNotice("Не успях да заредя продуктите. Провери Supabase policies.");
+      console.error(error);
+      return;
+    }
+
+    setAdminProducts(data || []);
   };
 
   useEffect(() => {
     if (unlocked) loadAdminProducts();
   }, [unlocked]);
+
+  useEffect(() => {
+    if (!imageFile) {
+      if (!editingProduct?.image) setImagePreview("");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(imageFile);
+    setImagePreview(previewUrl);
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [imageFile, editingProduct]);
 
   const unlock = () => {
     if (password === ADMIN_PASSWORD) {
@@ -200,6 +223,50 @@ function AdminPanel({ onBack }) {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const resetForm = () => {
+    setForm(emptyForm);
+    setImageFile(null);
+    setImagePreview("");
+    setEditingProduct(null);
+    setAdminNotice("");
+  };
+
+  const startEditProduct = (product) => {
+    setEditingProduct(product);
+    setForm({
+      title: product.title || "",
+      category: product.category || "Gaming PC",
+      price: String(product.price || ""),
+      stock: String(product.stock ?? "1"),
+      description: product.description || "",
+    });
+    setImageFile(null);
+    setImagePreview(product.image || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const uploadProductImage = async () => {
+    if (!imageFile) return editingProduct?.image || "";
+
+    const safeName = imageFile.name.replaceAll(" ", "-").toLowerCase();
+    const filePath = `${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(filePath, imageFile, { upsert: false });
+
+    if (uploadError) {
+      console.error(uploadError);
+      throw new Error("Грешка при качване на снимката. Провери Storage bucket и policies.");
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
+  };
+
   const saveProduct = async () => {
     if (!form.title.trim() || !form.price) {
       setAdminNotice("Попълни поне име и цена.");
@@ -209,65 +276,68 @@ function AdminPanel({ onBack }) {
     setSaving(true);
     setAdminNotice("");
 
-    let imageUrl = "";
+    try {
+      const imageUrl = await uploadProductImage();
 
-    if (imageFile) {
-      const safeName = imageFile.name.replaceAll(" ", "-").toLowerCase();
-      const filePath = `${Date.now()}-${safeName}`;
+      const payload = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        price: Number(form.price),
+        image: imageUrl,
+        category: form.category,
+        stock: Number(form.stock || 0),
+      };
 
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filePath, imageFile, { upsert: false });
+      const result = editingProduct
+        ? await supabase.from("products").update(payload).eq("id", editingProduct.id)
+        : await supabase.from("products").insert(payload);
 
-      if (uploadError) {
-        setSaving(false);
-        setAdminNotice("Грешка при качване на снимката. Провери Storage bucket и policies.");
-        console.error(uploadError);
-        return;
-      }
+      if (result.error) throw result.error;
 
-      const { data: publicUrlData } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filePath);
-
-      imageUrl = publicUrlData.publicUrl;
+      setAdminNotice(editingProduct ? "Продуктът е обновен успешно." : "Продуктът е добавен успешно.");
+      resetForm();
+      await loadAdminProducts();
+    } catch (error) {
+      console.error(error);
+      setAdminNotice(error.message || "Продуктът не беше записан. Провери RLS policy за products.");
+    } finally {
+      setSaving(false);
     }
+  };
 
-    const { error } = await supabase.from("products").insert({
-      title: form.title,
-      description: form.description,
-      price: Number(form.price),
-      image: imageUrl,
-      category: form.category,
-      stock: Number(form.stock || 0),
-    });
+  const deleteProduct = async (product) => {
+    const confirmDelete = window.confirm(`Сигурен ли си, че искаш да изтриеш "${product.title}"?`);
+    if (!confirmDelete) return;
 
-    setSaving(false);
+    const { error } = await supabase.from("products").delete().eq("id", product.id);
 
     if (error) {
-      setAdminNotice("Продуктът не беше записан. Провери RLS policy за products insert.");
       console.error(error);
+      setAdminNotice("Не успях да изтрия продукта. Провери delete policy в Supabase.");
       return;
     }
 
-    setAdminNotice("Продуктът е добавен успешно.");
-    setForm({
-      title: "",
-      category: "Gaming PC",
-      price: "",
-      stock: "1",
-      description: "",
-    });
-    setImageFile(null);
+    setAdminNotice("Продуктът е изтрит.");
     await loadAdminProducts();
   };
+
+  const filteredAdminProducts = adminProducts.filter((product) => {
+    const text = `${product.title || ""} ${product.category || ""} ${product.description || ""}`.toLowerCase();
+    return text.includes(adminSearch.toLowerCase());
+  });
+
+  const totalStock = adminProducts.reduce((sum, product) => sum + Number(product.stock || 0), 0);
+  const totalValue = adminProducts.reduce((sum, product) => sum + Number(product.price || 0) * Number(product.stock || 0), 0);
 
   if (!unlocked) {
     return (
       <div className="admin-page">
-        <div className="admin-login">
+        <div className="admin-login admin-login-pro">
+          <div className="admin-login-logo">
+            <img src={LOGO_URL} alt="ВФ Компютри" />
+          </div>
           <h1>Админ панел</h1>
-          <p>Въведи паролата, за да добавяш продукти.</p>
+          <p>Въведи паролата, за да управляваш продуктите.</p>
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Парола" />
           {adminNotice && <div className="notice">{adminNotice}</div>}
           <button onClick={unlock}>Вход</button>
@@ -280,11 +350,11 @@ function AdminPanel({ onBack }) {
   return (
     <div className="admin-page">
       <div className="admin-shell">
-        <div className="admin-top">
+        <div className="admin-top admin-top-pro">
           <div>
-            <p className="section-label">VF Admin</p>
-            <h1>Опростен админ панел</h1>
-            <p>Добавяне на продукти със снимка, цена, категория и наличност.</p>
+            <p className="section-label">VF Admin Pro</p>
+            <h1>Админ панел</h1>
+            <p>Добавяй, редактирай и изтривай продукти от магазина.</p>
           </div>
           <div className="admin-actions">
             <button onClick={loadAdminProducts}>Обнови</button>
@@ -293,13 +363,36 @@ function AdminPanel({ onBack }) {
           </div>
         </div>
 
-        <div className="admin-grid">
-          <div className="admin-card">
-            <h2>Нов продукт</h2>
+        <div className="admin-stats">
+          <div>
+            <b>{adminProducts.length}</b>
+            <span>продукта</span>
+          </div>
+          <div>
+            <b>{totalStock}</b>
+            <span>обща наличност</span>
+          </div>
+          <div>
+            <b>{formatPrice(totalValue)}</b>
+            <span>стойност по наличност</span>
+          </div>
+        </div>
+
+        <div className="admin-grid admin-grid-pro">
+          <div className="admin-card admin-editor-card">
+            <div className="admin-card-title">
+              <div>
+                <h2>{editingProduct ? "Редакция на продукт" : "Нов продукт"}</h2>
+                <p>{editingProduct ? `Редактираш: ${editingProduct.title}` : "Попълни данните и качи снимка."}</p>
+              </div>
+              {editingProduct && <button className="admin-secondary small" onClick={resetForm}>Нов продукт</button>}
+            </div>
+
             <label>
               Име на продукта
               <input value={form.title} onChange={(event) => updateForm("title", event.target.value)} placeholder="Пример: Gaming PC Ryzen 5 RTX 4060" />
             </label>
+
             <label>
               Категория
               <select value={form.category} onChange={(event) => updateForm("category", event.target.value)}>
@@ -313,6 +406,7 @@ function AdminPanel({ onBack }) {
                 <option>Периферия</option>
               </select>
             </label>
+
             <div className="admin-two">
               <label>
                 Цена (€)
@@ -323,31 +417,55 @@ function AdminPanel({ onBack }) {
                 <input type="number" value={form.stock} onChange={(event) => updateForm("stock", event.target.value)} placeholder="1" />
               </label>
             </div>
+
             <label>
-              Описание
+              Описание / характеристики
               <textarea value={form.description} onChange={(event) => updateForm("description", event.target.value)} placeholder="Ryzen 5, 16GB RAM, 1TB NVMe..." />
             </label>
+
             <label>
               Снимка
               <input type="file" accept="image/*" onChange={(event) => setImageFile(event.target.files?.[0] || null)} />
             </label>
+
+            {(imagePreview || imageFile) && (
+              <div className="admin-image-preview">
+                <img src={imagePreview} alt="Преглед на продукта" />
+              </div>
+            )}
+
             {imageFile && <p className="admin-file">Избрана снимка: {imageFile.name}</p>}
             {adminNotice && <div className="notice">{adminNotice}</div>}
-            <button className="admin-save" onClick={saveProduct} disabled={saving}>{saving ? "Записване..." : "Добави продукт"}</button>
+
+            <button className="admin-save" onClick={saveProduct} disabled={saving}>
+              {saving ? "Записване..." : editingProduct ? "Запази промените" : "Добави продукт"}
+            </button>
           </div>
 
-          <div className="admin-card">
-            <h2>Последни продукти</h2>
-            {adminProducts.length === 0 ? (
+          <div className="admin-card admin-products-card">
+            <div className="admin-products-head">
+              <div>
+                <h2>Продукти в базата</h2>
+                <p>{filteredAdminProducts.length} показани</p>
+              </div>
+              <input value={adminSearch} onChange={(event) => setAdminSearch(event.target.value)} placeholder="Търси продукт..." />
+            </div>
+
+            {filteredAdminProducts.length === 0 ? (
               <p className="admin-empty">Все още няма добавени продукти в базата.</p>
             ) : (
-              <div className="admin-list">
-                {adminProducts.map((product) => (
-                  <div className="admin-product-row" key={product.id}>
+              <div className="admin-list admin-list-pro">
+                {filteredAdminProducts.map((product) => (
+                  <div className="admin-product-row admin-product-row-pro" key={product.id}>
                     {product.image ? <img src={product.image} alt={product.title} /> : <div className="admin-no-img">IMG</div>}
-                    <div>
+                    <div className="admin-product-info">
                       <b>{product.title}</b>
                       <p>{product.category} • {formatPrice(product.price)} • наличност: {product.stock}</p>
+                      {product.description && <small>{product.description}</small>}
+                    </div>
+                    <div className="admin-row-actions">
+                      <button onClick={() => startEditProduct(product)}>Редакция</button>
+                      <button className="delete" onClick={() => deleteProduct(product)}>Изтрий</button>
                     </div>
                   </div>
                 ))}
@@ -355,11 +473,14 @@ function AdminPanel({ onBack }) {
             )}
           </div>
         </div>
+
+        <div className="admin-warning">
+          <b>Важно:</b> Това е опростен админ панел. За по-висока сигурност следващата стъпка е Supabase Auth login.
+        </div>
       </div>
     </div>
   );
 }
-
 
 function App() {
   const [page, setPage] = useState(() => window.location.hash === "#admin" ? "admin" : "store");
@@ -951,36 +1072,36 @@ function App() {
             <button onClick={() => setAiOpen(false)}><X size={18} /></button>
           </div>
 
-        <div className="ai-chat-body">
-  {aiMessages.map((message, index) => (
-    <div
-      key={index}
-      className={`ai-message ${message.role === "user" ? "user" : "assistant"}`}
-      style={{
-        whiteSpace: "pre-wrap",
-        wordBreak: "break-word",
-        overflowWrap: "break-word",
-        maxWidth: "100%",
-      }}
-    >
-      {message.content}
-    </div>
-  ))}
+          <div className="ai-chat-body">
+            {aiMessages.map((message, index) => (
+              <div
+                key={index}
+                className={`ai-message ${message.role === "user" ? "user" : "assistant"}`}
+                style={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                  maxWidth: "100%",
+                }}
+              >
+                {message.content}
+              </div>
+            ))}
 
-  {aiLoading && (
-    <div
-      className="ai-message assistant"
-      style={{
-        whiteSpace: "pre-wrap",
-        wordBreak: "break-word",
-        overflowWrap: "break-word",
-        maxWidth: "100%",
-      }}
-    >
-      Мисля...
-    </div>
-  )}
-</div>
+            {aiLoading && (
+              <div
+                className="ai-message assistant"
+                style={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                  maxWidth: "100%",
+                }}
+              >
+                Мисля...
+              </div>
+            )}
+          </div>
 
           <div className="ai-quick-actions">
             <button onClick={() => setAiInput("Искам gaming компютър до 1000 евро")}>Gaming PC</button>

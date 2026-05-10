@@ -1,26 +1,38 @@
-# ВФ Компютри - V10 Gemini Assistant
+# ВФ Компютри - V11 Admin Pro Panel
 
-Тази версия заменя OpenAI chatbot-а с Gemini AI от Google AI Studio.
+Добавен е подобрен админ панел.
 
-## Нужно във Vercel
+## Ново
+- по-добър дизайн
+- статистика за продуктите
+- преглед на снимката преди качване
+- редакция на продукти
+- изтриване на продукти
+- търсене в админ панела
+- подобрен AI chat text wrapping
 
-Project → Settings → Environment Variables:
+## Важно за Supabase policies
 
-`GEMINI_API_KEY=AIza...`
+За редакция и триене добави тези policies в Supabase SQL Editor:
 
-След добавяне на ключа направи Redeploy.
+```sql
+create policy "public can update products"
+on products
+for update
+to anon
+using (true)
+with check (true);
 
-## Как работи
+create policy "public can delete products"
+on products
+for delete
+to anon
+using (true);
+```
 
-- Сайтът показва floating AI асистент.
-- Въпросите отиват към `/api/chat`.
-- `/api/chat` използва `GEMINI_API_KEY` от Vercel.
-- Ключът НЕ се вижда в браузъра.
+Ако даде `already exists`, значи policy вече е създадена.
 
 ## Качване
 
-1. Разархивирай ZIP файла.
-2. Замени файловете в проекта.
-3. GitHub Desktop → Commit → Push.
-4. Vercel ще deploy-не автоматично.
-5. Ако ключът е добавен след deploy — направи Redeploy.
+Замени файловете в проекта, после:
+GitHub Desktop → Commit → Push → Vercel Deploy.
