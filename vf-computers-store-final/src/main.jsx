@@ -158,6 +158,178 @@ const pcBuilderSteps = [
 ];
 
 
+
+function AuthModal({ mode, onClose, onModeChange }) {
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authName, setAuthName] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authNotice, setAuthNotice] = useState("");
+
+  const isRegister = mode === "register";
+
+  const handleEmailAuth = async () => {
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthNotice("Попълни имейл и парола.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthNotice("");
+
+    const result = isRegister
+      ? await supabase.auth.signUp({
+          email: authEmail.trim(),
+          password: authPassword,
+          options: {
+            data: { full_name: authName.trim() || authEmail.trim() },
+          },
+        })
+      : await supabase.auth.signInWithPassword({
+          email: authEmail.trim(),
+          password: authPassword,
+        });
+
+    setAuthLoading(false);
+
+    if (result.error) {
+      setAuthNotice(result.error.message);
+      return;
+    }
+
+    setAuthNotice(isRegister ? "Регистрацията е успешна. Провери имейла си, ако Supabase изисква потвърждение." : "Успешен вход.");
+    if (!isRegister) onClose();
+  };
+
+  const handleGoogleLogin = async () => {
+    setAuthLoading(true);
+    setAuthNotice("");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    setAuthLoading(false);
+
+    if (error) {
+      setAuthNotice(error.message);
+    }
+  };
+
+  return (
+    <div className="auth-overlay" onClick={onClose}>
+      <div className="auth-modal" onClick={(event) => event.stopPropagation()}>
+        <button className="auth-close" onClick={onClose}><X size={18} /></button>
+
+        <div className="auth-logo">
+          <img src={LOGO_URL} alt="ВФ Компютри" />
+        </div>
+
+        <p className="section-label">Клиентски акаунт</p>
+        <h2>{isRegister ? "Създай профил" : "Вход в профила"}</h2>
+        <p className="auth-subtitle">
+          {isRegister
+            ? "Регистрирай се, за да следиш поръчки, заявки и любими продукти."
+            : "Влез, за да използваш клиентски профил във ВФ Компютри."}
+        </p>
+
+        <button className="google-login" onClick={handleGoogleLogin} disabled={authLoading}>
+          <span>G</span>
+          Вход с Google
+        </button>
+
+        <div className="auth-divider"><span>или</span></div>
+
+        {isRegister && (
+          <input
+            value={authName}
+            onChange={(event) => setAuthName(event.target.value)}
+            placeholder="Име"
+          />
+        )}
+
+        <input
+          type="email"
+          value={authEmail}
+          onChange={(event) => setAuthEmail(event.target.value)}
+          placeholder="Имейл"
+        />
+
+        <input
+          type="password"
+          value={authPassword}
+          onChange={(event) => setAuthPassword(event.target.value)}
+          placeholder="Парола"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") handleEmailAuth();
+          }}
+        />
+
+        {authNotice && <div className="notice">{authNotice}</div>}
+
+        <button className="auth-submit" onClick={handleEmailAuth} disabled={authLoading}>
+          {authLoading ? "Моля, изчакай..." : isRegister ? "Регистрация" : "Вход"}
+        </button>
+
+        <button className="auth-switch" onClick={() => onModeChange(isRegister ? "login" : "register")}>
+          {isRegister ? "Вече имаш профил? Влез" : "Нямаш профил? Регистрирай се"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CookieConsent() {
+  const [visible, setVisible] = useState(() => !localStorage.getItem("vf_cookie_consent"));
+  const [showSettings, setShowSettings] = useState(false);
+  const [analyticsAllowed, setAnalyticsAllowed] = useState(() => localStorage.getItem("vf_cookie_analytics") === "yes");
+
+  const saveConsent = (accepted, analytics = false) => {
+    localStorage.setItem("vf_cookie_consent", accepted ? "accepted" : "declined");
+    localStorage.setItem("vf_cookie_analytics", analytics ? "yes" : "no");
+    setVisible(false);
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div className="cookie-banner">
+      <div>
+        <b>Използваме бисквитки</b>
+        <p>
+          Използваме необходими бисквитки за работата на сайта и по желание аналитични бисквитки за подобряване на услугите.
+        </p>
+
+        {showSettings && (
+          <label className="cookie-toggle">
+            <input
+              type="checkbox"
+              checked={analyticsAllowed}
+              onChange={(event) => setAnalyticsAllowed(event.target.checked)}
+            />
+            Разрешавам аналитични бисквитки
+          </label>
+        )}
+      </div>
+
+      <div className="cookie-actions">
+        <button className="admin-secondary" onClick={() => setShowSettings((current) => !current)}>
+          Настройки
+        </button>
+        <button className="admin-secondary" onClick={() => saveConsent(false, false)}>
+          Отказвам
+        </button>
+        <button className="cookie-accept" onClick={() => saveConsent(true, showSettings ? analyticsAllowed : true)}>
+          Приемам
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AdminPanel({ onBack }) {
   const emptyForm = {
     title: "",
@@ -484,6 +656,9 @@ function AdminPanel({ onBack }) {
 
 function App() {
   const [page, setPage] = useState(() => window.location.hash === "#admin" ? "admin" : "store");
+  const [userSession, setUserSession] = useState(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
   const [dbProducts, setDbProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
@@ -493,6 +668,30 @@ function App() {
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUserSession(data.session || null);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserSession(session || null);
+      if (session) setAuthOpen(false);
+    });
+
+    return () => authListener.subscription.unsubscribe();
+  }, []);
+
+  const openAuth = (mode = "login") => {
+    setAuthMode(mode);
+    setAuthOpen(true);
+  };
+
+  const logoutUser = async () => {
+    await supabase.auth.signOut();
+    setUserSession(null);
+  };
+
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -626,6 +825,7 @@ function App() {
         price: item.price,
       })),
       total,
+      user_id: userSession?.user?.id || null,
     });
 
     setSendingOrder(false);
@@ -763,6 +963,17 @@ function App() {
 
           <div className="header-actions">
             <a className="phone-chip" href={`tel:${storeInfo.rawPhone}`}><Phone size={16} /> {storeInfo.phone}</a>
+            {userSession ? (
+              <button className="account-chip" onClick={logoutUser} title="Изход">
+                <User size={16} />
+                <span>{userSession.user?.user_metadata?.full_name || userSession.user?.email?.split("@")[0] || "Профил"}</span>
+              </button>
+            ) : (
+              <button className="account-chip" onClick={() => openAuth("login")}>
+                <User size={16} />
+                <span>Вход</span>
+              </button>
+            )}
             <button className="cart-button" onClick={() => setCartOpen(true)}>
               <ShoppingCart size={19} />
               {cartCount > 0 && <span>{cartCount}</span>}
@@ -778,6 +989,11 @@ function App() {
           <div className="mobile-brand">ВФ <span>Компютри</span></div>
           <nav>{navLinks}</nav>
           <a className="mobile-call" href={`tel:${storeInfo.rawPhone}`}>Обади се: {storeInfo.phone}</a>
+          {userSession ? (
+            <button className="mobile-auth" onClick={logoutUser}>Изход от профила</button>
+          ) : (
+            <button className="mobile-auth" onClick={() => { setMobileOpen(false); openAuth("login"); }}>Вход / Регистрация</button>
+          )}
         </div>
       )}
 
@@ -1122,6 +1338,16 @@ function App() {
           </div>
         </div>
       )}
+
+      {authOpen && (
+        <AuthModal
+          mode={authMode}
+          onClose={() => setAuthOpen(false)}
+          onModeChange={setAuthMode}
+        />
+      )}
+
+      <CookieConsent />
 
       {cartOpen && (
         <div className="overlay" onClick={() => setCartOpen(false)}>

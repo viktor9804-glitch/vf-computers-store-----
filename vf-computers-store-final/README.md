@@ -1,38 +1,40 @@
-# ВФ Компютри - V11 Admin Pro Panel
+# ВФ Компютри - V12 User Login + Google Auth + Cookie Consent
 
-Добавен е подобрен админ панел.
+## Добавено
+- Вход с имейл и парола
+- Регистрация с имейл и парола
+- Вход с Google акаунт
+- Профил бутон в менюто
+- Изход от профила
+- Cookie consent banner
 
-## Ново
-- по-добър дизайн
-- статистика за продуктите
-- преглед на снимката преди качване
-- редакция на продукти
-- изтриване на продукти
-- търсене в админ панела
-- подобрен AI chat text wrapping
+## Supabase настройки
 
-## Важно за Supabase policies
+Email login:
+Supabase → Authentication → Providers → Email → Enable
 
-За редакция и триене добави тези policies в Supabase SQL Editor:
+Google login:
+Supabase → Authentication → Providers → Google → Enable
+
+Redirect URL за Google Cloud:
+https://qmuflwekhqqcfykayjdx.supabase.co/auth/v1/callback
+
+Supabase → Authentication → URL Configuration:
+Site URL:
+https://vf-computers-store.vercel.app
+
+Additional Redirect URLs:
+https://vf-computers-store.vercel.app/**
+
+## Orders user_id
+
+Ако искаш поръчките да пазят потребител:
 
 ```sql
-create policy "public can update products"
-on products
-for update
-to anon
-using (true)
-with check (true);
-
-create policy "public can delete products"
-on products
-for delete
-to anon
-using (true);
+alter table orders
+add column if not exists user_id uuid;
 ```
-
-Ако даде `already exists`, значи policy вече е създадена.
 
 ## Качване
 
-Замени файловете в проекта, после:
-GitHub Desktop → Commit → Push → Vercel Deploy.
+Замени файловете → GitHub Desktop → Commit → Push → Vercel Deploy.
