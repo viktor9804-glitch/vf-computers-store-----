@@ -1544,3 +1544,22 @@ button:disabled{
 .service-important-note span{color:var(--muted);line-height:1.6}
 @media(max-width:1050px){.service-price-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.services-trust-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.service-pricing-section{padding-top:50px;padding-bottom:50px}.service-price-grid,.services-trust-row{grid-template-columns:1fr}.service-price-image{height:175px}.service-important-note{align-items:flex-start;flex-direction:column}}
+
+/* V22 exact service images from approved preview */
+.service-request-btn{
+  display:none !important;
+}
+.service-price-image{
+  height:230px;
+}
+.service-price-image img{
+  opacity:1 !important;
+  filter:brightness(1.14) contrast(1.08) saturate(1.05);
+}
+.service-price-image::after{
+  background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(8,9,14,.24)) !important;
+}
+.service-price-card:hover .service-price-image img{
+  transform:scale(1.035);
+  filter:brightness(1.2) contrast(1.1) saturate(1.08);
+}

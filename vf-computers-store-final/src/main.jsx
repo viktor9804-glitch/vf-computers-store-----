@@ -144,19 +144,19 @@ const categories = [
 ];
 
 const services = [
-  { id:"diagnostics", icon:Wrench, title:"Диагностика", category:"Сервиз", image:"/services/diagnostics.svg", price:"50€", note:"при отказан ремонт", altPrice:"25€", altNote:"ако клиентът желае да бъде извършен ремонт", text:"Проверка на хардуер, температури, захранване, RAM, SSD, видеокарта и общо състояние." },
-  { id:"windows", icon:Monitor, title:"Инсталиране на Windows", category:"Софтуер", image:"/services/windows.svg", price:"55€", note:"операционна система Windows", text:"Инсталация на Windows, базова настройка и подготовка на системата за работа." },
-  { id:"pc-clean", icon:Fan, title:"Профилактика на настолен PC", category:"Профилактика", image:"/services/pc-clean.svg", price:"32€", note:"настолен компютър", text:"Почистване на кутия, вентилатори, охлаждане и проверка на температури." },
-  { id:"laptop-clean", icon:Laptop, title:"Профилактика на лаптоп", category:"Профилактика", image:"/services/laptop-clean.svg", price:"39€", note:"лаптоп", text:"Разглобяване, почистване на охлаждане и смяна на термопаста при нужда." },
-  { id:"ram", icon:MemoryStick, title:"Смяна / подмяна на RAM", category:"Ъпгрейд", image:"/services/ram.svg", price:"10€", note:"RAM памет", text:"Монтаж или подмяна на RAM памет и базов тест за стабилност." },
-  { id:"ssd", icon:HardDrive, title:"Смяна / подмяна на SSD", category:"Ъпгрейд", image:"/services/ssd.svg", price:"20€", note:"SSD диск", text:"Монтаж или подмяна на SSD, проверка и подготовка за работа." },
-  { id:"cpu", icon:Cpu, title:"Смяна на процесор", category:"Ъпгрейд", image:"/services/cpu.svg", price:"30€", note:"към различен модел", altPrice:"15€", altNote:"подмяна на процесор", text:"Смяна на процесор, монтаж на охлаждане и проверка на температури." },
-  { id:"gpu", icon:Server, title:"Смяна на видеокарта", category:"Ъпгрейд", image:"/services/gpu.svg", price:"20.45€", note:"без инсталиране на драйвери", altPrice:"43.46€", altNote:"с включено инсталиране на драйвери", text:"Монтаж на видеокарта, проверка на захранване и тест на изображение." },
-  { id:"motherboard", icon:Settings, title:"Смяна на дънна платка", category:"Хардуер", image:"/services/motherboard.svg", price:"17.90€", note:"подмяна със същата, ако е възможно", altPrice:"25.56€", altNote:"смяна с друга / ъпгрейд", text:"Подмяна или ъпгрейд на дънна платка според съвместимостта на компонентите." },
-  { id:"clone-ssd", icon:HardDrive, title:"Клониране HDD → SSD", category:"Данни", image:"/services/clone-ssd.svg", price:"35.79€ – 51.13€", note:"според обема и сложността", text:"Прехвърляне на система и данни от стар HDD към нов SSD." },
-  { id:"clone-hdd", icon:HardDrive, title:"Клониране HDD → HDD", category:"Данни", image:"/services/clone-hdd.svg", price:"40.90€ – 61.36€", note:"според обема и сложността", text:"Клониране на диск към друг HDD с цел запазване на система и файлове." },
-  { id:"games", icon:Gamepad2, title:"Инсталиране на игри", category:"Софтуер", image:"/services/games.svg", price:"10.23€ – 23.52€", note:"зависи от играта и размера", text:"Инсталиране и базова настройка на игри според платформата и изискванията." },
-  { id:"programs", icon:PackageCheck, title:"Инсталиране на програми", category:"Софтуер", image:"/services/programs.svg", price:"5.11€ – 12.78€", note:"според програмата", text:"Инсталиране на основни програми, драйвери и приложения за работа." },
+  { id:"diagnostics", icon:Wrench, title:"Диагностика", category:"Сервиз", image:"/services/diagnostics.png", price:"50€", note:"при отказан ремонт", altPrice:"25€", altNote:"ако клиентът желае да бъде извършен ремонт", text:"Проверка на хардуер, температури, захранване, RAM, SSD, видеокарта и общо състояние." },
+  { id:"windows", icon:Monitor, title:"Инсталиране на Windows", category:"Софтуер", image:"/services/windows.png", price:"55€", note:"операционна система Windows", text:"Инсталация на Windows, базова настройка и подготовка на системата за работа." },
+  { id:"pc-clean", icon:Fan, title:"Профилактика на настолен PC", category:"Профилактика", image:"/services/pc-clean.png", price:"32€", note:"настолен компютър", text:"Почистване на кутия, вентилатори, охлаждане и проверка на температури." },
+  { id:"laptop-clean", icon:Laptop, title:"Профилактика на лаптоп", category:"Профилактика", image:"/services/laptop-clean.png", price:"39€", note:"лаптоп", text:"Разглобяване, почистване на охлаждане и смяна на термопаста при нужда." },
+  { id:"ram", icon:MemoryStick, title:"Смяна / подмяна на RAM", category:"Ъпгрейд", image:"/services/ram.png", price:"10€", note:"RAM памет", text:"Монтаж или подмяна на RAM памет и базов тест за стабилност." },
+  { id:"ssd", icon:HardDrive, title:"Смяна / подмяна на SSD", category:"Ъпгрейд", image:"/services/ssd.png", price:"20€", note:"SSD диск", text:"Монтаж или подмяна на SSD, проверка и подготовка за работа." },
+  { id:"cpu", icon:Cpu, title:"Смяна на процесор", category:"Ъпгрейд", image:"/services/cpu.png", price:"30€", note:"към различен модел", altPrice:"15€", altNote:"подмяна на процесор", text:"Смяна на процесор, монтаж на охлаждане и проверка на температури." },
+  { id:"gpu", icon:Server, title:"Смяна на видеокарта", category:"Ъпгрейд", image:"/services/gpu.png", price:"20.45€", note:"без инсталиране на драйвери", altPrice:"43.46€", altNote:"с включено инсталиране на драйвери", text:"Монтаж на видеокарта, проверка на захранване и тест на изображение." },
+  { id:"motherboard", icon:Settings, title:"Смяна на дънна платка", category:"Хардуер", image:"/services/motherboard.png", price:"17.90€", note:"подмяна със същата, ако е възможно", altPrice:"25.56€", altNote:"смяна с друга / ъпгрейд", text:"Подмяна или ъпгрейд на дънна платка според съвместимостта на компонентите." },
+  { id:"clone-ssd", icon:HardDrive, title:"Клониране HDD → SSD", category:"Данни", image:"/services/clone-ssd.png", price:"35.79€ – 51.13€", note:"според обема и сложността", text:"Прехвърляне на система и данни от стар HDD към нов SSD." },
+  { id:"clone-hdd", icon:HardDrive, title:"Клониране HDD → HDD", category:"Данни", image:"/services/clone-hdd.png", price:"40.90€ – 61.36€", note:"според обема и сложността", text:"Клониране на диск към друг HDD с цел запазване на система и файлове." },
+  { id:"games", icon:Gamepad2, title:"Инсталиране на игри", category:"Софтуер", image:"/services/games.png", price:"10.23€ – 23.52€", note:"зависи от играта и размера", text:"Инсталиране и базова настройка на игри според платформата и изискванията." },
+  { id:"programs", icon:PackageCheck, title:"Инсталиране на програми", category:"Софтуер", image:"/services/programs.png", price:"5.11€ – 12.78€", note:"според програмата", text:"Инсталиране на основни програми, драйвери и приложения за работа." },
 ];
 
 
@@ -1845,7 +1845,6 @@ function App() {
                 <p>{text}</p>
                 <div className="service-price-main"><b>{price}</b><small>{note}</small></div>
                 {altPrice && <div className="service-price-alt"><span>{altPrice}</span><small>{altNote}</small></div>}
-                <a className="service-request-btn" href={`mailto:${storeInfo.email}?subject=Заявка за услуга: ${encodeURIComponent(title)}`}>Заяви услуга</a>
               </div>
             </article>
           ))}

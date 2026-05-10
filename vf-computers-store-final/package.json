@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v21-services-prices",
+  "name": "vf-computers-v22-exact-service-images",
   "private": true,
-  "version": "21.0.0",
+  "version": "22.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
