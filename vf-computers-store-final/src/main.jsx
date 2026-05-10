@@ -951,14 +951,36 @@ function App() {
             <button onClick={() => setAiOpen(false)}><X size={18} /></button>
           </div>
 
-          <div className="ai-chat-body">
-            {aiMessages.map((message, index) => (
-              <div key={index} className={`ai-message ${message.role === "user" ? "user" : "assistant"}`}>
-                {message.content}
-              </div>
-            ))}
-            {aiLoading && <div className="ai-message assistant">Мисля...</div>}
-          </div>
+        <div className="ai-chat-body">
+  {aiMessages.map((message, index) => (
+    <div
+      key={index}
+      className={`ai-message ${message.role === "user" ? "user" : "assistant"}`}
+      style={{
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        overflowWrap: "break-word",
+        maxWidth: "100%",
+      }}
+    >
+      {message.content}
+    </div>
+  ))}
+
+  {aiLoading && (
+    <div
+      className="ai-message assistant"
+      style={{
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        overflowWrap: "break-word",
+        maxWidth: "100%",
+      }}
+    >
+      Мисля...
+    </div>
+  )}
+</div>
 
           <div className="ai-quick-actions">
             <button onClick={() => setAiInput("Искам gaming компютър до 1000 евро")}>Gaming PC</button>
