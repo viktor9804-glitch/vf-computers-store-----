@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="220" viewBox="0 0 560 220">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#181923"/>
+      <stop offset="55%" stop-color="#090a10"/>
+      <stop offset="100%" stop-color="#16080b"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" x2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#7f1d1d"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M 26 0 L 0 0 0 26" fill="none" stroke="#ffffff" stroke-opacity=".055" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect x="8" y="8" width="544" height="204" rx="34" fill="url(#bg)" stroke="#ef4444" stroke-opacity=".55" stroke-width="3"/>
+  <rect x="8" y="8" width="544" height="204" rx="34" fill="url(#grid)" opacity=".7"/>
+  <circle cx="490" cy="46" r="78" fill="#ef4444" opacity=".13"/>
+  <circle cx="72" cy="172" r="88" fill="#7f1d1d" opacity=".13"/>
+  <path d="M48 165 C 145 208, 260 188, 365 158 S 500 138, 516 172" fill="none" stroke="url(#red)" stroke-width="6" stroke-linecap="round" opacity=".72" filter="url(#glow)"/>
+  <text x="50%" y="48%" dominant-baseline="middle" text-anchor="middle"
+        font-family="Inter, Arial, sans-serif" font-size="54" font-weight="900"
+        letter-spacing="-2" fill="#ffffff" filter="url(#glow)">VALI</text>
+  <rect x="210.0" y="136.4" width="140" height="5" rx="5" fill="url(#red)" filter="url(#glow)"/>
+  <text x="50%" y="167.2" dominant-baseline="middle" text-anchor="middle"
+        font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800"
+        letter-spacing="3" fill="#fecaca">COMPUTERS</text>
+</svg>

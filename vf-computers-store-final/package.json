@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v19-partners-section",
+  "name": "vf-computers-v20-partners-logo-style",
   "private": true,
-  "version": "19.0.0",
+  "version": "20.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

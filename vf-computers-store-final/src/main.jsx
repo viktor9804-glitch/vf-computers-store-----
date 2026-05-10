@@ -152,12 +152,54 @@ const services = [
 
 
 const partners = [
-  { name: "Polycomp", logo: "POLYCOMP", tag: "ICT дистрибутор", text: "Дистрибутор на ИКТ оборудване и потребителска техника.", url: "https://polycomp.bg/poly/home" },
-  { name: "VALI Computers", logo: "VALI", tag: "IT дистрибутор", text: "Широк асортимент от компютърни продукти, компоненти и решения.", url: "https://www.vali.bg/" },
-  { name: "AdminBG", logo: "AdminBG", tag: "Сервиз и части", text: "Специализиран сервиз и решения за компютърна поддръжка.", url: "https://adminbg.net/" },
-  { name: "Katnis13", logo: "KATNIS13", tag: "Счетоводство", text: "Счетоводни и бизнес услуги за фирмени клиенти.", url: "https://www.katnis13.com/" },
-  { name: "TBI Bank", logo: "tbi bank", tag: "Финансиране", text: "Партньор за покупки на изплащане и гъвкави финансови решения.", url: "https://tbibank.bg/" },
-  { name: "Econt", logo: "ECONT", tag: "Доставка", text: "Куриерски услуги и доставки до клиенти в цялата страна.", url: "https://www.econt.com/" },
+  {
+    name: "Polycomp",
+    logo: "POLYCOMP",
+    logoSrc: "/partners/polycomp.svg",
+    tag: "ICT дистрибутор",
+    text: "Дистрибутор на ИКТ оборудване и потребителска техника.",
+    url: "https://polycomp.bg/poly/home",
+  },
+  {
+    name: "VALI Computers",
+    logo: "VALI",
+    logoSrc: "/partners/vali.svg",
+    tag: "IT дистрибутор",
+    text: "Широк асортимент от компютърни продукти, компоненти и решения.",
+    url: "https://www.vali.bg/",
+  },
+  {
+    name: "AdminBG",
+    logo: "AdminBG",
+    logoSrc: "/partners/adminbg.svg",
+    tag: "Сервиз и части",
+    text: "Специализиран сервиз и решения за компютърна поддръжка.",
+    url: "https://adminbg.net/",
+  },
+  {
+    name: "Katnis13",
+    logo: "KATNIS13",
+    logoSrc: "/partners/katnis13.svg",
+    tag: "Счетоводство",
+    text: "Счетоводни и бизнес услуги за фирмени клиенти.",
+    url: "https://www.katnis13.com/",
+  },
+  {
+    name: "TBI Bank",
+    logo: "tbi bank",
+    logoSrc: "/partners/tbibank.svg",
+    tag: "Финансиране",
+    text: "Партньор за покупки на изплащане и гъвкави финансови решения.",
+    url: "https://tbibank.bg/",
+  },
+  {
+    name: "Econt",
+    logo: "ECONT",
+    logoSrc: "/partners/econt.svg",
+    tag: "Доставка",
+    text: "Куриерски услуги и доставки до клиенти в цялата страна.",
+    url: "https://www.econt.com/",
+  },
 ];
 
 const pcBuilderSteps = [
