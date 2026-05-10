@@ -1259,3 +1259,21 @@ button:disabled{
     padding:20px;
   }
 }
+.tbi-btn {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  background: linear-gradient(135deg, #ff7a00, #ff4d00);
+  color: #fff;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.25s;
+  font-size: 14px;
+}
+
+.tbi-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
