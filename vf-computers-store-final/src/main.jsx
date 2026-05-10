@@ -1184,6 +1184,9 @@ function App() {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
+  const [tbiUrl, setTbiUrl] = useState("");
+  const [showTbi, setShowTbi] = useState(false);
+  const [tbiLoading, setTbiLoading] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [priceLimit, setPriceLimit] = useState(2000);
@@ -1364,31 +1367,39 @@ function App() {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
     setCartOpen(true);
   };
-const handleTbiCheckout = async (product) => {
-  try {
-    const response = await fetch("/api/tbi", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: product.name,
-        price: product.price,
-      }),
-    });
 
-    const data = await response.json();
+  const handleTbiCheckout = async (product) => {
+    try {
+      setTbiLoading(true);
 
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert("TBI връзката не е налична.");
+      const response = await fetch("/api/tbi", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: product.name,
+          price: product.price,
+        }),
+      });
+
+      const data = await response.json();
+
+      setTbiLoading(false);
+
+      if (data.url) {
+        setTbiUrl(data.url);
+        setShowTbi(true);
+      } else {
+        alert("TBI връзката не е налична.");
+      }
+    } catch (err) {
+      setTbiLoading(false);
+      console.error(err);
+      alert("Грешка при TBI заявката.");
     }
-  } catch (err) {
-    console.error(err);
-    alert("Грешка при TBI заявката.");
-  }
-};
+  };
+
   const updateQuantity = (id, amount) => {
     setCart((current) => {
       const nextQuantity = (current[id] || 0) + amount;
@@ -1609,12 +1620,12 @@ const handleTbiCheckout = async (product) => {
                     <del>{formatPrice(product.oldPrice)}</del>
                   </div>
                   <button onClick={() => addToCart(product.id)}>Добави</button>
-<button
-  className="tbi-btn"
-  onClick={() => handleTbiCheckout(product)}
->
-  Купи на изплащане с TBI
-</button>
+                  <button
+                    className="tbi-btn"
+                    onClick={() => handleTbiCheckout(product)}
+                  >
+                    Купи на изплащане
+                  </button>
                 </div>
               </div>
             </article>
@@ -1892,6 +1903,37 @@ const handleTbiCheckout = async (product) => {
 
       <CookieConsent />
 
+      {showTbi && (
+        <div className="tbi-modal">
+          <div className="tbi-modal-content">
+            <div className="tbi-modal-head">
+              <div>
+                <b>TBI Bank изплащане</b>
+                <p>Заявката се отваря директно в сайта на ВФ Компютри.</p>
+              </div>
+              <button onClick={() => setShowTbi(false)}>✕</button>
+            </div>
+
+            {tbiUrl ? (
+              <iframe
+                src={tbiUrl}
+                title="TBI Bank Checkout"
+                width="100%"
+                height="100%"
+              />
+            ) : (
+              <div className="tbi-loading">Зареждане на TBI...</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tbiLoading && (
+        <div className="tbi-loading-overlay">
+          <div>Свързване с TBI Bank...</div>
+        </div>
+      )}
+
       {cartOpen && (
         <div className="overlay" onClick={() => setCartOpen(false)}>
           <aside className="drawer" onClick={(event) => event.stopPropagation()}>
@@ -1928,6 +1970,16 @@ const handleTbiCheckout = async (product) => {
               <p><span>Доставка</span><b>{delivery === 0 ? "Безплатна" : formatPrice(delivery)}</b></p>
               <h3><span>Общо</span><b>{formatPrice(total)}</b></h3>
               <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>Завърши поръчката</button>
+              <button
+                className="drawer-tbi-btn"
+                disabled={!cartItems.length}
+                onClick={() => handleTbiCheckout({
+                  name: cartItems.map((item) => item.name).join(", "),
+                  price: total,
+                })}
+              >
+                Купи количката на изплащане с TBI
+              </button>
             </div>
           </aside>
         </div>
