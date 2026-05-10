@@ -1109,7 +1109,10 @@ function AdminPanel({ onBack }) {
 }
 
 function App() {
-  const [page, setPage] = useState(() => window.location.hash === "#admin" ? "admin" : "store");
+  useEffect(() => {
+    if (window.location.hash === "#admin") window.location.hash = "";
+  }, []);
+  const [page, setPage] = useState("store");
   const [userSession, setUserSession] = useState(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
@@ -1121,7 +1124,7 @@ function App() {
   const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
 
   useEffect(() => {
-    const onHashChange = () => setPage(window.location.hash === "#admin" ? "admin" : "store");
+    const onHashChange = () => setPage("store");
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
@@ -1462,13 +1465,8 @@ function App() {
       <a href="#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
       <a href="#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
       <a href="#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
-      <a href="#admin" onClick={() => setMobileOpen(false)}>Админ</a>
     </>
   );
-
-  if (page === "admin") {
-    return <AdminPanel onBack={() => { window.location.hash = ""; setPage("store"); }} />;
-  }
 
   return (
     <div className="site">

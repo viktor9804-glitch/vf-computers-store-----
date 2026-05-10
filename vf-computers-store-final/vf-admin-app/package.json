@@ -1,20 +1,20 @@
 {
-  "name": "vf-computers-v17-separated-admin-app",
+  "name": "vf-computers-admin-app",
+  "version": "1.0.0",
   "private": true,
-  "version": "17.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite --host 0.0.0.0 --port 5174",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --port 4174"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "vite": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "lucide-react": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "latest",
+    "lucide-react": "latest"
   },
   "devDependencies": {}
 }

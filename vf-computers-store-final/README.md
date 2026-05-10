@@ -1,7 +1,32 @@
-# ВФ Компютри - V16 TBI Secure Redirect Modal
+# ВФ Компютри - V17 Separated Admin App
 
-TBI не позволява iframe embedding чрез browser security policy.
-V16 заменя iframe-а с професионален secure redirect modal.
+## Промени
+- Публичният сайт вече няма линк „Админ“.
+- `#admin` вече не отваря админ панел в магазина.
+- Има отделно админ приложение в папка `vf-admin-app`.
 
-Качване:
-Замени файловете → Commit/Push → Redeploy.
+## Стартиране на админ приложението
+
+```bash
+cd vf-admin-app
+npm install
+npm run dev
+```
+
+Отваряш:
+
+```txt
+http://localhost:5174
+```
+
+## Важно
+Създай админ потребител в Supabase:
+
+```txt
+Supabase → Authentication → Users → Add user
+```
+
+После влизаш с този имейл и парола.
+
+Публичния магазин качваш във Vercel както досега.
+Админ приложението можеш да държиш само на твоя компютър или да го качиш като отделен проект.
