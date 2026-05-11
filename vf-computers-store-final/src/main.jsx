@@ -924,8 +924,8 @@ function AdminPanel({ onBack }) {
   const [adminNotice, setAdminNotice] = useState("");
   const [adminProducts, setAdminProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
   const [adminSearch, setAdminSearch] = useState("");
 
@@ -949,16 +949,19 @@ function AdminPanel({ onBack }) {
   }, [unlocked]);
 
   useEffect(() => {
-    if (!imageFile) {
-      if (!editingProduct?.image) setImagePreview("");
+    if (!imageFiles.length) {
+      const existingImages = Array.isArray(editingProduct?.images)
+        ? editingProduct.images
+        : editingProduct?.image
+          ? [editingProduct.image]
+          : [];
+      setImagePreviews(existingImages);
       return;
     }
-
-    const previewUrl = URL.createObjectURL(imageFile);
-    setImagePreview(previewUrl);
-
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [imageFile, editingProduct]);
+    const previewUrls = imageFiles.map((file) => URL.createObjectURL(file));
+    setImagePreviews(previewUrls);
+    return () => previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  }, [imageFiles, editingProduct]);
 
   const unlock = () => {
     if (password === ADMIN_PASSWORD) {
@@ -976,8 +979,8 @@ function AdminPanel({ onBack }) {
 
   const resetForm = () => {
     setForm(emptyForm);
-    setImageFile(null);
-    setImagePreview("");
+    setImageFiles([]);
+    setImagePreviews([]);
     setEditingProduct(null);
     setAdminNotice("");
   };
@@ -991,31 +994,34 @@ function AdminPanel({ onBack }) {
       stock: String(product.stock ?? "1"),
       description: product.description || "",
     });
-    setImageFile(null);
-    setImagePreview(product.image || "");
+    setImageFiles([]);
+    setImagePreviews(Array.isArray(product.images) ? product.images : product.image ? [product.image] : []);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const uploadProductImage = async () => {
-    if (!imageFile) return editingProduct?.image || "";
-
-    const safeName = imageFile.name.replaceAll(" ", "-").toLowerCase();
-    const filePath = `${Date.now()}-${safeName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(filePath, imageFile, { upsert: false });
-
-    if (uploadError) {
-      console.error(uploadError);
-      throw new Error("Грешка при качване на снимката. Провери Storage bucket и policies.");
+  const uploadProductImages = async () => {
+    if (!imageFiles.length) {
+      return Array.isArray(editingProduct?.images)
+        ? editingProduct.images
+        : editingProduct?.image
+          ? [editingProduct.image]
+          : [];
     }
-
-    const { data: publicUrlData } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(filePath);
-
-    return publicUrlData.publicUrl;
+    const uploadedUrls = [];
+    for (const imageFile of imageFiles) {
+      const safeName = imageFile.name.replaceAll(" ", "-").toLowerCase();
+      const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(filePath, imageFile, { upsert: false });
+      if (uploadError) {
+        console.error(uploadError);
+        throw new Error("Грешка при качване на снимките. Провери Storage bucket и policies.");
+      }
+      const { data: publicUrlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
+      uploadedUrls.push(publicUrlData.publicUrl);
+    }
+    return uploadedUrls;
   };
 
   const saveProduct = async () => {
@@ -1028,13 +1034,14 @@ function AdminPanel({ onBack }) {
     setAdminNotice("");
 
     try {
-      const imageUrl = await uploadProductImage();
+      const imageUrls = await uploadProductImages();
 
       const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
         price: Number(form.price),
-        image: imageUrl,
+        image: imageUrls[0] || "",
+        images: imageUrls,
         category: form.category,
         stock: Number(form.stock || 0),
       };
@@ -1175,17 +1182,29 @@ function AdminPanel({ onBack }) {
             </label>
 
             <label>
-              Снимка
-              <input type="file" accept="image/*" onChange={(event) => setImageFile(event.target.files?.[0] || null)} />
+              Снимки на продукта
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => setImageFiles(Array.from(event.target.files || []))}
+              />
             </label>
 
-            {(imagePreview || imageFile) && (
-              <div className="admin-image-preview">
-                <img src={imagePreview} alt="Преглед на продукта" />
+            {imagePreviews.length > 0 && (
+              <div className="admin-image-preview-grid">
+                {imagePreviews.map((preview, index) => (
+                  <div className="admin-image-preview" key={`${preview}-${index}`}>
+                    <img src={preview} alt={`Преглед на продукта ${index + 1}`} />
+                    {index === 0 && <span>Основна</span>}
+                  </div>
+                ))}
               </div>
             )}
 
-            {imageFile && <p className="admin-file">Избрана снимка: {imageFile.name}</p>}
+            {imageFiles.length > 0 && (
+              <p className="admin-file">Избрани снимки: {imageFiles.map((file) => file.name).join(", ")}</p>
+            )}
             {adminNotice && <div className="notice">{adminNotice}</div>}
 
             <button className="admin-save" onClick={saveProduct} disabled={saving}>
@@ -1299,7 +1318,14 @@ function App() {
           rating: 4.9,
           stock: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
           badge: "NEW",
-          image: product.image || "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
+          image: Array.isArray(product.images) && product.images.length > 0
+            ? product.images[0]
+            : product.image || "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
+          images: Array.isArray(product.images) && product.images.length > 0
+            ? product.images
+            : product.image
+              ? [product.image]
+              : [],
           specs: product.description ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4) : ["ВФ Компютри", "Проверен продукт"],
         })));
       }
@@ -1833,6 +1859,9 @@ function App() {
                 <img src={product.image} alt={product.name} loading="lazy" />
                 <span className="badge-product">{product.badge}</span>
                 <button className="wish"><Heart size={17} /></button>
+                {product.images?.length > 1 && (
+                  <div className="product-image-count">+{product.images.length - 1} снимки</div>
+                )}
               </div>
               <div className="product-body">
                 <div className="product-meta">
