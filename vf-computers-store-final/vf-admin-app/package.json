@@ -11,18 +11,16 @@
     "preview": "vite preview --port 4174"
   },
   "dependencies": {
+    "@supabase/supabase-js": "latest",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
+    "cacheable-request": "^13.0.19",
+    "concurrently": "latest",
+    "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "@supabase/supabase-js": "latest",
-    "lucide-react": "latest",
-    "electron": "latest",
-    "electron-builder": "latest",
-    "concurrently": "latest",
+    "vite": "latest",
     "wait-on": "latest"
   },
-  "devDependencies": {},
   "main": "electron/main.cjs",
   "build": {
     "appId": "bg.vfcomputers.admin",
@@ -45,5 +43,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }
+  },
+  "devDependencies": {
+    "electron": "^42.0.1",
+    "electron-builder": "^26.8.1"
   }
 }
