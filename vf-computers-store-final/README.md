@@ -1,25 +1,17 @@
-# ВФ Компютри - V23 Payment Methods Checkout Bank Ready
+# ВФ Компютри - V24 About Store Gallery Location
 
-## Добавено
-- Наложен платеж
-- Банков превод
-- TBI Bank - на изплащане
-- Реални банкови данни:
+Добавено:
+- Секция „За V F COMPUTERS“
+- История/описание на магазина и сервиза
+- Локация: гр. Елхово, ул. „Славянска“ №5
+- Бутон към Google Maps
+- Галерия със снимки от магазина, откриването и витрините
+- Локални оптимизирани JPG снимки в `public/store-gallery/`
 
-```txt
-Beneficiary: V F COMPUTERS LTD
-IBAN: BG29BPBI79341038936401
-BIC: BPBIBGSF
-Bank: Пощенска банка
-```
-
-## Важно
+Важно:
 Не заменяй `api/`, ако чат ботът работи.
 
-## Копирай
+Копирай:
 - `src/main.jsx`
 - `src/style.css`
-
-Ако услугите/партньорите още не са качени:
-- `public/services/`
-- `public/partners/`
+- `public/store-gallery/`

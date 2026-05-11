@@ -241,6 +241,40 @@ const partners = [
   },
 ];
 
+const storeGallery = [
+  "/store-gallery/store-01.jpg",
+  "/store-gallery/store-02.jpg",
+  "/store-gallery/store-03.jpg",
+  "/store-gallery/store-04.jpg",
+  "/store-gallery/store-05.jpg",
+  "/store-gallery/store-06.jpg",
+  "/store-gallery/store-07.jpg",
+  "/store-gallery/store-08.jpg",
+  "/store-gallery/store-09.jpg",
+  "/store-gallery/store-10.jpg",
+  "/store-gallery/store-11.jpg",
+  "/store-gallery/store-12.jpg",
+  "/store-gallery/store-13.jpg",
+  "/store-gallery/store-14.jpg",
+  "/store-gallery/store-15.jpg",
+  "/store-gallery/store-16.jpg",
+  "/store-gallery/store-17.jpg",
+  "/store-gallery/store-18.jpg",
+  "/store-gallery/store-19.jpg",
+  "/store-gallery/store-20.jpg",
+  "/store-gallery/store-21.jpg",
+  "/store-gallery/store-22.jpg",
+  "/store-gallery/store-23.jpg",
+  "/store-gallery/store-24.jpg",
+  "/store-gallery/store-25.jpg",
+  "/store-gallery/store-26.jpg",
+  "/store-gallery/store-27.jpg",
+  "/store-gallery/store-28.jpg",
+  "/store-gallery/store-29.jpg"
+];
+
+const mapsUrl = "https://share.google/E41TiRfxBr2f0zhbL";
+
 const pcBuilderSteps = [
   { icon: Cpu, title: "Избери процесор", text: "Intel или AMD според бюджета и целта." },
   { icon: Server, title: "Избери видеокарта", text: "Gaming, streaming, работа или офис." },
@@ -1586,6 +1620,7 @@ function App() {
       <a href="#products" onClick={() => setMobileOpen(false)}>Продукти</a>
       <a href="#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
       <a href="#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
+      <a href="#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
       <a href="#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
       <a href="#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
     </>
@@ -1695,6 +1730,78 @@ function App() {
         <div><b>100%</b><span>тестване преди предаване</span></div>
         <div><b>2 г.</b><span>гаранция според продукта</span></div>
         <div><b>0 €</b><span>консултация за конфигурация</span></div>
+      </section>
+
+
+      <section id="about-store" className="about-store-section">
+        <div className="container about-store-grid">
+          <div className="about-store-copy">
+            <p className="section-label">За нас</p>
+            <h2>За V F COMPUTERS</h2>
+            <p>
+              V F COMPUTERS е компютърен сервиз и магазин, създаден с идеята да предложи качествено обслужване,
+              коректност и професионални решения за компютри, лаптопи и gaming конфигурации.
+            </p>
+            <p>
+              Магазинът се намира в град Елхово, ул. „Славянска“ №5 и предлага диагностика, ремонт,
+              профилактика, сглобяване на компютри, продажба на компоненти, инсталация на софтуер,
+              ъпгрейди и поддръжка.
+            </p>
+            <p>
+              Нашата цел е всеки клиент да получи лично отношение, бързо обслужване и надеждно решение
+              за своята техника. Работим както с ежедневни компютърни конфигурации, така и с gaming системи,
+              лаптопи и хардуерни компоненти.
+            </p>
+
+            <div className="about-store-actions">
+              <a className="btn primary" href={mapsUrl} target="_blank" rel="noreferrer">
+                <MapPin size={18} /> Отвори в Google Maps
+              </a>
+              <a className="btn ghost" href={`tel:${storeInfo.rawPhone}`}>
+                <Phone size={18} /> Обади се
+              </a>
+            </div>
+
+            <div className="about-store-info">
+              <div><MapPin /><span>{storeInfo.address}</span></div>
+              <div><Phone /><span>{storeInfo.phone}</span></div>
+              <div><Mail /><span>{storeInfo.email}</span></div>
+            </div>
+          </div>
+
+          <div className="about-store-showcase">
+            <div className="showcase-main">
+              <img src={storeGallery[0]} alt="Откриване на V F COMPUTERS" loading="lazy" />
+              <span>Физически магазин в Елхово</span>
+            </div>
+            <div className="showcase-mini">
+              {storeGallery.slice(1, 4).map((image, index) => (
+                <img src={image} alt={`V F COMPUTERS магазин ${index + 1}`} key={image} loading="lazy" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="container store-gallery-block">
+          <div className="section-head">
+            <div>
+              <p className="section-label">Магазин и сервиз</p>
+              <h2>Снимки от магазина</h2>
+              <p className="gallery-lead">
+                Реални кадри от откриването, витрините, компонентите и работната среда на V F COMPUTERS.
+              </p>
+            </div>
+          </div>
+
+          <div className="store-gallery-grid">
+            {storeGallery.slice(0, 18).map((image, index) => (
+              <a className={`store-gallery-card ${index === 0 || index === 3 ? "wide" : ""}`} href={image} target="_blank" rel="noreferrer" key={image}>
+                <img src={image} alt={`V F COMPUTERS галерия ${index + 1}`} loading="lazy" />
+                <span>{index + 1}</span>
+              </a>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section id="products" className="container products-section">

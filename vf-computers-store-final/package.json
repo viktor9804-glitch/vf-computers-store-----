@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v23-payment-methods-checkout",
+  "name": "vf-computers-v24-about-store-gallery-location",
   "private": true,
-  "version": "23.0.0",
+  "version": "24.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
