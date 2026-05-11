@@ -1,5 +1,28 @@
 import React,{useEffect,useMemo,useState}from"react";import{createRoot}from"react-dom/client";import{LogIn,LogOut,PackagePlus,RefreshCw,Search,Trash2,Pencil,Save,ImagePlus,ShoppingBag,Wrench,ShieldCheck,X}from"lucide-react";import{supabase}from"./supabaseClient";import"./style.css";
 const STORAGE_BUCKET="product-images";const categories=["Gaming PC","Компютри","Рам Памет","Реновирана техника","Видеокарти","Процесори","SSD / HDD","Лаптопи","Монитори","Периферия"];const formatPrice=(v)=>new Intl.NumberFormat("bg-BG",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(v||0));
+async function uploadImages(files){
+  const uploaded=[];
+
+  for(const file of files){
+    const fileName=`${Date.now()}-${file.name}`;
+
+    const {error:uploadError}=await supabase
+      .storage
+      .from(STORAGE_BUCKET)
+      .upload(fileName,file);
+
+    if(uploadError) throw uploadError;
+
+    const {data}=supabase
+      .storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(fileName);
+
+    uploaded.push(data.publicUrl);
+  }
+
+  return uploaded;
+}
 function App(){const[session,setSession]=useState(null),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[notice,setNotice]=useState(""),[tab,setTab]=useState("products"),[products,setProducts]=useState([]),[orders,setOrders]=useState([]),[tickets,setTickets]=useState([]),[query,setQuery]=useState(""),[saving,setSaving]=useState(false),[imageFiles,setImageFiles]=useState([]),[imagePreviews,setImagePreviews]=useState([]),[editingId,setEditingId]=useState(null),[form,setForm]=useState({title:"",category:"Gaming PC",price:"",stock:"1",description:""});
 useEffect(()=>{supabase.auth.getSession().then(({data})=>setSession(data.session||null));const{data:l}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s||null));return()=>l.subscription.unsubscribe()},[]);
 useEffect(()=>{if(session)loadAll()},[session]);
