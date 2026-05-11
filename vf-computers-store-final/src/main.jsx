@@ -985,6 +985,17 @@ function AdminPanel({ onBack }) {
     setAdminNotice("");
   };
 
+  const handleProductImagesSelect = (event) => {
+    const selectedFiles = Array.from(event.target.files || []).slice(0, 10);
+    setImageFiles(selectedFiles);
+
+    if ((event.target.files || []).length > 10) {
+      setAdminNotice("Можеш да качиш максимум 10 снимки за един артикул.");
+    } else {
+      setAdminNotice("");
+    }
+  };
+
   const startEditProduct = (product) => {
     setEditingProduct(product);
     setForm({
@@ -1008,7 +1019,7 @@ function AdminPanel({ onBack }) {
           : [];
     }
     const uploadedUrls = [];
-    for (const imageFile of imageFiles) {
+    for (const imageFile of imageFiles.slice(0, 10)) {
       const safeName = imageFile.name.replaceAll(" ", "-").toLowerCase();
       const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
       const { error: uploadError } = await supabase.storage
@@ -1182,12 +1193,12 @@ function AdminPanel({ onBack }) {
             </label>
 
             <label>
-              Снимки на продукта
+              Снимки на продукта / максимум 10
               <input
                 type="file"
                 accept="image/*"
                 multiple
-                onChange={(event) => setImageFiles(Array.from(event.target.files || []))}
+                onChange={handleProductImagesSelect}
               />
             </label>
 
@@ -1343,6 +1354,8 @@ function App() {
   const [tbiLoading, setTbiLoading] = useState(false);
   const [tbiProduct, setTbiProduct] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [galleryProduct, setGalleryProduct] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [priceLimit, setPriceLimit] = useState(2000);
@@ -1585,6 +1598,11 @@ function App() {
       console.error(err);
       alert("Грешка при TBI заявката.");
     }
+  };
+
+  const openProductGallery = (product, index = 0) => {
+    setGalleryProduct(product);
+    setGalleryIndex(index);
   };
 
   const updateQuantity = (id, amount) => {
@@ -1855,14 +1873,23 @@ function App() {
         <div className="product-grid">
           {filteredProducts.map((product) => (
             <article className="product-card" key={product.id}>
-              <div className="product-image">
+              <div className="product-image" onClick={() => openProductGallery(product, 0)}>
                 <img src={product.image} alt={product.name} loading="lazy" />
                 <span className="badge-product">{product.badge}</span>
-                <button className="wish"><Heart size={17} /></button>
+                <button className="wish" onClick={(event) => event.stopPropagation()}><Heart size={17} /></button>
                 {product.images?.length > 1 && (
                   <div className="product-image-count">+{product.images.length - 1} снимки</div>
                 )}
               </div>
+              {product.images?.length > 1 && (
+                <div className="product-thumbs">
+                  {product.images.slice(0, 5).map((image, index) => (
+                    <button key={`${image}-${index}`} onClick={() => openProductGallery(product, index)}>
+                      <img src={image} alt={`${product.name} снимка ${index + 1}`} />
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="product-body">
                 <div className="product-meta">
                   <span>{product.category}</span>
@@ -2174,6 +2201,37 @@ function App() {
               placeholder="Напиши въпрос..."
             />
             <button onClick={sendAiMessage} disabled={aiLoading}><Send size={17} /></button>
+          </div>
+        </div>
+      )}
+
+      {galleryProduct && (
+        <div className="product-gallery-overlay" onClick={() => setGalleryProduct(null)}>
+          <div className="product-gallery-modal" onClick={(event) => event.stopPropagation()}>
+            <button className="product-gallery-close" onClick={() => setGalleryProduct(null)}><X size={18} /></button>
+            <div className="product-gallery-main">
+              <img
+                src={(galleryProduct.images && galleryProduct.images[galleryIndex]) || galleryProduct.image}
+                alt={galleryProduct.name}
+              />
+            </div>
+            <div className="product-gallery-info">
+              <h3>{galleryProduct.name}</h3>
+              <p>{formatPrice(galleryProduct.price)}</p>
+            </div>
+            {galleryProduct.images?.length > 1 && (
+              <div className="product-gallery-thumbs">
+                {galleryProduct.images.slice(0, 10).map((image, index) => (
+                  <button
+                    className={galleryIndex === index ? "active" : ""}
+                    key={`${image}-${index}`}
+                    onClick={() => setGalleryIndex(index)}
+                  >
+                    <img src={image} alt={`${galleryProduct.name} ${index + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

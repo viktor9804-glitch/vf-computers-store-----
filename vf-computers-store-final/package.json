@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v25-admin-multiple-product-images",
+  "name": "vf-computers-v26-product-gallery-10-images",
   "private": true,
-  "version": "25.0.0",
+  "version": "26.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
