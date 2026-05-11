@@ -986,10 +986,11 @@ function AdminPanel({ onBack }) {
   };
 
   const handleProductImagesSelect = (event) => {
-    const selectedFiles = Array.from(event.target.files || []).slice(0, 10);
-    setImageFiles(selectedFiles);
+    const selected = Array.from(event.target.files || []);
+    const limited = selected.slice(0, 10);
+    setImageFiles(limited);
 
-    if ((event.target.files || []).length > 10) {
+    if (selected.length > 10) {
       setAdminNotice("Можеш да качиш максимум 10 снимки за един артикул.");
     } else {
       setAdminNotice("");
@@ -1018,20 +1019,29 @@ function AdminPanel({ onBack }) {
           ? [editingProduct.image]
           : [];
     }
+
     const uploadedUrls = [];
+
     for (const imageFile of imageFiles.slice(0, 10)) {
       const safeName = imageFile.name.replaceAll(" ", "-").toLowerCase();
       const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
+
       const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
         .upload(filePath, imageFile, { upsert: false });
+
       if (uploadError) {
         console.error(uploadError);
         throw new Error("Грешка при качване на снимките. Провери Storage bucket и policies.");
       }
-      const { data: publicUrlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
+
+      const { data: publicUrlData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(filePath);
+
       uploadedUrls.push(publicUrlData.publicUrl);
     }
+
     return uploadedUrls;
   };
 
