@@ -1,7 +1,7 @@
 {
-  "name": "vf-computers-v24-about-store-gallery-location",
+  "name": "vf-computers-v25-gallery-fixed",
   "private": true,
-  "version": "24.0.0",
+  "version": "25.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
