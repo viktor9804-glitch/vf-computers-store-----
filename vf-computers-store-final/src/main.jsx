@@ -1289,6 +1289,13 @@ const ProductPage = ({ products, addToCart, handleTbiCheckout }) => {
 
   const [selectedImage, setSelectedImage] = useState(0);
 
+useEffect(() => {
+  window.scrollTo({
+    top: 0,
+    behavior: "instant",
+  });
+}, [id]);
+
   if (!product) {
     return (
       <div className="product-page-not-found">
