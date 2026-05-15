@@ -1,3 +1,11 @@
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useParams,
+  useNavigate
+} from "react-router-dom";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -1273,6 +1281,137 @@ function AdminPanel({ onBack }) {
   );
 }
 
+const ProductPage = ({ products, addToCart, handleTbiCheckout }) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const product = products.find((p) => String(p.id) === id);
+
+  const [selectedImage, setSelectedImage] = useState(0);
+
+  if (!product) {
+    return (
+      <div className="product-page-not-found">
+        <h2>Продуктът не е намерен</h2>
+
+        <button onClick={() => navigate("/")}>
+          Назад
+        </button>
+      </div>
+    );
+  }
+
+  const images = product.images?.length
+    ? product.images
+    : [product.image];
+
+  return (
+    <div className="product-page">
+
+      <div className="container">
+
+        <button
+          className="back-button"
+          onClick={() => navigate(-1)}
+        >
+          ← Назад
+        </button>
+
+        <div className="product-page-grid">
+
+          <div className="product-page-gallery">
+
+            <div className="product-page-thumbs">
+              {images.map((image, index) => (
+                <button
+                  key={index}
+                  className={selectedImage === index ? "active" : ""}
+                  onClick={() => setSelectedImage(index)}
+                >
+                  <img src={image} alt="" />
+                </button>
+              ))}
+            </div>
+
+            <div className="product-page-main-image">
+              <img
+                src={images[selectedImage]}
+                alt={product.name}
+              />
+            </div>
+
+          </div>
+
+          <div className="product-page-info">
+
+            <span className="product-page-category">
+              {product.category}
+            </span>
+
+            <h1>{product.name}</h1>
+
+            <div className="product-page-price">
+              <b>{formatPrice(product.price)}</b>
+
+              <del>
+                {formatPrice(product.oldPrice)}
+              </del>
+            </div>
+
+            <p className="product-page-stock">
+              {product.stock}
+            </p>
+
+           <p className="product-page-description">
+  {product.description || "Няма добавено описание за този продукт."}
+</p>
+
+            <div className="product-page-specs">
+              {product.specs.map((spec) => (
+                <span key={spec}>
+                  {spec}
+                </span>
+              ))}
+            </div>
+
+            <div className="product-page-actions">
+
+              <button
+                onClick={() => addToCart(product.id)}
+              >
+                Добави в количката
+              </button>
+
+              <button
+                className="tbi-btn"
+                onClick={() => handleTbiCheckout(product)}
+              >
+                Купи на изплащане
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+};
+function LoadingScreen() {
+  return (
+    <div className="vf-loading-screen">
+      <div className="vf-loading-card">
+        <img src={LOGO_URL} alt="ВФ Компютри" />
+        <div className="vf-loading-ring" />
+        <h2>Зареждане...</h2>
+        <p>Подготвяме продуктите</p>
+      </div>
+    </div>
+  );
+}
 function App() {
   useEffect(() => {
     if (window.location.hash === "#admin") window.location.hash = "";
@@ -1287,6 +1426,7 @@ function App() {
   const [dbProducts, setDbProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
+const showLoadingScreen = loadingProducts && dbProducts.length === 0;
 
   useEffect(() => {
     const onHashChange = () => setPage("store");
@@ -1347,7 +1487,10 @@ function App() {
             : product.image
               ? [product.image]
               : [],
-          specs: product.description ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4) : ["ВФ Компютри", "Проверен продукт"],
+          description: product.description || "",
+specs: product.description
+  ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4)
+  : ["ВФ Компютри", "Проверен продукт"],
         })));
       }
     };
@@ -1364,8 +1507,6 @@ function App() {
   const [tbiLoading, setTbiLoading] = useState(false);
   const [tbiProduct, setTbiProduct] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [galleryProduct, setGalleryProduct] = useState(null);
-  const [galleryIndex, setGalleryIndex] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [priceLimit, setPriceLimit] = useState(2000);
@@ -1610,11 +1751,6 @@ function App() {
     }
   };
 
-  const openProductGallery = (product, index = 0) => {
-    setGalleryProduct(product);
-    setGalleryIndex(index);
-  };
-
   const updateQuantity = (id, amount) => {
     setCart((current) => {
       const nextQuantity = (current[id] || 0) + amount;
@@ -1680,8 +1816,16 @@ function App() {
     </>
   );
 
+if (showLoadingScreen) {
+  return <LoadingScreen />;
+}
+
   return (
-    <div className="site">
+  <Routes>
+    <Route
+      path="/"
+      element={
+        <div className="site">
       <div className="rgb-bg" />
       <div className="scanline" />
 
@@ -1882,8 +2026,13 @@ function App() {
 
         <div className="product-grid">
           {filteredProducts.map((product) => (
-            <article className="product-card" key={product.id}>
-              <div className="product-image" onClick={() => openProductGallery(product, 0)}>
+            <Link
+  to={`/product/${product.id}`}
+  className="product-link"
+  key={product.id}
+>
+  <article className="product-card">
+              <div className="product-image">
                 <img src={product.image} alt={product.name} loading="lazy" />
                 <span className="badge-product">{product.badge}</span>
                 <button className="wish" onClick={(event) => event.stopPropagation()}><Heart size={17} /></button>
@@ -1907,7 +2056,11 @@ function App() {
                 </div>
                 <h3>{product.name}</h3>
                 <div className="specs">
-                  {product.specs.map((spec) => <small key={spec}>{spec}</small>)}
+                  <small>
+  {product.description
+    ? product.description.substring(0, 120) + "..."
+    : "Натиснете за повече информация..."}
+</small>
                 </div>
                 <p className="stock"><CheckCircle2 size={15} /> {product.stock}</p>
                 <div className="product-buy">
@@ -1925,6 +2078,7 @@ function App() {
                 </div>
               </div>
             </article>
+</Link>
           ))}
         </div>
       </section>
@@ -2215,37 +2369,7 @@ function App() {
         </div>
       )}
 
-      {galleryProduct && (
-        <div className="product-gallery-overlay" onClick={() => setGalleryProduct(null)}>
-          <div className="product-gallery-modal" onClick={(event) => event.stopPropagation()}>
-            <button className="product-gallery-close" onClick={() => setGalleryProduct(null)}><X size={18} /></button>
-            <div className="product-gallery-main">
-              <img
-                src={(galleryProduct.images && galleryProduct.images[galleryIndex]) || galleryProduct.image}
-                alt={galleryProduct.name}
-              />
-            </div>
-            <div className="product-gallery-info">
-              <h3>{galleryProduct.name}</h3>
-              <p>{formatPrice(galleryProduct.price)}</p>
-            </div>
-            {galleryProduct.images?.length > 1 && (
-              <div className="product-gallery-thumbs">
-                {galleryProduct.images.slice(0, 10).map((image, index) => (
-                  <button
-                    className={galleryIndex === index ? "active" : ""}
-                    key={`${image}-${index}`}
-                    onClick={() => setGalleryIndex(index)}
-                  >
-                    <img src={image} alt={`${galleryProduct.name} ${index + 1}`} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
+      
       {documentOrder && (
         <OrderDocumentsModal
           order={documentOrder}
@@ -2470,8 +2594,26 @@ function App() {
           </div>
         </div>
       )}
-    </div>
-  );
+        </div>
+      }
+    />
+
+    <Route
+      path="/product/:id"
+      element={
+        <ProductPage
+          products={products}
+          addToCart={addToCart}
+          handleTbiCheckout={handleTbiCheckout}
+        />
+      }
+    />
+  </Routes>
+);
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById("root")).render(
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>
+);
