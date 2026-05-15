@@ -1286,7 +1286,7 @@ function App() {
   const [documentCustomer, setDocumentCustomer] = useState(null);
   const [dbProducts, setDbProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
+  const products = dbProducts;
 
   useEffect(() => {
     const onHashChange = () => setPage("store");
