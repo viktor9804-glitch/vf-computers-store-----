@@ -1286,7 +1286,7 @@ function App() {
   const [documentCustomer, setDocumentCustomer] = useState(null);
   const [dbProducts, setDbProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const products = dbProducts;
+  const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
 
   useEffect(() => {
     const onHashChange = () => setPage("store");
@@ -1558,7 +1558,7 @@ function App() {
       const priceMatch = product.price <= priceLimit;
       return categoryMatch && searchMatch && priceMatch;
     });
-  }, [products, activeCategory, query, priceLimit]);
+  }, [activeCategory, query, priceLimit]);
 
   const cartItems = Object.entries(cart)
     .map(([id, quantity]) => {
