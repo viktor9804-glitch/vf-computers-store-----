@@ -1350,21 +1350,60 @@ const ProductPage = ({ products, addToCart, handleTbiCheckout }) => {
 
             <h1>{product.name}</h1>
 
-            <div className="product-page-price">
-              <b>{formatPrice(product.price)}</b>
+            <div className="product-price-row">
 
-              <del>
-                {formatPrice(product.oldPrice)}
-              </del>
-            </div>
+  <div className="product-page-price">
+    <b>{formatPrice(product.price)}</b>
 
-            <p className="product-page-stock">
-              {product.stock}
-            </p>
+    <del>
+      {formatPrice(product.oldPrice)}
+    </del>
+  </div>
 
-           <p className="product-page-description">
-  {product.description || "Няма добавено описание за този продукт."}
+  <div className="product-page-actions-inline">
+
+    <button
+      onClick={() => addToCart(product.id)}
+    >
+      Добави в количката
+    </button>
+
+    <button
+      className="tbi-btn"
+      onClick={() => handleTbiCheckout(product)}
+    >
+      Купи на изплащане
+    </button>
+
+  </div>
+
+</div>
+
+<p className="product-page-stock">
+  {product.stock}
 </p>
+
+           <h2 className="product-specs-title">
+  Технически характеристики
+</h2>
+
+<table className="product-specs-table">
+  <tbody>
+    {product.description
+      ?.split(".")
+      .filter((line) => line.trim() !== "")
+      .map((line, index) => {
+        const parts = line.split(":");
+
+        return (
+          <tr key={index}>
+            <td>{parts[0]}</td>
+            <td>{parts.slice(1).join(":")}</td>
+          </tr>
+        );
+      })}
+  </tbody>
+</table>
 
             <div className="product-page-specs">
               {product.specs.map((spec) => (
