@@ -1413,23 +1413,6 @@ const ProductPage = ({ products, addToCart, handleTbiCheckout }) => {
               ))}
             </div>
 
-            <div className="product-page-actions">
-
-              <button
-                onClick={() => addToCart(product.id)}
-              >
-                Добави в количката
-              </button>
-
-              <button
-                className="tbi-btn"
-                onClick={() => handleTbiCheckout(product)}
-              >
-                Купи на изплащане
-              </button>
-
-            </div>
-
           </div>
 
         </div>
