@@ -1558,7 +1558,7 @@ function App() {
       const priceMatch = product.price <= priceLimit;
       return categoryMatch && searchMatch && priceMatch;
     });
-  }, [activeCategory, query, priceLimit]);
+  }, [products, activeCategory, query, priceLimit]);
 
   const cartItems = Object.entries(cart)
     .map(([id, quantity]) => {
