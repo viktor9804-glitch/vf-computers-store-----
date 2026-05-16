@@ -238,23 +238,27 @@ integratedGraphics:form.integratedGraphics
   </select>
 </label>
 
-<label>
-  Марка
-  <input
-    value={form.brand}
-    onChange={e=>updateForm("brand",e.target.value)}
-    placeholder="ASUS, MSI, Gigabyte..."
-  />
-</label>
+{form.componentType !== "cpu" && (
+  <>
+    <label>
+      Марка
+      <input
+        value={form.brand}
+        onChange={e=>updateForm("brand",e.target.value)}
+        placeholder="ASUS, MSI, Gigabyte..."
+      />
+    </label>
 
-<label>
-  Модел
-  <input
-    value={form.model}
-    onChange={e=>updateForm("model",e.target.value)}
-    placeholder="ROG STRIX..."
-  />
-</label>
+    <label>
+      Модел
+      <input
+        value={form.model}
+        onChange={e=>updateForm("model",e.target.value)}
+        placeholder="ROG STRIX..."
+      />
+    </label>
+  </>
+)}
 
 {form.componentType === "cpu" && (
   <>
