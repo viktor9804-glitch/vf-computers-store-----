@@ -1521,6 +1521,8 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout }) => {
   const { categoryName } = useParams();
   const navigate = useNavigate();
 
+  const [megaOpen, setMegaOpen] = useState(false);
+
   const decodedCategory = decodeURIComponent(categoryName);
 
   const categoryProducts = products.filter(
@@ -1528,6 +1530,85 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout }) => {
   );
 
   return (
+  <>
+    <header className="header">
+      <div className="container header-inner">
+
+        <a className="brand" href="/">
+          <span className="logo-wrap">
+            <img src={LOGO_URL} alt="ВФ Компютри" />
+            <Cpu className="fallback-logo" />
+          </span>
+
+          <span className="brand-text">
+            <b>ВФ <em>Компютри</em></b>
+            <small>Продажба • Ремонт • Поддръжка</small>
+          </span>
+        </a>
+
+        <nav className="desktop-nav">
+
+  <button
+    className="mega-menu-button"
+    onClick={() => setMegaOpen((current) => !current)}
+  >
+    <Menu size={18} />
+    Категории
+  </button>
+
+  <a href="/">Начало</a>
+  <a href="/#builder">Сглоби PC</a>
+  <a href="/#services">Сервиз</a>
+  <a href="/#about">За нас</a>
+  <a href="/#partners">Партньори</a>
+  <a href="/#contact">Контакти</a>
+
+</nav>
+
+      </div>
+    </header>
+{megaOpen && (
+  <div className="mega-menu-overlay" onClick={() => setMegaOpen(false)}>
+    <div
+      className="mega-menu-panel mega-menu-grid"
+      onClick={(event) => event.stopPropagation()}
+    >
+
+      {megaCategories.map((category) => (
+        <div className="mega-menu-column" key={category.title}>
+
+          <img
+            className="mega-bg"
+            src={category.image}
+            alt={category.title}
+          />
+
+          <div className="mega-content">
+
+            <h2>{category.title}</h2>
+
+            <ul>
+              {category.items.map((item) => (
+                <li
+                  key={item}
+                  onClick={() => {
+                    setMegaOpen(false);
+                    window.location.href = `/category/${encodeURIComponent(item)}`;
+                  }}
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+          </div>
+
+        </div>
+      ))}
+
+    </div>
+  </div>
+)}
     <div className="category-page">
       <div className="container products-section">
 
@@ -1607,6 +1688,7 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout }) => {
 
       </div>
     </div>
+    </>
   );
 };
 function App() {
