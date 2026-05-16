@@ -1913,11 +1913,6 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   const navLinks = (
   <>
     <button
-      className="nav-categories-btn"
-      onClick={() => setMegaOpen(true)}
-    >
-      Категории
-    </button>
 
     <a href="#builder">Сглоби PC</a>
     <a href="#services">Сервиз</a>
