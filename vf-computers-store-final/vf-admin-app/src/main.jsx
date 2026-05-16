@@ -1,7 +1,24 @@
 import React,{useEffect,useMemo,useState}from"react";import{createRoot}from"react-dom/client";import{LogIn,LogOut,PackagePlus,RefreshCw,Search,Trash2,Pencil,Save,ImagePlus,ShoppingBag,Wrench,ShieldCheck,X}from"lucide-react";import{supabase}from"./supabaseClient";import"./style.css";
 
 const STORAGE_BUCKET="product-images";
-const categories=["Gaming PC","Компютри","Рам Памет","Реновирана техника","Видеокарти","Процесори","SSD / HDD","Лаптопи","Монитори","Периферия"];
+const categories=[
+  "Gaming PC",
+  "Компютри",
+  "Реновирани компютри",
+  "Видео карти",
+  "Процесори",
+  "Дънни платки",
+  "RAM памети",
+  "SSD / HDD",
+  "Захранвания",
+  "Охладители",
+  "Кутии",
+  "Лаптопи",
+  "Реновирани лаптопи",
+  "Монитори",
+  "Периферия",
+  "Мрежово оборудване"
+];
 const formatPrice=(v)=>new Intl.NumberFormat("bg-BG",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(v||0));
 
 async function uploadImages(files){
