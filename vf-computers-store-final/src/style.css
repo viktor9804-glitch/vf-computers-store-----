@@ -2461,3 +2461,123 @@ button:disabled{
   display: grid;
   grid-template-columns: repeat(6, 1fr);
 }
+
+.mega-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 95px;
+}
+
+.mega-menu-panel.mega-menu-grid {
+  width: 96vw !important;
+  max-width: 1500px !important;
+  height: 720px !important;
+
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+
+  background: #030303 !important;
+  border: 1px solid rgba(255,0,0,0.45) !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.mega-menu-column {
+  position: relative !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  border-right: 1px solid rgba(255,255,255,0.12) !important;
+}
+
+.mega-menu-column:last-child {
+  border-right: none !important;
+}
+
+.mega-bg {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center top !important;
+  z-index: 1 !important;
+}
+
+.mega-menu-column::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.02) 0%,
+    rgba(0,0,0,0.18) 38%,
+    rgba(0,0,0,0.92) 66%,
+    #030303 100%
+  );
+}
+
+.mega-content {
+  position: absolute !important;
+  left: 24px !important;
+  right: 20px !important;
+  bottom: 32px !important;
+  z-index: 3 !important;
+}
+
+.mega-content h2 {
+  color: #fff !important;
+  font-size: 23px !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  margin: 0 0 22px 0 !important;
+  text-transform: uppercase !important;
+}
+
+.mega-content h2::after {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 2px;
+  background: #ff1717;
+  margin-top: 14px;
+}
+
+.mega-content ul {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 13px !important;
+}
+
+.mega-content li {
+  color: rgba(255,255,255,0.86) !important;
+  font-size: 15px !important;
+  line-height: 1.15 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.mega-content li::after {
+  content: "›";
+  color: #fff;
+  font-size: 22px;
+}
+
+.mega-content li:hover {
+  color: #ff2a2a !important;
+  transform: translateX(5px);
+}
