@@ -2009,10 +2009,20 @@ if (showLoadingScreen) {
               {category.items.map((item) => (
                 <li
                   key={item}
-                  onClick={() => {
-                    setQuery(item);
-                    setMegaOpen(false);
-                  }}
+                 onClick={() => {
+  setQuery(item);
+setActiveCategory(item);
+  setMegaOpen(false);
+
+  setTimeout(() => {
+    document
+      .getElementById("products")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+  }, 100);
+}}
                 >
                   {item}
                 </li>
