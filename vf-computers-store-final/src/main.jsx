@@ -1912,11 +1912,11 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
 
   const navLinks = (
   <>
-    <button
-
-    <a href="#builder">Сглоби PC</a>
-    <a href="#services">Сервиз</a>
-    <a href="#about">За нас</a>
+    <a href="#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
+    <a href="#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
+    <a href="#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
+    <a href="#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
+    <a href="#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
   </>
 );
 
