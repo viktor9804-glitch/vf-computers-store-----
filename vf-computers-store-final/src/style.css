@@ -2625,3 +2625,35 @@ button:disabled{
   transform: translateY(-2px);
   box-shadow: 0 0 20px rgba(255,0,0,.35);
 }
+.mobile-categories {
+  margin-top: 30px;
+}
+
+.mobile-categories h3 {
+  color: #ff3b3b;
+  font-size: 22px;
+  margin-bottom: 18px;
+}
+
+.mobile-category-group {
+  margin-bottom: 24px;
+}
+
+.mobile-category-group b {
+  display: block;
+  color: #fff;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.mobile-category-group button {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: #ddd;
+  text-align: left;
+  font-size: 17px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}

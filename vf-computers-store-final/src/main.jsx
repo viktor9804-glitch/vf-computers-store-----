@@ -2203,18 +2203,50 @@ if (showLoadingScreen) {
   </div>
 )}
       {mobileOpen && (
-        <div className="mobile-panel">
-          <button className="mobile-close" onClick={() => setMobileOpen(false)}><X /></button>
-          <div className="mobile-brand">ВФ <span>Компютри</span></div>
-          <nav>{navLinks}</nav>
-          <a className="mobile-call" href={`tel:${storeInfo.rawPhone}`}>Обади се: {storeInfo.phone}</a>
-          {userSession ? (
-            <button className="mobile-auth" onClick={() => { setMobileOpen(false); setProfileOpen(true); }}>Моят профил</button>
-          ) : (
-            <button className="mobile-auth" onClick={() => { setMobileOpen(false); openAuth("login"); }}>Вход / Регистрация</button>
-          )}
+  <div className="mobile-panel">
+    <button className="mobile-close" onClick={() => setMobileOpen(false)}><X /></button>
+
+    <div className="mobile-brand">ВФ <span>Компютри</span></div>
+
+    <nav>{navLinks}</nav>
+
+    <div className="mobile-categories">
+      <h3>Категории</h3>
+
+      {megaCategories.map((category) => (
+        <div className="mobile-category-group" key={category.title}>
+          <b>{category.title}</b>
+
+          {category.items.map((item) => (
+            <button
+              key={item}
+              onClick={() => {
+                setMobileOpen(false);
+                window.location.href = `/category/${encodeURIComponent(item)}`;
+              }}
+            >
+              {item}
+            </button>
+          ))}
         </div>
-      )}
+      ))}
+    </div>
+
+    <a className="mobile-call" href={`tel:${storeInfo.rawPhone}`}>
+      Обади се: {storeInfo.phone}
+    </a>
+
+    {userSession ? (
+      <button className="mobile-auth" onClick={() => { setMobileOpen(false); setProfileOpen(true); }}>
+        Моят профил
+      </button>
+    ) : (
+      <button className="mobile-auth" onClick={() => { setMobileOpen(false); openAuth("login"); }}>
+        Вход / Регистрация
+      </button>
+    )}
+  </div>
+)}
 
       <section className="hero">
         <div className="container hero-grid">
