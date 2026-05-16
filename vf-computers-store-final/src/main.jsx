@@ -2103,18 +2103,8 @@ if (showLoadingScreen) {
                 <li
                   key={item}
                  onClick={() => {
-  setQuery(item);
-setActiveCategory(item);
   setMegaOpen(false);
-
-  setTimeout(() => {
-    document
-      .getElementById("products")
-      ?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-  }, 100);
+  window.location.href = `/category/${encodeURIComponent(item)}`;
 }}
                 >
                   {item}
