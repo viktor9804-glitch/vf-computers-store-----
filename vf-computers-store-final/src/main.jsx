@@ -1788,6 +1788,7 @@ specs: product.description
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileCategoryOpen, setMobileCategoryOpen] = useState(null);
   const [priceLimit, setPriceLimit] = useState(2000);
   const [notice, setNotice] = useState("");
   const [sendingBuilder, setSendingBuilder] = useState(false);
@@ -2211,12 +2212,24 @@ if (showLoadingScreen) {
     <nav>{navLinks}</nav>
 
     <div className="mobile-categories">
-      <h3>Категории</h3>
+  <h3>Категории</h3>
 
-      {megaCategories.map((category) => (
-        <div className="mobile-category-group" key={category.title}>
-          <b>{category.title}</b>
+  {megaCategories.map((category) => (
+    <div className="mobile-category-group" key={category.title}>
+      <button
+        className="mobile-category-title"
+        onClick={() =>
+          setMobileCategoryOpen(
+            mobileCategoryOpen === category.title ? null : category.title
+          )
+        }
+      >
+        {category.title}
+        <span>{mobileCategoryOpen === category.title ? "−" : "+"}</span>
+      </button>
 
+      {mobileCategoryOpen === category.title && (
+        <div className="mobile-subcategories">
           {category.items.map((item) => (
             <button
               key={item}
@@ -2229,8 +2242,10 @@ if (showLoadingScreen) {
             </button>
           ))}
         </div>
-      ))}
+      )}
     </div>
+  ))}
+</div>
 
     <a className="mobile-call" href={`tel:${storeInfo.rawPhone}`}>
       Обади се: {storeInfo.phone}

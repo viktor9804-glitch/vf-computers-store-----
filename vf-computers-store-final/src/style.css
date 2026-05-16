@@ -2657,3 +2657,57 @@ button:disabled{
   padding: 10px 0;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
+.mobile-panel {
+  overflow-y: auto;
+  max-height: 100vh;
+  padding-bottom: 90px;
+}
+
+.mobile-categories {
+  margin-top: 34px;
+}
+
+.mobile-categories h3 {
+  color: #ff3b3b;
+  font-size: 26px;
+  margin-bottom: 18px;
+}
+
+.mobile-category-group {
+  margin-bottom: 12px;
+}
+
+.mobile-category-title {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  padding: 16px 18px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-category-title span {
+  color: #ff3b3b;
+  font-size: 28px;
+}
+
+.mobile-subcategories {
+  padding: 10px 6px 4px;
+}
+
+.mobile-subcategories button {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  color: #ddd;
+  text-align: left;
+  font-size: 18px;
+  padding: 13px 4px;
+}
