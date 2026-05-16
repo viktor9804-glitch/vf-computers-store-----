@@ -173,7 +173,7 @@ const categories = [
   { name: "Всички", icon: SlidersHorizontal },
   { name: "Gaming PC", icon: Gamepad2 },
   { name: "Компютри", icon: Cpu },
-  { name: "Видеокарти", icon: Server },
+  { name: "Видео карти", icon: Server },
   { name: "Процесори", icon: Cpu },
   { name: "SSD / HDD", icon: HardDrive },
   { name: "Лаптопи", icon: Laptop },
@@ -1911,15 +1911,19 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   };
 
   const navLinks = (
-    <>
-      <a href="#products" onClick={() => setMobileOpen(false)}>Продукти</a>
-      <a href="#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
-      <a href="#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
-      <a href="#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
-      <a href="#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
-      <a href="#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
-    </>
-  );
+  <>
+    <button
+      className="nav-categories-btn"
+      onClick={() => setMegaOpen(true)}
+    >
+      Категории
+    </button>
+
+    <a href="#builder">Сглоби PC</a>
+    <a href="#services">Сервиз</a>
+    <a href="#about">За нас</a>
+  </>
+);
 
 if (showLoadingScreen) {
   return <LoadingScreen />;
@@ -2179,15 +2183,6 @@ setActiveCategory(item);
             <label>Макс. цена: <b>{priceLimit} €</b></label>
             <input type="range" min="80" max="2000" step="20" value={priceLimit} onChange={(event) => setPriceLimit(Number(event.target.value))} />
           </div>
-        </div>
-
-        <div className="category-strip">
-          {categories.map(({ name, icon: Icon }) => (
-            <button key={name} className={activeCategory === name ? "active" : ""} onClick={() => setActiveCategory(name)}>
-              <Icon size={20} />
-              <span>{name}</span>
-            </button>
-          ))}
         </div>
 
         <div className="product-grid">

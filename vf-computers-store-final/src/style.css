@@ -2609,3 +2609,19 @@ button:disabled{
 .mega-bg {
   filter: brightness(1.12) contrast(1.08) !important;
 }
+
+.nav-categories-btn{
+  background: linear-gradient(135deg,#ff2d2d,#ff4b4b);
+  border: none;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.nav-categories-btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(255,0,0,.35);
+}
