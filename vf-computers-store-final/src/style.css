@@ -2457,3 +2457,7 @@ button:disabled{
     grid-template-columns: 1fr;
   }
 }
+.mega-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+}

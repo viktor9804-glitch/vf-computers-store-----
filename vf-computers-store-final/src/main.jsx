@@ -183,51 +183,78 @@ const categories = [
 
 const megaCategories = [
   {
-    title: "Компютърни компоненти",
-    image: "/categories/components.jpg",
+    title: "Компоненти",
+    image: "/public-mega-menu/components.webp",
     items: [
-      "Дънни платки",
       "Процесори",
-      "Охладители за процесори",
-      "Охладители за видео карти",
-      "Памети",
-      "Памети за лаптоп",
+      "Дънни платки",
       "Видео карти",
+      "RAM памети",
+      "Хард дискове и SSD",
       "Захранвания",
-      "Звукови карти",
-      "Кутии за компютри",
-      "Вентилатори",
-      "Контролери за вентилатори",
-      "Термо пасти и подложки",
-      "SSD дискове",
-      "Хард дискове",
+      "Охладители",
+      "Кутии",
+      "Други компоненти",
     ],
   },
-
   {
-    title: "Компютърни системи",
-    image: "/categories/pcs.jpg",
+    title: "Геймърски компютри",
+    image: "/public-mega-menu/gaming-pc.webp",
     items: [
-      "Gaming компютри",
-      "Офис компютри",
-      "Реновирани компютри",
-      "Работни станции",
+      "Готови конфигурации",
+      "Персонализирани PC",
+      "Промо комплекти",
+      "Workstation",
     ],
   },
-
   {
     title: "Лаптопи",
-    image: "/categories/laptops.jpg",
+    image: "/public-mega-menu/laptops.webp",
     items: [
-      "Gaming лаптопи",
+      "Геймърски лаптопи",
       "Бизнес лаптопи",
-      "Реновирани лаптопи",
-      "Охладители",
-      "Чанти",
+      "Ултрабуци",
+      "2 в 1 устройства",
+      "Промо лаптопи",
+    ],
+  },
+  {
+    title: "Монитори",
+    image: "/public-mega-menu/monitors.webp",
+    items: [
+      "Геймърски монитори",
+      "IPS монитори",
+      "VA монитори",
+      "Извити монитори",
+      "4K монитори",
+      "Промо монитори",
+    ],
+  },
+  {
+    title: "Периферия",
+    image: "/public-mega-menu/peripherals.webp",
+    items: [
+      "Клавиатури",
+      "Мишки",
+      "Слушалки",
+      "Гейминг столове",
+      "Микрофони",
+      "Гейминг аксесоари",
+    ],
+  },
+  {
+    title: "Мрежово оборудване",
+    image: "/public-mega-menu/network.webp",
+    items: [
+      "Рутери",
+      "Суичове",
+      "Wi-Fi адаптери",
+      "Powerline адаптери",
+      "Мрежови кабели",
+      "Промо продукти",
     ],
   },
 ];
-
 const services = [
   { id:"diagnostics", icon:Wrench, title:"Диагностика", category:"Сервиз", image:"/services/diagnostics.png", price:"50€", note:"при отказан ремонт", altPrice:"25€", altNote:"ако клиентът желае да бъде извършен ремонт", text:"Проверка на хардуер, температури, захранване, RAM, SSD, видеокарта и общо състояние." },
   { id:"windows", icon:Monitor, title:"Инсталиране на Windows", category:"Софтуер", image:"/services/windows.png", price:"55€", note:"операционна система Windows", text:"Инсталация на Windows, базова настройка и подготовка на системата за работа." },
@@ -1960,47 +1987,42 @@ if (showLoadingScreen) {
       </header>
 {megaOpen && (
   <div className="mega-menu-overlay" onClick={() => setMegaOpen(false)}>
-    <div className="mega-menu-panel" onClick={(event) => event.stopPropagation()}>
+    <div
+      className="mega-menu-panel mega-menu-grid"
+      onClick={(event) => event.stopPropagation()}
+    >
 
-      <div className="mega-menu-left">
-        {megaCategories.map((category) => (
-          <button
-            key={category.title}
-            className={activeMega.title === category.title ? "active" : ""}
-            onMouseEnter={() => setActiveMega(category)}
-            onClick={() => setActiveMega(category)}
-          >
-            {category.title}
-            <span>›</span>
-          </button>
-        ))}
-      </div>
+      {megaCategories.map((category) => (
+        <div className="mega-menu-column" key={category.title}>
 
-      <div className="mega-menu-center">
-        <div className="mega-menu-head">
-          <button onClick={() => setMegaOpen(false)}>‹ Назад</button>
-          <b>{activeMega.title}</b>
+          <img
+            className="mega-bg"
+            src={category.image}
+            alt={category.title}
+          />
+
+          <div className="mega-content">
+
+            <h2>{category.title}</h2>
+
+            <ul>
+              {category.items.map((item) => (
+                <li
+                  key={item}
+                  onClick={() => {
+                    setQuery(item);
+                    setMegaOpen(false);
+                  }}
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+          </div>
+
         </div>
-
-        <div className="mega-subcategories">
-          {activeMega.items.map((item) => (
-            <a
-              key={item}
-              href="#products"
-              onClick={() => {
-                setQuery(item);
-                setMegaOpen(false);
-              }}
-            >
-              {item}
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <div className="mega-menu-image">
-        <img src={activeMega.image} alt={activeMega.title} />
-      </div>
+      ))}
 
     </div>
   </div>
