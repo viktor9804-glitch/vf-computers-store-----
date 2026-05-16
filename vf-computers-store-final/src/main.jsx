@@ -1517,6 +1517,98 @@ function LoadingScreen() {
     </div>
   );
 }
+const CategoryPage = ({ products, addToCart, handleTbiCheckout }) => {
+  const { categoryName } = useParams();
+  const navigate = useNavigate();
+
+  const decodedCategory = decodeURIComponent(categoryName);
+
+  const categoryProducts = products.filter(
+    (product) => product.category === decodedCategory
+  );
+
+  return (
+    <div className="category-page">
+      <div className="container products-section">
+
+        <button
+          className="back-button"
+          onClick={() => navigate("/")}
+        >
+          ← Назад
+        </button>
+
+        <div className="section-head">
+          <div>
+            <p className="section-label">Категория</p>
+            <h2>{decodedCategory}</h2>
+          </div>
+        </div>
+
+        <div className="product-grid">
+          {categoryProducts.length === 0 ? (
+            <p className="empty-products">
+              Няма продукти в тази категория.
+            </p>
+          ) : (
+            categoryProducts.map((product) => (
+              <Link
+                to={`/product/${product.id}`}
+                className="product-link"
+                key={product.id}
+              >
+                <article className="product-card">
+
+                  <div className="product-image">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      loading="lazy"
+                    />
+                  </div>
+
+                  <div className="product-body">
+
+                    <div className="product-meta">
+                      <span>{product.category}</span>
+                    </div>
+
+                    <h3>{product.name}</h3>
+
+                    <p className="stock">
+                      <CheckCircle2 size={15} />
+                      {product.stock}
+                    </p>
+
+                    <div className="product-buy">
+
+                      <div>
+                        <b>{formatPrice(product.price)}</b>
+                      </div>
+
+                      <button
+                        onClick={(event) => {
+                          event.preventDefault();
+                          addToCart(product.id);
+                        }}
+                      >
+                        Добави
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                </article>
+              </Link>
+            ))
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+};
 function App() {
   useEffect(() => {
     if (window.location.hash === "#admin") window.location.hash = "";
@@ -2755,7 +2847,16 @@ setActiveCategory(item);
         </div>
       }
     />
-
+<Route
+  path="/category/:categoryName"
+  element={
+    <CategoryPage
+      products={products}
+      addToCart={addToCart}
+      handleTbiCheckout={handleTbiCheckout}
+    />
+  }
+/>
     <Route
       path="/product/:id"
       element={
