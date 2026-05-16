@@ -181,6 +181,53 @@ const categories = [
   { name: "Периферия", icon: Cable },
 ];
 
+const megaCategories = [
+  {
+    title: "Компютърни компоненти",
+    image: "/categories/components.jpg",
+    items: [
+      "Дънни платки",
+      "Процесори",
+      "Охладители за процесори",
+      "Охладители за видео карти",
+      "Памети",
+      "Памети за лаптоп",
+      "Видео карти",
+      "Захранвания",
+      "Звукови карти",
+      "Кутии за компютри",
+      "Вентилатори",
+      "Контролери за вентилатори",
+      "Термо пасти и подложки",
+      "SSD дискове",
+      "Хард дискове",
+    ],
+  },
+
+  {
+    title: "Компютърни системи",
+    image: "/categories/pcs.jpg",
+    items: [
+      "Gaming компютри",
+      "Офис компютри",
+      "Реновирани компютри",
+      "Работни станции",
+    ],
+  },
+
+  {
+    title: "Лаптопи",
+    image: "/categories/laptops.jpg",
+    items: [
+      "Gaming лаптопи",
+      "Бизнес лаптопи",
+      "Реновирани лаптопи",
+      "Охладители",
+      "Чанти",
+    ],
+  },
+];
+
 const services = [
   { id:"diagnostics", icon:Wrench, title:"Диагностика", category:"Сервиз", image:"/services/diagnostics.png", price:"50€", note:"при отказан ремонт", altPrice:"25€", altNote:"ако клиентът желае да бъде извършен ремонт", text:"Проверка на хардуер, температури, захранване, RAM, SSD, видеокарта и общо състояние." },
   { id:"windows", icon:Monitor, title:"Инсталиране на Windows", category:"Софтуер", image:"/services/windows.png", price:"55€", note:"операционна система Windows", text:"Инсталация на Windows, базова настройка и подготовка на системата за работа." },
@@ -1545,6 +1592,8 @@ specs: product.description
   const [aiOpen, setAiOpen] = useState(false);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [megaOpen, setMegaOpen] = useState(false);
+const [activeMega, setActiveMega] = useState(megaCategories[0]);
   const [aiMessages, setAiMessages] = useState([
     {
       role: "assistant",
@@ -1871,7 +1920,17 @@ if (showLoadingScreen) {
             </span>
           </a>
 
-          <nav className="desktop-nav">{navLinks}</nav>
+          <nav className="desktop-nav">
+  <button
+    className="mega-menu-button"
+    onClick={() => setMegaOpen((current) => !current)}
+  >
+    <Menu size={18} />
+    Категории
+  </button>
+
+  {navLinks}
+</nav>
 
           <div className="search-box">
             <Search size={18} />
@@ -1899,7 +1958,53 @@ if (showLoadingScreen) {
           </div>
         </div>
       </header>
+{megaOpen && (
+  <div className="mega-menu-overlay" onClick={() => setMegaOpen(false)}>
+    <div className="mega-menu-panel" onClick={(event) => event.stopPropagation()}>
 
+      <div className="mega-menu-left">
+        {megaCategories.map((category) => (
+          <button
+            key={category.title}
+            className={activeMega.title === category.title ? "active" : ""}
+            onMouseEnter={() => setActiveMega(category)}
+            onClick={() => setActiveMega(category)}
+          >
+            {category.title}
+            <span>›</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mega-menu-center">
+        <div className="mega-menu-head">
+          <button onClick={() => setMegaOpen(false)}>‹ Назад</button>
+          <b>{activeMega.title}</b>
+        </div>
+
+        <div className="mega-subcategories">
+          {activeMega.items.map((item) => (
+            <a
+              key={item}
+              href="#products"
+              onClick={() => {
+                setQuery(item);
+                setMegaOpen(false);
+              }}
+            >
+              {item}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div className="mega-menu-image">
+        <img src={activeMega.image} alt={activeMega.title} />
+      </div>
+
+    </div>
+  </div>
+)}
       {mobileOpen && (
         <div className="mobile-panel">
           <button className="mobile-close" onClick={() => setMobileOpen(false)}><X /></button>
