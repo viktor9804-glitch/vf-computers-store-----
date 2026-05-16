@@ -1471,28 +1471,7 @@ useEffect(() => {
 </h2>
 
 <table className="product-specs-table">
-{product.specs?.componentType === "cpu" && (
-  <div className="product-extra-specs">
 
-    <p><b>Платформа:</b> {product.specs.platform}</p>
-
-    <p><b>Серия:</b> {product.specs.series}</p>
-
-    <p><b>Socket:</b> {product.specs.socket}</p>
-
-    <p><b>Ядра:</b> {product.specs.cores}</p>
-
-    <p><b>Нишки:</b> {product.specs.threads}</p>
-
-    <p><b>Base Clock:</b> {product.specs.baseClock} GHz</p>
-
-    <p><b>Boost Clock:</b> {product.specs.boostClock} GHz</p>
-
-    <p><b>TDP:</b> {product.specs.tdp}W</p>
-
-    <p><b>Вградена графика:</b> {product.specs.integratedGraphics}</p>
-
-  </div>
 )}
   <tbody>
     {product.description
