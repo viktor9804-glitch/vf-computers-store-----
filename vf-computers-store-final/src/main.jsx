@@ -1471,8 +1471,6 @@ useEffect(() => {
 </h2>
 
 <table className="product-specs-table">
-
-)}
   <tbody>
     {product.description
       ?.split(".")
@@ -2997,3 +2995,4 @@ createRoot(document.getElementById("root")).render(
     <App />
   </BrowserRouter>
 );
+
