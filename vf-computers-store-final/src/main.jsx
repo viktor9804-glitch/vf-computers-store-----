@@ -1491,7 +1491,7 @@ useEffect(() => {
 </table>
 
             <div className="product-page-specs">
-              {product.specList.map((spec) => (
+              {product.specs.map((spec) => (
                 <span key={spec}>
                   {spec}
                 </span>
@@ -1769,10 +1769,7 @@ const showLoadingScreen = loadingProducts && dbProducts.length === 0;
               ? [product.image]
               : [],
           description: product.description || "",
-
-specs: product.specs || {},
-
-specList: product.description
+specs: product.description
   ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4)
   : ["ВФ Компютри", "Проверен продукт"],
         })));
