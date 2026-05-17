@@ -11,6 +11,9 @@
     "preview": "vite preview --port 4174"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@supabase/supabase-js": "latest",
     "@vitejs/plugin-react": "latest",
     "cacheable-request": "^13.0.19",
