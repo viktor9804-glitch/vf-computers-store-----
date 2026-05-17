@@ -2,22 +2,49 @@ import React,{useEffect,useMemo,useState}from"react";import{createRoot}from"reac
 
 const STORAGE_BUCKET="product-images";
 const categories=[
-  "Gaming PC",
-  "Компютри",
-  "Реновирани компютри",
-  "Видео карти",
   "Процесори",
   "Дънни платки",
+  "Видео карти",
   "RAM памети",
   "SSD / HDD",
   "Захранвания",
   "Охладители",
   "Кутии",
-  "Лаптопи",
+  "Други компоненти",
+
+  "Готови конфигурации",
+  "Реновирани компютри",
+  "Персонализирани PC",
+  "Промо комплекти",
+  "Workstation",
+
+  "Геймърски лаптопи",
+  "Бизнес лаптопи",
   "Реновирани лаптопи",
-  "Монитори",
-  "Периферия",
-  "Мрежово оборудване"
+  "Ултрабуци",
+  "2 в 1 устройства",
+  "Промо лаптопи",
+
+  "Геймърски монитори",
+  "IPS монитори",
+  "VA монитори",
+  "Извити монитори",
+  "4K монитори",
+  "Промо монитори",
+
+  "Клавиатури",
+  "Мишки",
+  "Слушалки",
+  "Гейминг столове",
+  "Микрофони",
+  "Гейминг аксесоари",
+
+  "Рутери",
+  "Суичове",
+  "Wi-Fi адаптери",
+  "Powerline адаптери",
+  "Мрежови кабели",
+  "Промо продукти"
 ];
 const formatPrice=(v)=>new Intl.NumberFormat("bg-BG",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(v||0));
 
@@ -37,7 +64,7 @@ async function uploadImages(files){
 function App(){
   const[session,setSession]=useState(null),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[notice,setNotice]=useState(""),[tab,setTab]=useState("products"),[products,setProducts]=useState([]),[orders,setOrders]=useState([]),[tickets,setTickets]=useState([]),[query,setQuery]=useState(""),[saving,setSaving]=useState(false),[imageFiles,setImageFiles]=useState([]),[imagePreviews,setImagePreviews]=useState([]),[editingId,setEditingId]=useState(null),[form,setForm]=useState({
   title:"",
-  category:"Gaming PC",
+  category:"Готови конфигурации",
   price:"",
   stock:"1",
   description:"",
@@ -94,7 +121,7 @@ integratedGraphics:""
     setImagePreviews([]);
     setForm({
   title:"",
-  category:"Gaming PC",
+  category:"Готови конфигурации",
   price:"",
   stock:"1",
   description:"",
