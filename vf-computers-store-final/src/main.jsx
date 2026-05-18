@@ -1025,7 +1025,7 @@ function AdminPanel({ onBack }) {
 
   const loadAdminProducts = async () => {
     const { data, error } = await supabase
-      .from("products")
+      .from("vali_products")
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -1749,57 +1749,97 @@ const showLoadingScreen = loadingProducts && dbProducts.length === 0;
 
 
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoadingProducts(true);
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+  const loadProducts = async () => {
 
-      setLoadingProducts(false);
+    setLoadingProducts(true);
 
-      if (!error && data && data.length > 0) {
-        setDbProducts(data.map((product) => ({
-          id: product.id,
-          name:
-  product.name?.find(x => x.language_code === "bg")?.text ||
-  product.model ||
-  "Продукт",
-          category:
-  product.vali_product_categories?.[0]
-    ?.vali_categories?.name_bg ||
-  "Компютри",
-          price: Number(product.price_client || 0),
-oldPrice: Number(product.price_client || 0),
-          rating: 4.9,
-         stock:
-  product.status === 1
-    ? "В наличност"
-    : "По заявка",
+    const { data, error } = await supabase
+      .from("vali_products")
+      .select(`
+        *,
+        vali_product_images(image_url),
+        vali_product_categories(
+          vali_categories(name_bg)
+        )
+      `)
+      .eq("show", true)
+      .order("id", { ascending: false })
+      .limit(500);
 
-badge: "NEW",
+    setLoadingProducts(false);
 
-image:
-  product.vali_product_images?.[0]?.image_url ||
-  "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
+    if (error) {
+      console.error(error);
+      return;
+    }
 
-images:
-  product.vali_product_images?.map(img => img.image_url) || [],
+    console.log(data);
 
-description:
-  product.description?.find(
-    x => x.language_code === "bg"
-  )?.text || "",
-specs: product.description
-  ?.find(x => x.language_code === "bg")
-  ?.text.map((item) => item.trim()).filter(Boolean).slice(0, 4)
-  : ["ВФ Компютри", "Проверен продукт"],
-        })));
-      }
-    };
+    setDbProducts((data || []).map((product) => {
 
-    loadProducts();
-  }, []);
+      const bgName =
+        product.name?.find(
+          x => x.language_code === "bg"
+        )?.text;
+
+      const bgDescription =
+        product.description?.find(
+          x => x.language_code === "bg"
+        )?.text;
+
+      return {
+        id: product.id,
+
+        name:
+          bgName ||
+          product.model ||
+          "Продукт",
+
+        category:
+          product.vali_product_categories?.[0]
+            ?.vali_categories?.name_bg ||
+          "Компютри",
+
+        price: Number(product.price_client || 0),
+
+        oldPrice: Number(product.price_client || 0),
+
+        rating: 4.9,
+
+        stock:
+          product.status === 1
+            ? "В наличност"
+            : "По заявка",
+
+        badge: "NEW",
+
+        image:
+          product.vali_product_images?.[0]?.image_url ||
+          "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
+
+        images:
+          product.vali_product_images?.map(
+            img => img.image_url
+          ) || [],
+
+        description:
+          bgDescription || "",
+
+        specs:
+          bgDescription
+            ? bgDescription
+                .split(",")
+                .map(item => item.trim())
+                .filter(Boolean)
+                .slice(0, 4)
+            : ["ВФ Компютри", "Проверен продукт"],
+      };
+
+    }));
+  };
+
+  loadProducts();
+}, []);
 
   const [activeCategory, setActiveCategory] = useState("Всички");
   const [query, setQuery] = useState("");
