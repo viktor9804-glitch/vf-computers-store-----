@@ -760,7 +760,17 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
   const loadOrders = async () => {
     if (!user?.id) return;
     setOrdersLoading(true);
-    const { data, error } = await supabase.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data, error } = await supabase
+  .from("vali_products")
+  .select(`
+    *,
+    vali_product_images(image_url),
+    vali_product_categories(
+      vali_categories(name_bg)
+    )
+  `)
+  .order("id", { ascending: false })
+  .limit(500);
     setOrdersLoading(false);
     if (error) {
       console.error(error);
@@ -1751,24 +1761,38 @@ const showLoadingScreen = loadingProducts && dbProducts.length === 0;
       if (!error && data && data.length > 0) {
         setDbProducts(data.map((product) => ({
           id: product.id,
-          name: product.title,
-          category: product.category || "Компютри",
-          price: Number(product.price || 0),
-          oldPrice: Number(product.price || 0),
+          name:
+  product.name?.find(x => x.language_code === "bg")?.text ||
+  product.model ||
+  "Продукт",
+          category:
+  product.vali_product_categories?.[0]
+    ?.vali_categories?.name_bg ||
+  "Компютри",
+          price: Number(product.price_client || 0),
+oldPrice: Number(product.price_client || 0),
           rating: 4.9,
-          stock: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
-          badge: "NEW",
-          image: Array.isArray(product.images) && product.images.length > 0
-            ? product.images[0]
-            : product.image || "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
-          images: Array.isArray(product.images) && product.images.length > 0
-            ? product.images
-            : product.image
-              ? [product.image]
-              : [],
-          description: product.description || "",
+         stock:
+  product.status === 1
+    ? "В наличност"
+    : "По заявка",
+
+badge: "NEW",
+
+image:
+  product.vali_product_images?.[0]?.image_url ||
+  "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
+
+images:
+  product.vali_product_images?.map(img => img.image_url) || [],
+
+description:
+  product.description?.find(
+    x => x.language_code === "bg"
+  )?.text || "",
 specs: product.description
-  ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4)
+  ?.find(x => x.language_code === "bg")
+  ?.text.map((item) => item.trim()).filter(Boolean).slice(0, 4)
   : ["ВФ Компютри", "Проверен продукт"],
         })));
       }
