@@ -760,17 +760,7 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
   const loadOrders = async () => {
     if (!user?.id) return;
     setOrdersLoading(true);
-    const { data, error } = await supabase
-  .from("vali_products")
-  .select(`
-    *,
-    vali_product_images(image_url),
-    vali_product_categories(
-      vali_categories(name_bg)
-    )
-  `)
-  .order("id", { ascending: false })
-  .limit(500);
+    const { data, error } = await supabase.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setOrdersLoading(false);
     if (error) {
       console.error(error);
@@ -1025,7 +1015,7 @@ function AdminPanel({ onBack }) {
 
   const loadAdminProducts = async () => {
     const { data, error } = await supabase
-      .from("vali_products")
+      .from("products")
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -1749,97 +1739,43 @@ const showLoadingScreen = loadingProducts && dbProducts.length === 0;
 
 
   useEffect(() => {
-  const loadProducts = async () => {
+    const loadProducts = async () => {
+      setLoadingProducts(true);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    setLoadingProducts(true);
+      setLoadingProducts(false);
 
-    const { data, error } = await supabase
-      .from("vali_products")
-      .select(`
-        *,
-        vali_product_images(image_url),
-        vali_product_categories(
-          vali_categories(name_bg)
-        )
-      `)
-      .eq("show", true)
-      .order("id", { ascending: false })
-      .limit(500);
+      if (!error && data && data.length > 0) {
+        setDbProducts(data.map((product) => ({
+          id: product.id,
+          name: product.title,
+          category: product.category || "Компютри",
+          price: Number(product.price || 0),
+          oldPrice: Number(product.price || 0),
+          rating: 4.9,
+          stock: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
+          badge: "NEW",
+          image: Array.isArray(product.images) && product.images.length > 0
+            ? product.images[0]
+            : product.image || "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
+          images: Array.isArray(product.images) && product.images.length > 0
+            ? product.images
+            : product.image
+              ? [product.image]
+              : [],
+          description: product.description || "",
+specs: product.description
+  ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4)
+  : ["ВФ Компютри", "Проверен продукт"],
+        })));
+      }
+    };
 
-    setLoadingProducts(false);
-
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    console.log(data);
-
-    setDbProducts((data || []).map((product) => {
-
-      const bgName =
-        product.name?.find(
-          x => x.language_code === "bg"
-        )?.text;
-
-      const bgDescription =
-        product.description?.find(
-          x => x.language_code === "bg"
-        )?.text;
-
-      return {
-        id: product.id,
-
-        name:
-          bgName ||
-          product.model ||
-          "Продукт",
-
-        category:
-          product.vali_product_categories?.[0]
-            ?.vali_categories?.name_bg ||
-          "Компютри",
-
-        price: Number(product.price_client || 0),
-
-        oldPrice: Number(product.price_client || 0),
-
-        rating: 4.9,
-
-        stock:
-          product.status === 1
-            ? "В наличност"
-            : "По заявка",
-
-        badge: "NEW",
-
-        image:
-          product.vali_product_images?.[0]?.image_url ||
-          "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
-
-        images:
-          product.vali_product_images?.map(
-            img => img.image_url
-          ) || [],
-
-        description:
-          bgDescription || "",
-
-        specs:
-          bgDescription
-            ? bgDescription
-                .split(",")
-                .map(item => item.trim())
-                .filter(Boolean)
-                .slice(0, 4)
-            : ["ВФ Компютри", "Проверен продукт"],
-      };
-
-    }));
-  };
-
-  loadProducts();
-}, []);
+    loadProducts();
+  }, []);
 
   const [activeCategory, setActiveCategory] = useState("Всички");
   const [query, setQuery] = useState("");
