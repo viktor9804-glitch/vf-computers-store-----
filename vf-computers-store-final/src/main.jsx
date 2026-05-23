@@ -7,7 +7,7 @@ import {
   useNavigate
 } from "react-router-dom";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Cpu, Monitor, Laptop, HardDrive, Gamepad2, Search, ShoppingCart, Menu, X,
@@ -17,7 +17,22 @@ import {
   Cable, Fan, Power, Send, ExternalLink
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
+import { CartProvider, useCart } from "./context/CartContext";
+import AIAssistant from "./components/AIAssistant";
+import Cart from "./components/Cart";
+import Checkout from "./components/Checkout";
+import MegaMenu from "./components/MegaMenu";
+import ProductCard from "./components/ProductCard";
+import ProductFilters from "./components/ProductFilters";
+import ProductGallery from "./components/ProductGallery";
+import Home from "./pages/Home";
+import { useScrollTop } from "./hooks/useScrollTop";
 import "./style.css";
+
+const BuilderPage = React.lazy(() => import("./pages/BuilderPage"));
+const CategoryRoutePage = React.lazy(() => import("./pages/Category"));
+const ProductPageRoute = React.lazy(() => import("./pages/Product"));
+const SearchPage = React.lazy(() => import("./pages/SearchPage"));
 
 const LOGO_URL = "/VF_logo_1.png";
 
@@ -1712,12 +1727,7 @@ const ProductPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCatego
 
   const [selectedImage, setSelectedImage] = useState(0);
 
-useEffect(() => {
-  window.scrollTo({
-    top: 0,
-    behavior: "instant",
-  });
-}, [id]);
+  useScrollTop(id);
 
   if (!product) {
     return (
@@ -1755,28 +1765,12 @@ useEffect(() => {
 
         <div className="product-page-grid">
 
-          <div className="product-page-gallery">
-
-            <div className="product-page-thumbs">
-              {images.map((image, index) => (
-                <button
-                  key={index}
-                  className={selectedImage === index ? "active" : ""}
-                  onClick={() => setSelectedImage(index)}
-                >
-                  <img src={image} alt="" />
-                </button>
-              ))}
-            </div>
-
-            <div className="product-page-main-image">
-              <img
-                src={images[selectedImage]}
-                alt={product.name}
-              />
-            </div>
-
-          </div>
+          <ProductGallery
+            images={images}
+            selectedImage={selectedImage}
+            setSelectedImage={setSelectedImage}
+            productName={product.name}
+          />
 
           <div className="product-page-info">
 
@@ -1871,14 +1865,24 @@ function LoadingScreen() {
   );
 }
 function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, setCartOpen, userSession, openAuth, setProfileOpen, query = "", setQuery = () => {} }) {
+  const navigate = useNavigate();
   const [megaOpen, setMegaOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(query || "");
   const headerMegaCategories = dynamicMegaCategories?.length ? dynamicMegaCategories : megaCategories;
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    const value = searchTerm.trim();
+    if (!value) return;
+    setQuery(value);
+    navigate(`/search?q=${encodeURIComponent(value)}`);
+    setMobileOpen(false);
+  };
   const navLinks = (
     <>
       <a href="/" onClick={() => setMobileOpen(false)}>Начало</a>
-      <a href="/#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
+      <a href="/builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
       <a href="/#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
       <a href="/#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
       <a href="/#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
@@ -1889,74 +1893,66 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
   return (
     <>
       <header className="header">
-        <div className="container header-inner">
-          <a className="brand" href="/">
-            <span className="logo-wrap">
-              <img src={LOGO_URL} alt="ВФ Компютри" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-              <Cpu className="fallback-logo" />
-            </span>
-            <span className="brand-text">
-              <b>ВФ <em>Компютри</em></b>
-              <small>ПРОДАЖБА • РЕМОНТ • ПОДДРЪЖКА</small>
-            </span>
-          </a>
-          <nav className="desktop-nav">
+        <div className="container header-shell">
+          <div className="header-top">
+            <a className="brand" href="/">
+              <span className="logo-wrap">
+                <img src={LOGO_URL} alt="ВФ Компютри" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                <Cpu className="fallback-logo" />
+              </span>
+              <span className="brand-text">
+                <b>ВФ <em>Компютри</em></b>
+                <small>ПРОДАЖБА • РЕМОНТ • ПОДДРЪЖКА</small>
+              </span>
+            </a>
+            <form className="search-box" onSubmit={handleSearchSubmit}>
+              <Search size={18} />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleSearchSubmit(event);
+                }}
+                placeholder="Търси компютър, видеокарта, SSD..."
+              />
+              <button type="submit" aria-label="Търси"><Search size={16} /></button>
+            </form>
+            <div className="header-actions">
+              <a className="phone-chip" href={`tel:${storeInfo.rawPhone}`}><Phone size={16} /> {storeInfo.phone}</a>
+              {userSession ? (
+                <button className="account-chip" onClick={() => setProfileOpen(true)} title="Моят профил">
+                  <User size={16} />
+                  <span>{userSession.user?.user_metadata?.full_name || userSession.user?.email?.split("@")[0] || "Профил"}</span>
+                </button>
+              ) : (
+                <button className="account-chip" onClick={() => openAuth("login")}>
+                  <User size={16} />
+                  <span>Вход</span>
+                </button>
+              )}
+              <button className="cart-button" onClick={() => setCartOpen(true)}>
+                <ShoppingCart size={19} />
+                {cartCount > 0 && <span>{cartCount}</span>}
+              </button>
+              <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)}><Menu /></button>
+            </div>
+          </div>
+          <div className="header-bottom">
             <button className="mega-menu-button" onClick={() => setMegaOpen((current) => !current)}>
               <Menu size={18} />
               Категории
             </button>
-            {navLinks}
-          </nav>
-          <div className="search-box">
-            <Search size={18} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Търси компютър, видеокарта, SSD..." />
-          </div>
-          <div className="header-actions">
-            <a className="phone-chip" href={`tel:${storeInfo.rawPhone}`}><Phone size={16} /> {storeInfo.phone}</a>
-            {userSession ? (
-              <button className="account-chip" onClick={() => setProfileOpen(true)} title="Моят профил">
-                <User size={16} />
-                <span>{userSession.user?.user_metadata?.full_name || userSession.user?.email?.split("@")[0] || "Профил"}</span>
-              </button>
-            ) : (
-              <button className="account-chip" onClick={() => openAuth("login")}>
-                <User size={16} />
-                <span>Вход</span>
-              </button>
-            )}
-            <button className="cart-button" onClick={() => setCartOpen(true)}>
-              <ShoppingCart size={19} />
-              {cartCount > 0 && <span>{cartCount}</span>}
-            </button>
-            <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)}><Menu /></button>
+            <nav className="desktop-nav">
+              {navLinks}
+            </nav>
           </div>
         </div>
       </header>
       {megaOpen && (
-        <div className="mega-menu-overlay" onClick={() => setMegaOpen(false)}>
-          <div className="mega-menu-panel mega-menu-grid" onClick={(event) => event.stopPropagation()}>
-            {headerMegaCategories.map((category) => (
-              <div className="mega-menu-column" key={category.title}>
-                <img className="mega-bg" src={category.image} alt={category.title} />
-                <div className="mega-content">
-                  <h2>{category.title}</h2>
-                  <ul>
-                    {category.items.slice(0, 10).map((item) => (
-                      <li key={item} onClick={() => { setMegaOpen(false); window.location.href = `/category/${encodeURIComponent(item)}`; }}>
-                        {item}
-                      </li>
-                    ))}
-                    {category.items.length > 10 && (
-                      <li className="mega-view-all" onClick={() => { setMegaOpen(false); window.location.href = `/category/${encodeURIComponent(category.title)}`; }}>
-                        Виж всички →
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <MegaMenu
+          categories={headerMegaCategories}
+          onClose={() => setMegaOpen(false)}
+        />
       )}
       {mobileOpen && (
         <div className="mobile-panel">
@@ -2111,56 +2107,16 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCateg
         </div>
 
         <div className="category-layout">
-          {Object.keys(availableFilters).length > 0 && (
-            <aside className="filters-sidebar">
-              <div className="filters-head">
-                <h3>Филтри</h3>
-                <button className="filter-clear" onClick={clearAllFilters}>Изчисти всички</button>
-              </div>
-
-              {Object.entries(availableFilters).map(([filterKey, options]) => {
-                const searchValue = filterSearch[filterKey] || "";
-                const visibleOptions = options.filter((option) =>
-                  option.value.toLowerCase().includes(searchValue.toLowerCase())
-                );
-                const isExpanded = Boolean(expandedFilters[filterKey]);
-                const slicedOptions = isExpanded ? visibleOptions : visibleOptions.slice(0, 12);
-
-                return (
-                  <div className="filter-group" key={filterKey}>
-                    <div className="filter-title">{filterKey}</div>
-                    {options.length > 12 && (
-                      <input
-                        className="filter-search"
-                        value={searchValue}
-                        onChange={(event) => setFilterSearch((current) => ({ ...current, [filterKey]: event.target.value }))}
-                        placeholder="Търси във филтъра..."
-                      />
-                    )}
-                    {slicedOptions.map((option) => (
-                      <label className="filter-option" key={`${filterKey}-${option.value}`}>
-                        <input
-                          type="checkbox"
-                          checked={(selectedFilters[filterKey] || []).includes(option.value)}
-                          onChange={() => toggleFilterValue(filterKey, option.value)}
-                        />
-                        <span>{option.value}</span>
-                        <b>({option.count})</b>
-                      </label>
-                    ))}
-                    {visibleOptions.length > 12 && (
-                      <button
-                        className="filter-more"
-                        onClick={() => setExpandedFilters((current) => ({ ...current, [filterKey]: !current[filterKey] }))}
-                      >
-                        {isExpanded ? "Покажи по-малко" : "Покажи още"}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </aside>
-          )}
+          <ProductFilters
+            availableFilters={availableFilters}
+            selectedFilters={selectedFilters}
+            expandedFilters={expandedFilters}
+            filterSearch={filterSearch}
+            setFilterSearch={setFilterSearch}
+            setExpandedFilters={setExpandedFilters}
+            toggleFilterValue={toggleFilterValue}
+            clearAllFilters={clearAllFilters}
+          />
 
           <div className="products-area">
             <p className="products-count">
@@ -2174,58 +2130,7 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCateg
             </p>
           ) : (
             filteredProducts.map((product) => (
-              <Link
-                to={`/product/${product.id}`}
-                className="product-link"
-                key={product.id}
-              >
-                <article className="product-card">
-
-                  <div className="product-image">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      loading="lazy"
-                    />
-                  </div>
-
-                  <div className="product-body">
-
-                    <div className="product-meta">
-                      <span>{product.category}</span>
-                    </div>
-
-                    <h3>{product.name}</h3>
-
-                    <p className="stock">
-                      <CheckCircle2 size={15} />
-                      {product.stock}
-                    </p>
-
-                    <div className="product-buy">
-
-                      <div>
-                        <b>{formatPrice(product.price)} <span className="vat-note">без 20% ДДС</span></b>
-                        {Number(product.oldPrice || 0) > Number(product.price || 0) && (
-                          <del>{formatPrice(product.oldPrice)}</del>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={(event) => {
-                          event.preventDefault();
-                          addToCart(product.id);
-                        }}
-                      >
-                        Добави
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                </article>
-              </Link>
+              <ProductCard product={product} addToCart={addToCart} key={product.id} />
             ))
           )}
         </div>
@@ -2241,6 +2146,25 @@ function App() {
   useEffect(() => {
     if (window.location.hash === "#admin") window.location.hash = "";
   }, []);
+  const {
+    cartItems,
+    cartCount,
+    cartSubtotal,
+    cartVat,
+    cartDelivery,
+    cartGrandTotal,
+    freeDeliveryThreshold,
+    deliveryMin,
+    deliveryMax,
+    addToCart,
+    updateQuantity,
+    setCartOpen,
+    setCheckoutOpen,
+    setCartCustomItems,
+    clearCart,
+    setCartProducts,
+    setCartDeliverySettings,
+  } = useCart();
   const [page, setPage] = useState("store");
   const [userSession, setUserSession] = useState(null);
   const [authOpen, setAuthOpen] = useState(false);
@@ -2255,7 +2179,6 @@ function App() {
   const [categoryMarkups, setCategoryMarkups] = useState([]);
   const [promotionsData, setPromotionsData] = useState([]);
   const [partnersData, setPartnersData] = useState(partners);
-  const [cartCustomItems, setCartCustomItems] = useState([]);
   const [builderSelections, setBuilderSelections] = useState({
     cpu: "",
     motherboard: "",
@@ -2296,6 +2219,14 @@ function App() {
     });
   }, [dbProducts, categoryMarkups, promotionsData]);
   const showLoadingScreen = loadingProducts && dbProducts.length === 0;
+
+  useEffect(() => {
+    setCartProducts(products);
+  }, [products, setCartProducts]);
+
+  useEffect(() => {
+    setCartDeliverySettings(deliverySettings);
+  }, [deliverySettings, setCartDeliverySettings]);
 
   useEffect(() => {
     const onHashChange = () => setPage("store");
@@ -2417,6 +2348,10 @@ function App() {
         localId: product.id,
         name: product.title,
         title: product.title,
+        model: product.model || "",
+        manufacturer: product.manufacturer || product.brand || "",
+        reference_number: product.reference_number || product.referenceNumber || "",
+        barcode: product.barcode || "",
         mainCategory: product.main_category || product.mainCategory || product.category || "Компютри",
         category: product.category || "Компютри",
         price: Number(product.price || 0),
@@ -2437,6 +2372,7 @@ function App() {
             ? [product.image]
             : [],
         description: product.description || "",
+        warranty: product.warranty || product.guarantee || null,
         filters: product.filters || product.specs || {},
         specs: product.description
           ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4)
@@ -2463,6 +2399,10 @@ function App() {
         valiId: p.id,
         title,
         name: title,
+        model: p.model || "",
+        manufacturer: p.manufacturer || p.brand || p.vendor || "",
+        reference_number: p.reference_number || p.referenceNumber || p.sku || "",
+        barcode: p.barcode || p.ean || "",
         mainCategory: p.site_main_category || "Други",
         category: p.site_sub_category || p.site_main_category || "Други",
         price: finalPrice,
@@ -2474,6 +2414,7 @@ function App() {
         inStock: stockStatus === "В наличност",
         stockStatus,
         stockQty: Number(p.stock_qty || p.quantity || 0),
+        warranty: p.warranty || p.raw?.warranty || null,
         image: p.images?.[0]?.href || p.image || "/placeholder.webp",
         images: p.images?.map((x) => x.href).filter(Boolean) || [],
         description: getBgText(p.description) || "",
@@ -2502,19 +2443,10 @@ function App() {
 
   const [activeCategory, setActiveCategory] = useState("Всички");
   const [query, setQuery] = useState("");
-  const [cart, setCart] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("vf_cart") || "{}");
-    } catch {
-      return {};
-    }
-  });
-  const [cartOpen, setCartOpen] = useState(false);
   const [tbiUrl, setTbiUrl] = useState("");
   const [showTbi, setShowTbi] = useState(false);
   const [tbiLoading, setTbiLoading] = useState(false);
   const [tbiProduct, setTbiProduct] = useState(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(null);
@@ -2522,21 +2454,8 @@ function App() {
   const [notice, setNotice] = useState("");
   const [sendingBuilder, setSendingBuilder] = useState(false);
   const [sendingOrder, setSendingOrder] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiInput, setAiInput] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
 const [activeMega, setActiveMega] = useState(megaCategories[0]);
-  const [aiMessages, setAiMessages] = useState([
-    {
-      role: "assistant",
-      content: "Здравей! Аз съм AI асистентът на ВФ Компютри. Мога да помогна с избор на компютър, компоненти, сервиз или custom конфигурация.",
-    },
-  ]);
-
-  useEffect(() => {
-    localStorage.setItem("vf_cart", JSON.stringify(cart));
-  }, [cart]);
   const componentPools = useMemo(() => ({
     cpu: products.filter((product) => isCategoryMatch(product, ["процесор", "cpu", "processor"])),
     motherboard: products.filter((product) => isCategoryMatch(product, ["дън", "motherboard", "mainboard"])),
@@ -2777,8 +2696,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       });
     }
 
-    setCart({});
-    setCartCustomItems([]);
+    clearCart();
     setCartOpen(false);
     setCheckoutOpen(false);
   };
@@ -2791,36 +2709,6 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       return categoryMatch && searchMatch && priceMatch;
     });
   }, [products, activeCategory, query, priceLimit]);
-
-  const standardCartItems = Object.entries(cart)
-    .map(([id, quantity]) => {
-      const product = products.find((item) => String(item.id) === String(id));
-      return product ? { ...product, quantity } : null;
-    })
-    .filter(Boolean);
-
-  const cartItems = [...standardCartItems, ...cartCustomItems];
-  const cartCount = cartItems.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
-  const cartSubtotal = cartItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
-  const cartVat = calculateVat(cartSubtotal);
-  const cartTotal = calculateGross(cartSubtotal);
-  const freeDeliveryThreshold = Number(deliverySettings.free_delivery_threshold || DEFAULT_DELIVERY_SETTINGS.free_delivery_threshold);
-  const deliveryMin = Number(deliverySettings.delivery_min || DEFAULT_DELIVERY_SETTINGS.delivery_min);
-  const deliveryMax = Number(deliverySettings.delivery_max || DEFAULT_DELIVERY_SETTINGS.delivery_max);
-  const defaultDeliveryPrice = Number(deliverySettings.default_delivery_price || DEFAULT_DELIVERY_SETTINGS.default_delivery_price);
-  const cartDelivery =
-    cartTotal >= freeDeliveryThreshold || cartItems.length === 0
-      ? 0
-      : defaultDeliveryPrice;
-  const cartGrandTotal = cartTotal + cartDelivery;
-
-  const addToCart = (productOrId) => {
-    const id = String(productOrId?.id || productOrId?.valiId || productOrId?.vali_id || productOrId);
-    if (!id) return;
-
-    setCart((current) => ({ ...current, [id]: Number(current[id] || 0) + 1 }));
-    setCartOpen(true);
-  };
 
   const handleTbiCheckout = async (product) => {
     try {
@@ -2856,80 +2744,9 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     }
   };
 
-  const updateQuantity = (id, amount) => {
-    if (String(id).startsWith("config-")) {
-      setCartCustomItems((current) => {
-        return current
-          .map((item) => item.id === id ? { ...item, quantity: Number(item.quantity || 1) + amount } : item)
-          .filter((item) => Number(item.quantity || 1) > 0);
-      });
-      return;
-    }
-
-    setCart((current) => {
-      const nextQuantity = (current[id] || 0) + amount;
-      if (nextQuantity <= 0) {
-        const next = { ...current };
-        delete next[id];
-        return next;
-      }
-      return { ...current, [id]: nextQuantity };
-    });
-  };
-
-  const sendAiMessage = async () => {
-    const text = aiInput.trim();
-    if (!text || aiLoading) return;
-
-    const nextMessages = [...aiMessages, { role: "user", content: text }];
-    setAiMessages(nextMessages);
-    setAiInput("");
-    setAiLoading(true);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: nextMessages.map((message) => ({
-            role: message.role,
-            content: message.content,
-          })),
-        }),
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        console.error("[AI assistant] /api/chat request failed.", {
-          status: response.status,
-          statusText: response.statusText,
-          error: data?.error,
-          expectedServerEnv: "GEMINI_API_KEY",
-          note: "Frontend calls /api/chat. Gemini is not called directly from Vite/browser code.",
-        });
-
-        throw new Error(data.error || "AI assistant error");
-      }
-
-      setAiMessages((current) => [...current, { role: "assistant", content: data.reply }]);
-    } catch (error) {
-      console.error("[AI assistant] Unable to send message.", error);
-      setAiMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          content: "В момента AI асистентът не може да отговори. Провери дали GEMINI_API_KEY е добавен във Vercel и дали сайтът е redeploy-нат.",
-        },
-      ]);
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   const navLinks = (
   <>
-    <a href="#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
+    <a href="/builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
     <a href="#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
     <a href="#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
     <a href="#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
@@ -2941,12 +2758,25 @@ if (showLoadingScreen) {
   return <LoadingScreen />;
 }
 
+const headerProps = {
+  dynamicMegaCategories,
+  cartCount,
+  setCartOpen,
+  userSession,
+  openAuth,
+  setProfileOpen,
+  query,
+  setQuery,
+};
+
   return (
   <>
+  <Suspense fallback={<LoadingScreen />}>
   <Routes>
     <Route
       path="/"
       element={
+        <Home>
         <div className="site">
       <div className="rgb-bg" />
       <div className="scanline" />
@@ -2963,7 +2793,7 @@ if (showLoadingScreen) {
             </p>
             <div className="hero-actions">
               <a href="#products" className="btn primary">Пазарувай сега</a>
-              <a href="#builder" className="btn ghost">Сглоби си PC</a>
+              <Link to="/builder" className="btn ghost">Сглоби си PC</Link>
             </div>
             <div className="hero-trust">
               <span><CheckCircle2 /> Тествани системи</span>
@@ -3083,7 +2913,7 @@ if (showLoadingScreen) {
         </div>
 
         <div className="product-grid">
-          {filteredProducts.map((product) => (
+          {filteredProducts.slice(0, 12).map((product) => (
             <Link
   to={`/product/${product.id}`}
   className="product-link"
@@ -3140,154 +2970,6 @@ if (showLoadingScreen) {
             </article>
 </Link>
           ))}
-        </div>
-      </section>
-
-      <section id="builder" className="builder-section">
-        <div className="container builder-layout">
-          <div className="builder-intro">
-            <p className="section-label">Custom Build</p>
-            <h2>Сглоби си компютър</h2>
-            <p className="lead">
-              Избери реални налични компоненти от каталога и ще заключим несъвместимите варианти вместо теб.
-            </p>
-            <div className="builder-steps compact">
-              {pcBuilderSteps.map(({ icon: Icon, title, text }) => (
-                <div className="builder-step" key={title}>
-                  <Icon />
-                  <div>
-                    <b>{title}</b>
-                    <p>{text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pc-builder-form">
-            <div className="form-head">
-              <div>
-                <h3>Конфигуратор на PC</h3>
-                <p>Компонентите са синхронизирани с наличните локални и VALI продукти.</p>
-              </div>
-              <Sparkles />
-            </div>
-
-            <div className="builder-form-grid">
-              <label>
-                1. Процесор
-                <select value={builderSelections.cpu} onChange={(event) => updateBuilderSelection("cpu", event.target.value)}>
-                  <option value="">Избери процесор</option>
-                  {componentPools.cpu.map((product) => {
-                    const issue = getCompatibilityIssue("cpu", product);
-                    return <option key={product.id} value={product.id} disabled={Boolean(issue)}>{product.name}{issue ? ` — ${issue}` : ""}</option>;
-                  })}
-                </select>
-              </label>
-              <label>
-                2. Дънна платка
-                <select value={builderSelections.motherboard} onChange={(event) => updateBuilderSelection("motherboard", event.target.value)}>
-                  <option value="">Избери дънна платка</option>
-                  {componentPools.motherboard.map((product) => {
-                    const issue = getCompatibilityIssue("motherboard", product);
-                    return <option key={product.id} value={product.id} disabled={Boolean(issue)}>{product.name}{issue ? ` — ${issue}` : ""}</option>;
-                  })}
-                </select>
-              </label>
-              <label>
-                3. RAM памет
-                <select value={builderSelections.ram} onChange={(event) => updateBuilderSelection("ram", event.target.value)}>
-                  <option value="">Избери RAM</option>
-                  {componentPools.ram.map((product) => {
-                    const issue = getCompatibilityIssue("ram", product);
-                    return <option key={product.id} value={product.id} disabled={Boolean(issue)}>{product.name}{issue ? ` — ${issue}` : ""}</option>;
-                  })}
-                </select>
-              </label>
-              <label>
-                4. Видео карта
-                <select value={builderSelections.gpu} onChange={(event) => updateBuilderSelection("gpu", event.target.value)}>
-                  <option value="">Избери видеокарта</option>
-                  {componentPools.gpu.map((product) => (
-                    <option key={product.id} value={product.id}>{product.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                5. SSD / HDD
-                <select value={builderSelections.storage} onChange={(event) => updateBuilderSelection("storage", event.target.value)}>
-                  <option value="">Избери устройство</option>
-                  {componentPools.storage.map((product) => (
-                    <option key={product.id} value={product.id}>{product.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                6. Захранване
-                <select value={builderSelections.psu} onChange={(event) => updateBuilderSelection("psu", event.target.value)}>
-                  <option value="">Избери захранване</option>
-                  {componentPools.psu.map((product) => (
-                    <option key={product.id} value={product.id}>{product.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                7. Кутия
-                <select value={builderSelections.case} onChange={(event) => updateBuilderSelection("case", event.target.value)}>
-                  <option value="">Избери кутия</option>
-                  {componentPools.case.map((product) => (
-                    <option key={product.id} value={product.id}>{product.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                8. Охлаждане
-                <select value={builderSelections.cooler} onChange={(event) => updateBuilderSelection("cooler", event.target.value)}>
-                  <option value="">Избери охлаждане</option>
-                  {componentPools.cooler.map((product) => (
-                    <option key={product.id} value={product.id}>{product.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="wide">
-                Примерен FPS — моля въведете игра
-                <input value={builderGame} onChange={(event) => setBuilderGame(event.target.value)} placeholder="Въведете игра, например GTA V, CS2, Fortnite..." />
-              </label>
-            </div>
-
-            <div className="builder-preview">
-              <b>Обобщение на конфигурацията:</b>
-              <p>{builderSelectedList.length ? builderSelectedList.map((product) => product.name).join(" • ") : "Все още няма избрани компоненти."}</p>
-              <p>Междинна сума: {formatPrice(builderNetTotal)} без ДДС</p>
-              <p>ДДС 20%: {formatPrice(builderVatTotal)}</p>
-              <p>Доставка с {deliverySettings.provider}: {builderDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(builderDelivery)}`}</p>
-              <p>Общо: {formatPrice(builderGrandTotal)} с ДДС</p>
-            </div>
-
-            <div className="builder-preview">
-              <b>Примерен FPS</b>
-              {!builderProducts.cpu || !builderProducts.gpu ? (
-                <p>Изберете процесор и видеокарта, за да изчислим примерен FPS.</p>
-              ) : !builderGame.trim() ? (
-                <p>Въведи игра, за да покажем ориентировъчни стойности.</p>
-              ) : (
-                <>
-                  <p>Ниски настройки: {fpsEstimate?.low} FPS</p>
-                  <p>Средни настройки: {fpsEstimate?.medium} FPS</p>
-                  <p>Високи настройки: {fpsEstimate?.high} FPS</p>
-                </>
-              )}
-              <p>Това е ориентировъчна оценка, не гарантиран FPS.</p>
-              <p>Стойностите са приблизителни и зависят от драйвери, резолюция, охлаждане и настройки.</p>
-            </div>
-
-            {builderNotice && <div className="notice">{builderNotice}</div>}
-
-            <div className="builder-actions">
-              <button className="btn primary" onClick={addConfigurationToCart}>Добави конфигурацията в количката</button>
-              <a className="btn ghost" href={`tel:${storeInfo.rawPhone}`}>Обади се</a>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -3390,74 +3072,9 @@ if (showLoadingScreen) {
         </div>
       </footer>
 
-      <button className="floating-chat" onClick={() => setAiOpen(true)}>
-        <Bot size={18} />
-        <span>AI Асистент</span>
-      </button>
+      <AIAssistant />
 
-      {aiOpen && (
-        <div className="ai-chat-window">
-          <div className="ai-chat-head">
-            <div>
-              <b>AI Асистент</b>
-              <p>ВФ Компютри • онлайн помощник</p>
-            </div>
-            <button onClick={() => setAiOpen(false)}><X size={18} /></button>
-          </div>
-
-          <div className="ai-chat-body">
-            {aiMessages.map((message, index) => (
-              <div
-                key={index}
-                className={`ai-message ${message.role === "user" ? "user" : "assistant"}`}
-                style={{
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  overflowWrap: "break-word",
-                  maxWidth: "100%",
-                }}
-              >
-                {message.content}
-              </div>
-            ))}
-
-            {aiLoading && (
-              <div
-                className="ai-message assistant"
-                style={{
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  overflowWrap: "break-word",
-                  maxWidth: "100%",
-                }}
-              >
-                Мисля...
-              </div>
-            )}
-          </div>
-
-          <div className="ai-quick-actions">
-            <button onClick={() => setAiInput("Искам gaming компютър до 1000 евро")}>Gaming PC</button>
-            <button onClick={() => setAiInput("Имам проблем с лаптопа, какво да направя?")}>Сервиз</button>
-            <button onClick={() => setAiInput("Помогни ми да избера видеокарта")}>Видеокарта</button>
-          </div>
-
-          <div className="ai-chat-input">
-            <input
-              value={aiInput}
-              onChange={(event) => setAiInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") sendAiMessage();
-              }}
-              placeholder="Напиши въпрос..."
-            />
-            <button onClick={sendAiMessage} disabled={aiLoading}><Send size={17} /></button>
-          </div>
-        </div>
-      )}
-
-      
-      {documentOrder && (
+            {documentOrder && (
         <OrderDocumentsModal
           order={documentOrder}
           customerProfile={documentCustomer}
@@ -3544,332 +3161,99 @@ if (showLoadingScreen) {
         </div>
       )}
 
-      {false && cartOpen && (
-        <div className="overlay" onClick={() => setCartOpen(false)}>
-          <aside className="drawer" onClick={(event) => event.stopPropagation()}>
-            <div className="drawer-head">
-              <div>
-                <h3>Количка</h3>
-                <p>{cartCount} продукта</p>
-              </div>
-              <button onClick={() => setCartOpen(false)}><X size={18} /></button>
-            </div>
-            <div className="cart-items">
-              {cartItems.length === 0 ? (
-                <div className="empty-cart">Количката е празна.</div>
-              ) : (
-                cartItems.map((item) => (
-                  <div className="cart-item" key={item.id}>
-                    <img src={item.image} alt={item.name} />
-                    <div className="cart-item-body">
-                      <b>{item.name}</b>
-                      <p>{formatPrice(item.price)}</p>
-                      <div className="qty">
-                        <button onClick={() => updateQuantity(item.id, -1)}><Minus size={14} /></button>
-                        <span>{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, 1)}><Plus size={14} /></button>
-                        <button className="trash" onClick={() => updateQuantity(item.id, -item.quantity)}><Trash2 size={15} /></button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="drawer-total">
-              <p><span>Междинна сума</span><b>{formatPrice(cartSubtotal)} <span className="vat-note">без 20% ДДС</span></b></p>
-              <div className="cart-vat-row"><span>ДДС 20%</span><b>{formatPrice(cartVat)}</b></div>
-              <div className="cart-vat-row"><span>Доставка с {deliverySettings.provider}</span><b>{cartDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(cartDelivery)}`}</b></div>
-              <div className="cart-total-row"><span>Общо</span><b>{formatPrice(cartGrandTotal)}</b></div>
-              <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>Завърши поръчката</button>
-              <button
-                className="drawer-tbi-btn"
-                disabled={!cartItems.length}
-                onClick={() => handleTbiCheckout({
-                  name: cartItems.map((item) => item.name).join(", "),
-                  price: cartGrandTotal,
-                  isGross: true,
-                })}
-              >
-                Купи количката на изплащане с TBI
-              </button>
-            </div>
-          </aside>
         </div>
-      )}
-
-      {false && checkoutOpen && (
-        <div className="overlay checkout-overlay" onClick={() => setCheckoutOpen(false)}>
-          <div className="checkout-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="drawer-head">
-              <div>
-                <h3>Финализиране на поръчка</h3>
-                <p>Демо форма. Следващ етап: реални поръчки към имейл и база данни.</p>
-              </div>
-              <button onClick={() => setCheckoutOpen(false)}><X size={18} /></button>
-            </div>
-            <form className="checkout-form">
-              <input placeholder="Име и фамилия" />
-              <input placeholder="Телефон" />
-              <input placeholder="Имейл" />
-              <input placeholder="Град" />
-              <input className="wide" placeholder="Адрес или офис на куриер" />
-              <textarea className="wide" placeholder="Коментар към поръчката" />
-            </form>
-
-            <div className="payment-box">
-              <div className="payment-title">
-                <CreditCard />
-                <div>
-                  <b>Метод на плащане</b>
-                  <p>Избери как клиентът ще плати поръчката.</p>
-                </div>
-              </div>
-
-              <div className="payment-options">
-                {paymentMethods.map((method) => (
-                  <label
-                    className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
-                    key={method.id}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value={method.id}
-                      checked={paymentMethod === method.id}
-                      onChange={() => setPaymentMethod(method.id)}
-                    />
-                    <div>
-                      <span>{method.badge}</span>
-                      <b>{method.title}</b>
-                      <p>{method.text}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              {paymentMethod === "bank" && (
-                <div className="bank-transfer-box">
-                  <b>Данни за банков превод</b>
-                  <p><span>Банка:</span> {bankInfo.bank}</p>
-                  <p><span>Титуляр:</span> {bankInfo.holder}</p>
-                  <p><span>IBAN:</span> {bankInfo.iban}</p>
-                  <p><span>BIC:</span> {bankInfo.bic}</p>
-                  <p><span>Основание:</span> Поръчка № ще се генерира след изпращане</p>
-                  <small>{bankInfo.note}</small>
-                </div>
-              )}
-
-              {paymentMethod === "tbi" && (
-                <div className="tbi-payment-box">
-                  <b>TBI Bank - покупка на изплащане</b>
-                  <p>След изпращане на поръчката ще се отвори прозорецът за TBI кандидатстване.</p>
-                </div>
-              )}
-            </div>
-
-            <div className="checkout-summary">
-              <CreditCard />
-              <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b></span>
-            </div>
-            <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>
-              {sendingOrder
-                ? "Изпращане..."
-                : paymentMethod === "bank"
-                  ? "Изпрати поръчка с банков превод"
-                  : paymentMethod === "tbi"
-                    ? "Продължи към TBI"
-                    : "Изпрати поръчка с наложен платеж"}
-            </button>
-          </div>
-        </div>
-      )}
-        </div>
+        </Home>
+      }
+    />
+    <Route
+      path="/builder"
+      element={
+        <>
+          <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} />
+          <BuilderPage
+            pcBuilderSteps={pcBuilderSteps}
+            componentPools={componentPools}
+            builderSelections={builderSelections}
+            updateBuilderSelection={updateBuilderSelection}
+            getCompatibilityIssue={getCompatibilityIssue}
+            builderGame={builderGame}
+            setBuilderGame={setBuilderGame}
+            builderSelectedList={builderSelectedList}
+            builderNetTotal={builderNetTotal}
+            builderVatTotal={builderVatTotal}
+            builderDelivery={builderDelivery}
+            builderGrandTotal={builderGrandTotal}
+            builderProducts={builderProducts}
+            fpsEstimate={fpsEstimate}
+            builderNotice={builderNotice}
+            addConfigurationToCart={addConfigurationToCart}
+            deliverySettings={deliverySettings}
+            deliveryMin={deliveryMin}
+            deliveryMax={deliveryMax}
+            storeInfo={storeInfo}
+          />
+        </>
+      }
+    />
+    <Route
+      path="/search"
+      element={
+        <SearchPage
+          products={products}
+          addToCart={addToCart}
+          HeaderComponent={SiteHeader}
+          headerProps={headerProps}
+        />
       }
     />
 <Route
   path="/category/:categoryName"
   element={
-    <CategoryPage
+    <CategoryRoutePage
       products={products}
       addToCart={addToCart}
-      handleTbiCheckout={handleTbiCheckout}
-      dynamicMegaCategories={dynamicMegaCategories}
-      cartCount={cartCount}
-      setCartOpen={setCartOpen}
-      userSession={userSession}
-      openAuth={openAuth}
-      setProfileOpen={setProfileOpen}
-      query={query}
-      setQuery={setQuery}
+      HeaderComponent={SiteHeader}
+      headerProps={headerProps}
     />
   }
 />
     <Route
       path="/product/:id"
       element={
-        <ProductPage
+        <ProductPageRoute
           products={products}
           addToCart={addToCart}
           handleTbiCheckout={handleTbiCheckout}
-          dynamicMegaCategories={dynamicMegaCategories}
-          cartCount={cartCount}
-          setCartOpen={setCartOpen}
-          userSession={userSession}
-          openAuth={openAuth}
-          setProfileOpen={setProfileOpen}
-          query={query}
-          setQuery={setQuery}
+          HeaderComponent={SiteHeader}
+          headerProps={headerProps}
         />
       }
     />
   </Routes>
+  </Suspense>
 
-  {cartOpen && (
-    <div className="overlay" onClick={() => setCartOpen(false)}>
-      <aside className="drawer" onClick={(event) => event.stopPropagation()}>
-        <div className="drawer-head">
-          <div>
-            <h3>Количка</h3>
-            <p>{cartCount} продукта</p>
-          </div>
-          <button onClick={() => setCartOpen(false)}><X size={18} /></button>
-        </div>
-        <div className="cart-items">
-          {cartItems.length === 0 ? (
-            <div className="empty-cart">Количката е празна.</div>
-          ) : (
-            cartItems.map((item) => (
-              <div className="cart-item" key={item.id}>
-                <img src={item.image} alt={item.name} />
-                <div className="cart-item-body">
-                  <b>{item.name}</b>
-                  <p>{formatPrice(item.price)}</p>
-                  <div className="qty">
-                    <button onClick={() => updateQuantity(item.id, -1)}><Minus size={14} /></button>
-                    <span>{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, 1)}><Plus size={14} /></button>
-                    <button className="trash" onClick={() => updateQuantity(item.id, -item.quantity)}><Trash2 size={15} /></button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        <div className="drawer-total">
-          <p><span>Междинна сума</span><b>{formatPrice(cartSubtotal)} <span className="vat-note">без 20% ДДС</span></b></p>
-          <div className="cart-vat-row"><span>ДДС 20%</span><b>{formatPrice(cartVat)}</b></div>
-          <div className="cart-vat-row"><span>Доставка с {deliverySettings.provider}</span><b>{cartDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(cartDelivery)}`}</b></div>
-          <div className="cart-total-row"><span>Общо</span><b>{formatPrice(cartGrandTotal)}</b></div>
-          <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>Завърши поръчката</button>
-          <button
-            className="drawer-tbi-btn"
-            disabled={!cartItems.length}
-            onClick={() => handleTbiCheckout({
-              name: cartItems.map((item) => item.name).join(", "),
-              price: cartGrandTotal,
-              isGross: true,
-            })}
-          >
-            Купи количката на изплащане с TBI
-          </button>
-        </div>
-      </aside>
-    </div>
-  )}
+  <Cart
+    deliveryProvider={deliverySettings.provider}
+    handleTbiCheckout={handleTbiCheckout}
+  />
 
-  {checkoutOpen && (
-    <div className="overlay checkout-overlay" onClick={() => setCheckoutOpen(false)}>
-      <div className="checkout-modal" onClick={(event) => event.stopPropagation()}>
-        <div className="drawer-head">
-          <div>
-            <h3>Финализиране на поръчка</h3>
-            <p>Демо форма. Следващ етап: реални поръчки към имейл и база данни.</p>
-          </div>
-          <button onClick={() => setCheckoutOpen(false)}><X size={18} /></button>
-        </div>
-        <form className="checkout-form">
-          <input placeholder="Име и фамилия" />
-          <input placeholder="Телефон" />
-          <input placeholder="Имейл" />
-          <input placeholder="Град" />
-          <input className="wide" placeholder="Адрес или офис на куриер" />
-          <textarea className="wide" placeholder="Коментар към поръчката" />
-        </form>
-
-        <div className="payment-box">
-          <div className="payment-title">
-            <CreditCard />
-            <div>
-              <b>Метод на плащане</b>
-              <p>Избери как клиентът ще плати поръчката.</p>
-            </div>
-          </div>
-
-          <div className="payment-options">
-            {paymentMethods.map((method) => (
-              <label
-                className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
-                key={method.id}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value={method.id}
-                  checked={paymentMethod === method.id}
-                  onChange={() => setPaymentMethod(method.id)}
-                />
-                <div>
-                  <span>{method.badge}</span>
-                  <b>{method.title}</b>
-                  <p>{method.text}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-
-          {paymentMethod === "bank" && (
-            <div className="bank-transfer-box">
-              <b>Данни за банков превод</b>
-              <p><span>Банка:</span> {bankInfo.bank}</p>
-              <p><span>Титуляр:</span> {bankInfo.holder}</p>
-              <p><span>IBAN:</span> {bankInfo.iban}</p>
-              <p><span>BIC:</span> {bankInfo.bic}</p>
-              <p><span>Основание:</span> Поръчка № ще се генерира след изпращане</p>
-              <small>{bankInfo.note}</small>
-            </div>
-          )}
-
-          {paymentMethod === "tbi" && (
-            <div className="tbi-payment-box">
-              <b>TBI Bank - покупка на изплащане</b>
-              <p>След изпращане на поръчката ще се отвори прозорецът за TBI кандидатстване.</p>
-            </div>
-          )}
-        </div>
-
-        <div className="checkout-summary">
-          <CreditCard />
-          <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b></span>
-        </div>
-        <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>
-          {sendingOrder
-            ? "Изпращане..."
-            : paymentMethod === "bank"
-              ? "Изпрати поръчка с банков превод"
-              : paymentMethod === "tbi"
-                ? "Продължи към TBI"
-                : "Изпрати поръчка с наложен платеж"}
-        </button>
-      </div>
-    </div>
-  )}
+  <Checkout
+    paymentMethods={paymentMethods}
+    paymentMethod={paymentMethod}
+    setPaymentMethod={setPaymentMethod}
+    bankInfo={bankInfo}
+    sendOrder={sendOrder}
+    sendingOrder={sendingOrder}
+  />
   </>
 );
 }
 
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>
+  <CartProvider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </CartProvider>
 );
 
