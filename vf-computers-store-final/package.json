@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "latest",
+    "@supabase/supabase-js": "^2.106.1",
     "@vitejs/plugin-react": "latest",
     "dotenv": "^17.4.2",
     "lucide-react": "latest",

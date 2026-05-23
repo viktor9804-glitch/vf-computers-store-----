@@ -8,8 +8,15 @@ export default async function handler(req, res) {
     const geminiApiKey = process.env.GEMINI_API_KEY;
 
     if (!geminiApiKey) {
+      console.error("[AI assistant] Missing server environment variable GEMINI_API_KEY.", {
+        endpoint: "/api/chat",
+        expectedVariable: "GEMINI_API_KEY",
+        viteVariablePresent: Boolean(process.env.VITE_GEMINI_API_KEY),
+        note: "Gemini is called from the serverless API route, so the key must be configured as GEMINI_API_KEY in the server/Vercel environment. Do not rely on VITE_GEMINI_API_KEY for this endpoint.",
+      });
+
       return res.status(500).json({
-        error: "GEMINI_API_KEY is missing in Vercel Environment Variables.",
+        error: "AI assistant is not configured: server environment variable GEMINI_API_KEY is missing.",
       });
     }
 
@@ -78,7 +85,12 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Gemini API error:", data);
+      console.error("[AI assistant] Gemini API error.", {
+        status: response.status,
+        message: data?.error?.message,
+        code: data?.error?.code,
+      });
+
       return res.status(response.status).json({
         error:
           data?.error?.message ||
@@ -95,7 +107,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ reply });
   } catch (error) {
-    console.error(error);
+    console.error("[AI assistant] Server error while contacting Gemini.", error);
     return res.status(500).json({
       error: "Server error while contacting Gemini assistant.",
     });

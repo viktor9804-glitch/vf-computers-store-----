@@ -70,6 +70,322 @@ const formatPrice = (value) => {
   }).format(Number(value || 0));
 };
 
+const VAT_RATE = 0.20;
+
+const calculateVat = (net) => Number(net || 0) * VAT_RATE;
+const calculateGross = (net) => Number(net || 0) * (1 + VAT_RATE);
+
+const DEFAULT_DELIVERY_SETTINGS = {
+  provider: "Еконт",
+  free_delivery_threshold: 200,
+  delivery_min: 8,
+  delivery_max: 20,
+  default_delivery_price: 8,
+};
+
+const getBgText = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value.find((item) => item?.language_code === "bg")?.text || value[0]?.text || "";
+  }
+  if (typeof value === "object") {
+    return value.bg || value.text || "";
+  }
+  return String(value);
+};
+
+const MANUAL_CATEGORY_GROUPS = [
+  { title: "Лаптопи", items: ["Реновирани Лаптопи"] },
+  { title: "Компютри", items: ["Реновирани Компютри"] },
+];
+
+const normalizeText = (value) => String(value || "").trim();
+const normalizeKey = (value) => normalizeText(value).toLowerCase();
+
+const normalizeComparableValue = (value) => {
+  if (value === null || value === undefined || value === "") return "";
+  if (typeof value === "boolean") return value ? "Да" : "Не";
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeComparableValue(item)).filter(Boolean).join(", ");
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return normalizeText(value);
+};
+
+const collectFilterValues = (value) => {
+  if (value === null || value === undefined || value === "") return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectFilterValues(item));
+  }
+  if (typeof value === "boolean") {
+    return [value ? "Да" : "Не"];
+  }
+  if (typeof value === "number") {
+    return [String(value)];
+  }
+  if (typeof value === "object") {
+    return [JSON.stringify(value)];
+  }
+  const text = normalizeText(value);
+  return text ? [text] : [];
+};
+
+const sortFilterValues = (values) => {
+  return [...values].sort((first, second) => {
+    const firstNumber = Number(first);
+    const secondNumber = Number(second);
+    const firstNumeric = !Number.isNaN(firstNumber) && first.trim() !== "";
+    const secondNumeric = !Number.isNaN(secondNumber) && second.trim() !== "";
+
+    if (firstNumeric && secondNumeric) {
+      return firstNumber - secondNumber;
+    }
+
+    return first.localeCompare(second, "bg", { numeric: true, sensitivity: "base" });
+  });
+};
+
+const mergeCategoryGroups = (groups = [], extraGroups = []) => {
+  const map = new Map();
+
+  [...groups, ...extraGroups].forEach((group, groupIndex) => {
+    const title = normalizeText(group.title);
+    if (!title) return;
+
+    if (!map.has(title)) {
+      map.set(title, {
+        title,
+        image: group.image || megaCategories[groupIndex % megaCategories.length]?.image || "/public-mega-menu/components.webp",
+        items: new Set(),
+      });
+    }
+
+    const current = map.get(title);
+    if (!current.image && group.image) current.image = group.image;
+
+    (group.items || []).forEach((item) => {
+      const itemTitle = normalizeText(item);
+      if (itemTitle) current.items.add(itemTitle);
+    });
+  });
+
+  return Array.from(map.values()).map((group, index) => ({
+    title: group.title,
+    image: group.image || megaCategories[index % megaCategories.length]?.image || "/public-mega-menu/components.webp",
+    items: sortFilterValues(Array.from(group.items)),
+  }));
+};
+
+const extractValiFilters = (p) => {
+  const sources = [
+    p.filters,
+    p.attributes,
+    p.characteristics,
+    p.specifications,
+    p.properties,
+    p.features,
+    p.params,
+    p.product_attributes,
+    p.options,
+  ];
+
+  for (const source of sources) {
+    if (!source) continue;
+
+    if (Array.isArray(source)) {
+      const result = {};
+
+      source.forEach((item) => {
+        const key =
+          item?.name ||
+          item?.title ||
+          item?.attribute_name ||
+          item?.key ||
+          item?.label ||
+          item?.filter_name;
+
+        const value =
+          item?.value ||
+          item?.text ||
+          item?.option ||
+          item?.attribute_value ||
+          item?.values ||
+          item?.filter_value;
+
+        if (key && value !== undefined && value !== null && value !== "") {
+          result[normalizeText(key)] = value;
+        }
+      });
+
+      if (Object.keys(result).length > 0) return result;
+    }
+
+    if (typeof source === "object" && !Array.isArray(source) && Object.keys(source).length > 0) {
+      return source;
+    }
+  }
+
+  return {};
+};
+
+const getFilter = (product, possibleKeys = []) => {
+  const filters = product?.filters || {};
+  const normalizedCandidates = possibleKeys.map((key) => normalizeKey(key));
+
+  for (const [key, value] of Object.entries(filters)) {
+    if (normalizedCandidates.includes(normalizeKey(key))) {
+      return value;
+    }
+  }
+
+  return undefined;
+};
+
+const estimateGpuTier = (gpuTitle = "") => {
+  const t = gpuTitle.toLowerCase();
+
+  if (t.includes("5090") || t.includes("4090")) return 10;
+  if (t.includes("5080") || t.includes("4080") || t.includes("7900 xtx")) return 9;
+  if (t.includes("5070") || t.includes("4070") || t.includes("7800 xt")) return 8;
+  if (t.includes("5060") || t.includes("4060") || t.includes("7700 xt")) return 7;
+  if (t.includes("3060") || t.includes("6600") || t.includes("7600")) return 6;
+  if (t.includes("3050") || t.includes("1650") || t.includes("6400")) return 4;
+
+  return 5;
+};
+
+const estimateCpuTier = (cpuTitle = "") => {
+  const t = cpuTitle.toLowerCase();
+
+  if (t.includes("ryzen 9") || t.includes("i9")) return 10;
+  if (t.includes("ryzen 7") || t.includes("i7")) return 8;
+  if (t.includes("ryzen 5") || t.includes("i5")) return 6;
+  if (t.includes("ryzen 3") || t.includes("i3")) return 4;
+
+  return 5;
+};
+
+const estimateGameWeight = (game = "") => {
+  const g = game.toLowerCase();
+
+  if (
+    g.includes("cyberpunk") ||
+    g.includes("starfield") ||
+    g.includes("alan wake") ||
+    g.includes("hogwarts")
+  ) return 1.25;
+
+  if (
+    g.includes("gta") ||
+    g.includes("warzone") ||
+    g.includes("battlefield") ||
+    g.includes("forza")
+  ) return 1.0;
+
+  if (
+    g.includes("fortnite") ||
+    g.includes("valorant") ||
+    g.includes("cs2") ||
+    g.includes("league") ||
+    g.includes("minecraft")
+  ) return 0.65;
+
+  return 1.0;
+};
+
+const estimateFps = ({ cpuTitle, gpuTitle, game }) => {
+  const gpuTier = estimateGpuTier(gpuTitle);
+  const cpuTier = estimateCpuTier(cpuTitle);
+  const gameWeight = estimateGameWeight(game);
+  const base = ((gpuTier * 22) + (cpuTier * 8)) / gameWeight;
+
+  return {
+    low: Math.round(base * 1.25),
+    medium: Math.round(base),
+    high: Math.round(base * 0.72),
+  };
+};
+
+const isCategoryMatch = (product, keywords = []) => {
+  const haystack = `${product.mainCategory || ""} ${product.category || ""} ${product.title || ""} ${product.name || ""}`.toLowerCase();
+  return keywords.some((keyword) => haystack.includes(keyword));
+};
+
+const findMarkupPercent = (markups = [], mainCategory, subCategory) => {
+  const match = markups.find((item) =>
+    normalizeKey(item.main_category) === normalizeKey(mainCategory) &&
+    normalizeKey(item.sub_category) === normalizeKey(subCategory)
+  );
+  return Number(match?.markup_percent || 0);
+};
+
+const getValiStockStatus = (product) => {
+  const status = Number(product?.status ?? product?.raw?.status ?? 0);
+
+  if (status > 0) {
+    return "В наличност";
+  }
+
+  return "Не е в наличност";
+};
+
+const isPromotionCurrentlyActive = (promotion, now = new Date()) => {
+  if (!promotion?.is_active) return false;
+  const startsAt = promotion.starts_at ? new Date(promotion.starts_at) : null;
+  const endsAt = promotion.ends_at ? new Date(promotion.ends_at) : null;
+
+  if (startsAt && startsAt > now) return false;
+  if (endsAt && endsAt < now) return false;
+  return true;
+};
+
+const findBestPromotion = (product, promotions = []) => {
+  const now = new Date();
+  const productIds = [product.id, product.valiId, product.localId].filter(Boolean).map((value) => String(value));
+
+  let bestPromotion = null;
+  let bestScore = -1;
+
+  promotions.forEach((promotion) => {
+    if (!isPromotionCurrentlyActive(promotion, now)) return;
+
+    let score = -1;
+    const promotionProductId = promotion.product_id ? String(promotion.product_id) : "";
+
+    if (promotionProductId && productIds.includes(promotionProductId)) {
+      score = 3;
+    } else if (
+      promotion.main_category &&
+      promotion.sub_category &&
+      normalizeKey(promotion.main_category) === normalizeKey(product.mainCategory) &&
+      normalizeKey(promotion.sub_category) === normalizeKey(product.category)
+    ) {
+      score = 2;
+    } else if (
+      promotion.main_category &&
+      normalizeKey(promotion.main_category) === normalizeKey(product.mainCategory)
+    ) {
+      score = 1;
+    }
+
+    if (score < 0) return;
+
+    const discount = Number(promotion.discount_percent || 0);
+    const currentDiscount = Number(bestPromotion?.discount_percent || 0);
+
+    if (score > bestScore || (score === bestScore && discount > currentDiscount)) {
+      bestScore = score;
+      bestPromotion = promotion;
+    }
+  });
+
+  return bestPromotion;
+};
+
 const fallbackProducts = [
   {
     id: 1,
@@ -257,6 +573,37 @@ const megaCategories = [
     ],
   },
 ];
+
+const getMegaCategoryImage = (title, index = 0) => {
+  const fallbackCategory = megaCategories.find((category) => category.title === title);
+  return fallbackCategory?.image || megaCategories[index % megaCategories.length]?.image || "/public-mega-menu/components.webp";
+};
+
+const buildDynamicMegaCategories = (valiProducts = []) => {
+  const categoryMap = new Map();
+
+  valiProducts.forEach((product) => {
+    const mainCategory = String(product.site_main_category || "").trim();
+    const subCategory = String(product.site_sub_category || "").trim();
+
+    if (!mainCategory || !subCategory) return;
+
+    if (!categoryMap.has(mainCategory)) {
+      categoryMap.set(mainCategory, new Set());
+    }
+
+    categoryMap.get(mainCategory).add(subCategory);
+  });
+
+  const dynamicCategories = Array.from(categoryMap.entries()).map(([title, items], index) => ({
+    title,
+    image: getMegaCategoryImage(title, index),
+    items: Array.from(items).sort((first, second) => first.localeCompare(second, "bg")),
+  }));
+
+  return mergeCategoryGroups(dynamicCategories.length > 0 ? dynamicCategories : megaCategories, MANUAL_CATEGORY_GROUPS);
+};
+
 const services = [
   { id:"diagnostics", icon:Wrench, title:"Диагностика", category:"Сервиз", image:"/services/diagnostics.png", price:"50€", note:"при отказан ремонт", altPrice:"25€", altNote:"ако клиентът желае да бъде извършен ремонт", text:"Проверка на хардуер, температури, захранване, RAM, SSD, видеокарта и общо състояние." },
   { id:"windows", icon:Monitor, title:"Инсталиране на Windows", category:"Софтуер", image:"/services/windows.png", price:"55€", note:"операционна система Windows", text:"Инсталация на Windows, базова настройка и подготовка на системата за работа." },
@@ -1357,7 +1704,7 @@ function AdminPanel({ onBack }) {
   );
 }
 
-const ProductPage = ({ products, addToCart, handleTbiCheckout }) => {
+const ProductPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCategories, cartCount, setCartOpen, userSession, openAuth, setProfileOpen, query, setQuery }) => {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -1374,6 +1721,8 @@ useEffect(() => {
 
   if (!product) {
     return (
+      <>
+      <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} />
       <div className="product-page-not-found">
         <h2>Продуктът не е намерен</h2>
 
@@ -1381,14 +1730,18 @@ useEffect(() => {
           Назад
         </button>
       </div>
+      </>
     );
   }
 
   const images = product.images?.length
     ? product.images
     : [product.image];
+  const technicalSpecs = Object.entries(product.filters || {});
 
   return (
+    <>
+    <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} />
     <div className="product-page">
 
       <div className="container">
@@ -1436,11 +1789,13 @@ useEffect(() => {
             <div className="product-price-row">
 
   <div className="product-page-price">
-    <b>{formatPrice(product.price)}</b>
+    <b>{formatPrice(product.price)} <span className="vat-note">без 20% ДДС</span></b>
 
-    <del>
-      {formatPrice(product.oldPrice)}
-    </del>
+    {Number(product.oldPrice || 0) > Number(product.price || 0) && (
+      <del>
+        {formatPrice(product.oldPrice)}
+      </del>
+    )}
   </div>
 
   <div className="product-page-actions-inline">
@@ -1472,24 +1827,21 @@ useEffect(() => {
 
 <table className="product-specs-table">
   <tbody>
-    {product.description
-      ?.split(".")
-      .filter((line) => line.trim() !== "")
-      .map((line, index) => {
-        const parts = line.split(":");
-
-        return (
-          <tr key={index}>
-            <td>{parts[0]}</td>
-            <td>{parts.slice(1).join(":")}</td>
-          </tr>
-        );
-      })}
+    {technicalSpecs.length > 0 ? technicalSpecs.map(([key, value]) => (
+      <tr key={key}>
+        <td>{key}</td>
+        <td>{Array.isArray(value) ? value.join(", ") : normalizeComparableValue(value)}</td>
+      </tr>
+    )) : (
+      <tr>
+        <td colSpan="2">Няма въведени технически характеристики за този продукт.</td>
+      </tr>
+    )}
   </tbody>
 </table>
 
             <div className="product-page-specs">
-              {product.specs.map((spec) => (
+              {(product.specs || []).map((spec) => (
                 <span key={spec}>
                   {spec}
                 </span>
@@ -1503,6 +1855,7 @@ useEffect(() => {
       </div>
 
     </div>
+    </>
   );
 };
 function LoadingScreen() {
@@ -1517,98 +1870,229 @@ function LoadingScreen() {
     </div>
   );
 }
-const CategoryPage = ({ products, addToCart, handleTbiCheckout }) => {
+function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, setCartOpen, userSession, openAuth, setProfileOpen, query = "", setQuery = () => {} }) {
+  const [megaOpen, setMegaOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileCategoryOpen, setMobileCategoryOpen] = useState(null);
+  const headerMegaCategories = dynamicMegaCategories?.length ? dynamicMegaCategories : megaCategories;
+  const navLinks = (
+    <>
+      <a href="/" onClick={() => setMobileOpen(false)}>Начало</a>
+      <a href="/#builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
+      <a href="/#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
+      <a href="/#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
+      <a href="/#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
+      <a href="/#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
+    </>
+  );
+
+  return (
+    <>
+      <header className="header">
+        <div className="container header-inner">
+          <a className="brand" href="/">
+            <span className="logo-wrap">
+              <img src={LOGO_URL} alt="ВФ Компютри" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+              <Cpu className="fallback-logo" />
+            </span>
+            <span className="brand-text">
+              <b>ВФ <em>Компютри</em></b>
+              <small>ПРОДАЖБА • РЕМОНТ • ПОДДРЪЖКА</small>
+            </span>
+          </a>
+          <nav className="desktop-nav">
+            <button className="mega-menu-button" onClick={() => setMegaOpen((current) => !current)}>
+              <Menu size={18} />
+              Категории
+            </button>
+            {navLinks}
+          </nav>
+          <div className="search-box">
+            <Search size={18} />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Търси компютър, видеокарта, SSD..." />
+          </div>
+          <div className="header-actions">
+            <a className="phone-chip" href={`tel:${storeInfo.rawPhone}`}><Phone size={16} /> {storeInfo.phone}</a>
+            {userSession ? (
+              <button className="account-chip" onClick={() => setProfileOpen(true)} title="Моят профил">
+                <User size={16} />
+                <span>{userSession.user?.user_metadata?.full_name || userSession.user?.email?.split("@")[0] || "Профил"}</span>
+              </button>
+            ) : (
+              <button className="account-chip" onClick={() => openAuth("login")}>
+                <User size={16} />
+                <span>Вход</span>
+              </button>
+            )}
+            <button className="cart-button" onClick={() => setCartOpen(true)}>
+              <ShoppingCart size={19} />
+              {cartCount > 0 && <span>{cartCount}</span>}
+            </button>
+            <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)}><Menu /></button>
+          </div>
+        </div>
+      </header>
+      {megaOpen && (
+        <div className="mega-menu-overlay" onClick={() => setMegaOpen(false)}>
+          <div className="mega-menu-panel mega-menu-grid" onClick={(event) => event.stopPropagation()}>
+            {headerMegaCategories.map((category) => (
+              <div className="mega-menu-column" key={category.title}>
+                <img className="mega-bg" src={category.image} alt={category.title} />
+                <div className="mega-content">
+                  <h2>{category.title}</h2>
+                  <ul>
+                    {category.items.slice(0, 10).map((item) => (
+                      <li key={item} onClick={() => { setMegaOpen(false); window.location.href = `/category/${encodeURIComponent(item)}`; }}>
+                        {item}
+                      </li>
+                    ))}
+                    {category.items.length > 10 && (
+                      <li className="mega-view-all" onClick={() => { setMegaOpen(false); window.location.href = `/category/${encodeURIComponent(category.title)}`; }}>
+                        Виж всички →
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {mobileOpen && (
+        <div className="mobile-panel">
+          <button className="mobile-close" onClick={() => setMobileOpen(false)}><X /></button>
+          <div className="mobile-brand">ВФ <span>Компютри</span></div>
+          <nav>{navLinks}</nav>
+          <div className="mobile-categories">
+            <h3>Категории</h3>
+            {headerMegaCategories.map((category) => (
+              <div className="mobile-category-group" key={category.title}>
+                <button className="mobile-category-title" onClick={() => setMobileCategoryOpen(mobileCategoryOpen === category.title ? null : category.title)}>
+                  {category.title}
+                  <span>{mobileCategoryOpen === category.title ? "−" : "+"}</span>
+                </button>
+                {mobileCategoryOpen === category.title && (
+                  <div className="mobile-subcategories">
+                    {category.items.slice(0, 10).map((item) => (
+                      <button key={item} onClick={() => { setMobileOpen(false); window.location.href = `/category/${encodeURIComponent(item)}`; }}>
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <a className="mobile-call" href={`tel:${storeInfo.rawPhone}`}>Обади се: {storeInfo.phone}</a>
+          {userSession ? (
+            <button className="mobile-auth" onClick={() => { setMobileOpen(false); setProfileOpen(true); }}>Моят профил</button>
+          ) : (
+            <button className="mobile-auth" onClick={() => { setMobileOpen(false); openAuth("login"); }}>Вход / Регистрация</button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+const CategoryPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCategories, cartCount, setCartOpen, userSession, openAuth, setProfileOpen, query, setQuery }) => {
   const { categoryName } = useParams();
   const navigate = useNavigate();
-
-  const [megaOpen, setMegaOpen] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState({});
+  const [expandedFilters, setExpandedFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
 
   const decodedCategory = decodeURIComponent(categoryName);
 
   const categoryProducts = products.filter(
-    (product) => product.category === decodedCategory
+    (product) => product.category === decodedCategory || product.mainCategory === decodedCategory
   );
+
+  const availableFilters = useMemo(() => {
+    const map = {};
+
+    categoryProducts.forEach((product) => {
+      Object.entries(product.filters || {}).forEach(([key, rawValue]) => {
+        const normalizedKey = normalizeText(key);
+        const values = collectFilterValues(rawValue);
+
+        if (!normalizedKey || values.length === 0) return;
+
+        if (!map[normalizedKey]) {
+          map[normalizedKey] = {};
+        }
+
+        values.forEach((value) => {
+          const normalizedValue = normalizeText(value);
+          if (!normalizedValue) return;
+          map[normalizedKey][normalizedValue] = (map[normalizedKey][normalizedValue] || 0) + 1;
+        });
+      });
+    });
+
+    return Object.fromEntries(
+      Object.entries(map)
+        .sort(([first], [second]) => first.localeCompare(second, "bg", { sensitivity: "base" }))
+        .map(([key, counts]) => [key, sortFilterValues(Object.keys(counts)).map((value) => ({ value, count: counts[value] }))])
+    );
+  }, [categoryProducts]);
+
+  const filteredProducts = useMemo(() => {
+    return categoryProducts.filter((product) => {
+      return Object.entries(selectedFilters).every(([filterKey, selectedValues]) => {
+        if (!selectedValues?.length) return true;
+
+        const filterValue = (product.filters || {})[filterKey];
+        if (filterValue === null || filterValue === undefined || filterValue === "") return false;
+
+        const productValues = collectFilterValues(filterValue).map((value) => normalizeText(value));
+        if (productValues.length === 0) return false;
+
+        return selectedValues.some((value) => productValues.includes(value));
+      });
+    });
+  }, [categoryProducts, selectedFilters]);
+
+  useEffect(() => {
+    setSelectedFilters({});
+    setExpandedFilters({});
+    setFilterSearch({});
+  }, [decodedCategory]);
+
+  const toggleFilterValue = (filterKey, value) => {
+    setSelectedFilters((current) => {
+      const currentValues = current[filterKey] || [];
+      const nextValues = currentValues.includes(value)
+        ? currentValues.filter((item) => item !== value)
+        : [...currentValues, value];
+
+      if (nextValues.length === 0) {
+        const next = { ...current };
+        delete next[filterKey];
+        return next;
+      }
+
+      return { ...current, [filterKey]: nextValues };
+    });
+  };
+
+  const clearAllFilters = () => {
+    setSelectedFilters({});
+    setExpandedFilters({});
+    setFilterSearch({});
+  };
 
   return (
   <>
-    <header className="header">
-      <div className="container header-inner">
-
-        <a className="brand" href="/">
-          <span className="logo-wrap">
-            <img src={LOGO_URL} alt="ВФ Компютри" />
-            <Cpu className="fallback-logo" />
-          </span>
-
-          <span className="brand-text">
-            <b>ВФ <em>Компютри</em></b>
-            <small>Продажба • Ремонт • Поддръжка</small>
-          </span>
-        </a>
-
-        <nav className="desktop-nav">
-
-  <button
-    className="mega-menu-button"
-    onClick={() => setMegaOpen((current) => !current)}
-  >
-    <Menu size={18} />
-    Категории
-  </button>
-
-  <a href="/">Начало</a>
-  <a href="/#builder">Сглоби PC</a>
-  <a href="/#services">Сервиз</a>
-  <a href="/#about">За нас</a>
-  <a href="/#partners">Партньори</a>
-  <a href="/#contact">Контакти</a>
-
-</nav>
-
-      </div>
-    </header>
-{megaOpen && (
-  <div className="mega-menu-overlay" onClick={() => setMegaOpen(false)}>
-    <div
-      className="mega-menu-panel mega-menu-grid"
-      onClick={(event) => event.stopPropagation()}
-    >
-
-      {megaCategories.map((category) => (
-        <div className="mega-menu-column" key={category.title}>
-
-          <img
-            className="mega-bg"
-            src={category.image}
-            alt={category.title}
-          />
-
-          <div className="mega-content">
-
-            <h2>{category.title}</h2>
-
-            <ul>
-              {category.items.map((item) => (
-                <li
-                  key={item}
-                  onClick={() => {
-                    setMegaOpen(false);
-                    window.location.href = `/category/${encodeURIComponent(item)}`;
-                  }}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-          </div>
-
-        </div>
-      ))}
-
-    </div>
-  </div>
-)}
+    <SiteHeader
+      dynamicMegaCategories={dynamicMegaCategories}
+      cartCount={cartCount}
+      setCartOpen={setCartOpen}
+      userSession={userSession}
+      openAuth={openAuth}
+      setProfileOpen={setProfileOpen}
+      query={query}
+      setQuery={setQuery}
+    />
     <div className="category-page">
       <div className="container products-section">
 
@@ -1626,13 +2110,70 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout }) => {
           </div>
         </div>
 
-        <div className="product-grid">
+        <div className="category-layout">
+          {Object.keys(availableFilters).length > 0 && (
+            <aside className="filters-sidebar">
+              <div className="filters-head">
+                <h3>Филтри</h3>
+                <button className="filter-clear" onClick={clearAllFilters}>Изчисти всички</button>
+              </div>
+
+              {Object.entries(availableFilters).map(([filterKey, options]) => {
+                const searchValue = filterSearch[filterKey] || "";
+                const visibleOptions = options.filter((option) =>
+                  option.value.toLowerCase().includes(searchValue.toLowerCase())
+                );
+                const isExpanded = Boolean(expandedFilters[filterKey]);
+                const slicedOptions = isExpanded ? visibleOptions : visibleOptions.slice(0, 12);
+
+                return (
+                  <div className="filter-group" key={filterKey}>
+                    <div className="filter-title">{filterKey}</div>
+                    {options.length > 12 && (
+                      <input
+                        className="filter-search"
+                        value={searchValue}
+                        onChange={(event) => setFilterSearch((current) => ({ ...current, [filterKey]: event.target.value }))}
+                        placeholder="Търси във филтъра..."
+                      />
+                    )}
+                    {slicedOptions.map((option) => (
+                      <label className="filter-option" key={`${filterKey}-${option.value}`}>
+                        <input
+                          type="checkbox"
+                          checked={(selectedFilters[filterKey] || []).includes(option.value)}
+                          onChange={() => toggleFilterValue(filterKey, option.value)}
+                        />
+                        <span>{option.value}</span>
+                        <b>({option.count})</b>
+                      </label>
+                    ))}
+                    {visibleOptions.length > 12 && (
+                      <button
+                        className="filter-more"
+                        onClick={() => setExpandedFilters((current) => ({ ...current, [filterKey]: !current[filterKey] }))}
+                      >
+                        {isExpanded ? "Покажи по-малко" : "Покажи още"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </aside>
+          )}
+
+          <div className="products-area">
+            <p className="products-count">
+              Показани {filteredProducts.length} от {categoryProducts.length} продукта
+            </p>
+
+            <div className="product-grid">
           {categoryProducts.length === 0 ? (
             <p className="empty-products">
               Няма продукти в тази категория.
             </p>
           ) : (
-            categoryProducts.map((product) => (
+            filteredProducts.map((product) => (
               <Link
                 to={`/product/${product.id}`}
                 className="product-link"
@@ -1664,7 +2205,10 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout }) => {
                     <div className="product-buy">
 
                       <div>
-                        <b>{formatPrice(product.price)}</b>
+                        <b>{formatPrice(product.price)} <span className="vat-note">без 20% ДДС</span></b>
+                        {Number(product.oldPrice || 0) > Number(product.price || 0) && (
+                          <del>{formatPrice(product.oldPrice)}</del>
+                        )}
                       </div>
 
                       <button
@@ -1685,6 +2229,8 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout }) => {
             ))
           )}
         </div>
+          </div>
+        </div>
 
       </div>
     </div>
@@ -1704,8 +2250,52 @@ function App() {
   const [documentCustomer, setDocumentCustomer] = useState(null);
   const [dbProducts, setDbProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const products = dbProducts.length > 0 ? dbProducts : fallbackProducts;
-const showLoadingScreen = loadingProducts && dbProducts.length === 0;
+  const [dynamicMegaCategories, setDynamicMegaCategories] = useState(megaCategories);
+  const [deliverySettings, setDeliverySettings] = useState(DEFAULT_DELIVERY_SETTINGS);
+  const [categoryMarkups, setCategoryMarkups] = useState([]);
+  const [promotionsData, setPromotionsData] = useState([]);
+  const [partnersData, setPartnersData] = useState(partners);
+  const [cartCustomItems, setCartCustomItems] = useState([]);
+  const [builderSelections, setBuilderSelections] = useState({
+    cpu: "",
+    motherboard: "",
+    ram: "",
+    gpu: "",
+    storage: "",
+    psu: "",
+    case: "",
+    cooler: "",
+  });
+  const [builderGame, setBuilderGame] = useState("");
+  const [builderNotice, setBuilderNotice] = useState("");
+  const products = useMemo(() => {
+    const sourceProducts = dbProducts.length > 0 ? dbProducts : fallbackProducts;
+
+    return sourceProducts.map((product) => {
+      const basePrice = Number(product.basePrice ?? product.originalPrice ?? product.price ?? 0);
+      const markupPercent = product.source === "vali"
+        ? findMarkupPercent(categoryMarkups, product.mainCategory, product.category)
+        : 0;
+      const priceAfterMarkup = Number((basePrice * (1 + (markupPercent / 100))).toFixed(2));
+      const originalPrice = Number(product.source === "vali" ? priceAfterMarkup : basePrice);
+      const promotion = findBestPromotion(product, promotionsData);
+      const discountPercent = Number(promotion?.discount_percent || 0);
+      const discountedPrice = promotion
+        ? Number((originalPrice * (1 - (discountPercent / 100))).toFixed(2))
+        : Number(product.price ?? originalPrice);
+      const hasPromotion = Boolean(promotion) && discountedPrice < originalPrice;
+
+      return {
+        ...product,
+        markupPercent,
+        originalPrice,
+        price: discountedPrice,
+        oldPrice: hasPromotion ? originalPrice : Number(product.oldPrice ?? discountedPrice),
+        promotion: hasPromotion ? promotion : null,
+      };
+    });
+  }, [dbProducts, categoryMarkups, promotionsData]);
+  const showLoadingScreen = loadingProducts && dbProducts.length === 0;
 
   useEffect(() => {
     const onHashChange = () => setPage("store");
@@ -1737,41 +2327,174 @@ const showLoadingScreen = loadingProducts && dbProducts.length === 0;
     setProfileOpen(false);
   };
 
+  useEffect(() => {
+    const loadStoreMetadata = async () => {
+      const [deliveryRes, markupsRes, promotionsRes, partnersRes] = await Promise.all([
+        supabase.from("store_settings").select("*").eq("key", "delivery_settings").maybeSingle(),
+        supabase.from("category_markups").select("*"),
+        supabase.from("promotions").select("*").eq("is_active", true),
+        supabase.from("partners").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
+      ]);
+
+      if (!deliveryRes.error && deliveryRes.data?.value) {
+        setDeliverySettings({ ...DEFAULT_DELIVERY_SETTINGS, ...(deliveryRes.data.value || {}) });
+      } else {
+        setDeliverySettings(DEFAULT_DELIVERY_SETTINGS);
+      }
+
+      if (!markupsRes.error && Array.isArray(markupsRes.data)) {
+        setCategoryMarkups(markupsRes.data);
+      }
+
+      if (!promotionsRes.error && Array.isArray(promotionsRes.data)) {
+        setPromotionsData(promotionsRes.data);
+      }
+
+      if (!partnersRes.error && Array.isArray(partnersRes.data) && partnersRes.data.length > 0) {
+        setPartnersData(partnersRes.data.map((partner) => ({
+          name: partner.name,
+          logo: partner.logo || partner.name,
+          logoSrc: partner.logo_src,
+          tag: partner.tag,
+          text: partner.text,
+          url: partner.url,
+        })));
+      } else {
+        setPartnersData(partners);
+      }
+    };
+
+    loadStoreMetadata();
+  }, []);
+
+  useEffect(() => {
+    const loadValiCategories = async () => {
+      const { data, error } = await supabase
+        .from("vali_products")
+        .select("site_main_category, site_sub_category")
+        .eq("show", true)
+        .limit(12000);
+
+      if (error) {
+        console.error(error);
+        setDynamicMegaCategories(megaCategories);
+        return;
+      }
+
+      setDynamicMegaCategories(buildDynamicMegaCategories(data || []));
+    };
+
+    loadValiCategories();
+  }, []);
+
 
   useEffect(() => {
     const loadProducts = async () => {
       setLoadingProducts(true);
-      const { data, error } = await supabase
+      const localRes = await supabase
         .from("products")
         .select("*")
         .order("created_at", { ascending: false });
 
-      setLoadingProducts(false);
+      const valiRes = await supabase
+        .from("vali_products")
+        .select("*")
+        .eq("show", true)
+        .limit(12000);
 
-      if (!error && data && data.length > 0) {
-        setDbProducts(data.map((product) => ({
-          id: product.id,
-          name: product.title,
-          category: product.category || "Компютри",
-          price: Number(product.price || 0),
-          oldPrice: Number(product.price || 0),
-          rating: 4.9,
-          stock: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
-          badge: "NEW",
-          image: Array.isArray(product.images) && product.images.length > 0
-            ? product.images[0]
-            : product.image || "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
-          images: Array.isArray(product.images) && product.images.length > 0
-            ? product.images
-            : product.image
-              ? [product.image]
-              : [],
-          description: product.description || "",
-specs: product.description
-  ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4)
-  : ["ВФ Компютри", "Проверен продукт"],
-        })));
+      const { data: markupsData, error: markupsError } = await supabase
+        .from("category_markups")
+        .select("*");
+
+      if (markupsError) {
+        console.warn(markupsError);
+      } else if (Array.isArray(markupsData)) {
+        setCategoryMarkups(markupsData);
       }
+
+      const localProducts = (localRes.data || []).map((product) => ({
+        id: `local-${product.id}`,
+        localId: product.id,
+        name: product.title,
+        title: product.title,
+        mainCategory: product.main_category || product.mainCategory || product.category || "Компютри",
+        category: product.category || "Компютри",
+        price: Number(product.price || 0),
+        oldPrice: Number(product.price || 0),
+        originalPrice: Number(product.price || 0),
+        basePrice: Number(product.price || 0),
+        rating: 4.9,
+        stock: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
+        stockStatus: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
+        stockQty: Number(product.stock || 0),
+        badge: "NEW",
+        image: Array.isArray(product.images) && product.images.length > 0
+          ? product.images[0]
+          : product.image || "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80",
+        images: Array.isArray(product.images) && product.images.length > 0
+          ? product.images
+          : product.image
+            ? [product.image]
+            : [],
+        description: product.description || "",
+        filters: product.filters || product.specs || {},
+        specs: product.description
+          ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4)
+          : ["ВФ Компютри", "Проверен продукт"],
+        source: "local",
+      }));
+
+      const valiProducts = (valiRes.data || []).map((p) => {
+        const filters = extractValiFilters(p);
+        const basePrice = Number(p.price_partner || p.price_client || 0);
+        const markupPercent = findMarkupPercent(
+          markupsData || [],
+          p.site_main_category,
+          p.site_sub_category
+        );
+        const finalPrice = Number(
+          (basePrice + (basePrice * markupPercent / 100)).toFixed(2)
+        );
+        const title = getBgText(p.name) || p.model || "VALI продукт";
+        const stockStatus = getValiStockStatus(p);
+
+        return ({
+        id: `vali-${p.id}`,
+        valiId: p.id,
+        title,
+        name: title,
+        mainCategory: p.site_main_category || "Други",
+        category: p.site_sub_category || p.site_main_category || "Други",
+        price: finalPrice,
+        oldPrice: finalPrice,
+        originalPrice: basePrice,
+        basePrice,
+        markupPercent,
+        stock: stockStatus,
+        inStock: stockStatus === "В наличност",
+        stockStatus,
+        stockQty: Number(p.stock_qty || p.quantity || 0),
+        image: p.images?.[0]?.href || p.image || "/placeholder.webp",
+        images: p.images?.map((x) => x.href).filter(Boolean) || [],
+        description: getBgText(p.description) || "",
+        filters,
+        specs: Object.entries(filters)
+          .slice(0, 4)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`),
+        source: "vali",
+      });
+      });
+
+      setDbProducts([
+        ...localProducts,
+        ...valiProducts
+      ]);
+
+      if (localRes.error) {
+        console.error(localRes.error);
+      }
+
+      setLoadingProducts(false);
     };
 
     loadProducts();
@@ -1779,7 +2502,13 @@ specs: product.description
 
   const [activeCategory, setActiveCategory] = useState("Всички");
   const [query, setQuery] = useState("");
-  const [cart, setCart] = useState({});
+  const [cart, setCart] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("vf_cart") || "{}");
+    } catch {
+      return {};
+    }
+  });
   const [cartOpen, setCartOpen] = useState(false);
   const [tbiUrl, setTbiUrl] = useState("");
   const [showTbi, setShowTbi] = useState(false);
@@ -1804,66 +2533,129 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       content: "Здравей! Аз съм AI асистентът на ВФ Компютри. Мога да помогна с избор на компютър, компоненти, сервиз или custom конфигурация.",
     },
   ]);
-  const [builder, setBuilder] = useState({
-    name: "",
-    phone: "",
-    budget: "750-1000 €",
-    platform: "Няма значение",
-    gpu: "Gaming 1080p",
-    ram: "16GB",
-    storage: "1TB NVMe",
-    usage: "Gaming",
-    games: "",
-    notes: "",
-  });
 
-  const updateBuilder = (field, value) => {
-    setBuilder((current) => ({ ...current, [field]: value }));
+  useEffect(() => {
+    localStorage.setItem("vf_cart", JSON.stringify(cart));
+  }, [cart]);
+  const componentPools = useMemo(() => ({
+    cpu: products.filter((product) => isCategoryMatch(product, ["процесор", "cpu", "processor"])),
+    motherboard: products.filter((product) => isCategoryMatch(product, ["дън", "motherboard", "mainboard"])),
+    ram: products.filter((product) => isCategoryMatch(product, ["ram", "memory", "памет"])),
+    gpu: products.filter((product) => isCategoryMatch(product, ["видео карт", "gpu", "graphics"])),
+    storage: products.filter((product) => isCategoryMatch(product, ["ssd", "hdd", "solid state drive", "storage", "хард", "nvme"])),
+    psu: products.filter((product) => isCategoryMatch(product, ["захранван", "psu", "power supply"])),
+    case: products.filter((product) => isCategoryMatch(product, ["кут", "case", "chassis"])),
+    cooler: products.filter((product) => isCategoryMatch(product, ["охлад", "cooler"])),
+  }), [products]);
+
+  const builderProducts = useMemo(() => ({
+    cpu: componentPools.cpu.find((product) => product.id === builderSelections.cpu) || null,
+    motherboard: componentPools.motherboard.find((product) => product.id === builderSelections.motherboard) || null,
+    ram: componentPools.ram.find((product) => product.id === builderSelections.ram) || null,
+    gpu: componentPools.gpu.find((product) => product.id === builderSelections.gpu) || null,
+    storage: componentPools.storage.find((product) => product.id === builderSelections.storage) || null,
+    psu: componentPools.psu.find((product) => product.id === builderSelections.psu) || null,
+    case: componentPools.case.find((product) => product.id === builderSelections.case) || null,
+    cooler: componentPools.cooler.find((product) => product.id === builderSelections.cooler) || null,
+  }), [componentPools, builderSelections]);
+
+  const selectedCpuSocket = normalizeComparableValue(getFilter(builderProducts.cpu, ["CPU Socket", "Socket", "Сокет", "Процесорен сокет"]));
+  const selectedBoardSocket = normalizeComparableValue(getFilter(builderProducts.motherboard, ["CPU Socket", "Socket", "Сокет", "Процесорен сокет"]));
+  const selectedBoardRamType = normalizeComparableValue(getFilter(builderProducts.motherboard, ["RAM Type", "Memory Type", "DDR", "Тип памет", "Памет"]));
+  const selectedRamType = normalizeComparableValue(getFilter(builderProducts.ram, ["RAM Type", "Memory Type", "DDR", "Тип памет", "Памет"]));
+
+  const getCompatibilityIssue = (type, product) => {
+    if (!product) return "";
+
+    if (type === "motherboard" && selectedCpuSocket) {
+      const socket = normalizeComparableValue(getFilter(product, ["CPU Socket", "Socket", "Сокет", "Процесорен сокет"]));
+      if (socket && socket !== selectedCpuSocket) {
+        return `Несъвместимо със сокет ${selectedCpuSocket}`;
+      }
+    }
+
+    if (type === "cpu" && selectedBoardSocket) {
+      const socket = normalizeComparableValue(getFilter(product, ["CPU Socket", "Socket", "Сокет", "Процесорен сокет"]));
+      if (socket && socket !== selectedBoardSocket) {
+        return `Несъвместимо със сокет ${selectedBoardSocket}`;
+      }
+    }
+
+    if (type === "ram" && selectedBoardRamType) {
+      const ramType = normalizeComparableValue(getFilter(product, ["RAM Type", "Memory Type", "DDR", "Тип памет", "Памет"]));
+      if (ramType && ramType !== selectedBoardRamType) {
+        return `Несъвместимо с ${selectedBoardRamType}`;
+      }
+    }
+
+    if (type === "motherboard" && selectedRamType) {
+      const ramType = normalizeComparableValue(getFilter(product, ["RAM Type", "Memory Type", "DDR", "Тип памет", "Памет"]));
+      if (ramType && ramType !== selectedRamType) {
+        return `Несъвместимо с ${selectedRamType}`;
+      }
+    }
+
+    return "";
   };
 
-  const sendBuilderRequest = async () => {
-    if (!builder.name.trim() || !builder.phone.trim()) {
-      setNotice("Моля, въведи име и телефон за връзка.");
+  useEffect(() => {
+    if (builderProducts.cpu && getCompatibilityIssue("cpu", builderProducts.cpu)) {
+      setBuilderSelections((current) => ({ ...current, cpu: "" }));
+      setBuilderNotice(`Избраният процесор беше изчистен. ${getCompatibilityIssue("cpu", builderProducts.cpu)}`);
+    }
+
+    if (builderProducts.ram && getCompatibilityIssue("ram", builderProducts.ram)) {
+      setBuilderSelections((current) => ({ ...current, ram: "" }));
+      setBuilderNotice(`Избраната RAM беше изчистена. ${getCompatibilityIssue("ram", builderProducts.ram)}`);
+    }
+  }, [builderProducts.cpu, builderProducts.ram, selectedBoardSocket, selectedBoardRamType]);
+
+  const updateBuilderSelection = (type, value) => {
+    setBuilderSelections((current) => ({ ...current, [type]: value }));
+    setBuilderNotice("");
+  };
+
+  const builderSelectedList = Object.values(builderProducts).filter(Boolean);
+  const builderNetTotal = builderSelectedList.reduce((sum, product) => sum + Number(product.price || 0), 0);
+  const builderVatTotal = calculateVat(builderNetTotal);
+  const builderGrossTotal = calculateGross(builderNetTotal);
+  const builderDelivery = builderGrossTotal >= Number(deliverySettings.free_delivery_threshold || DEFAULT_DELIVERY_SETTINGS.free_delivery_threshold) || builderSelectedList.length === 0
+    ? 0
+    : Number(deliverySettings.default_delivery_price || DEFAULT_DELIVERY_SETTINGS.default_delivery_price);
+  const builderGrandTotal = builderGrossTotal + builderDelivery;
+  const fpsEstimate = builderProducts.cpu && builderProducts.gpu && builderGame.trim()
+    ? estimateFps({ cpuTitle: builderProducts.cpu.name, gpuTitle: builderProducts.gpu.name, game: builderGame })
+    : null;
+
+  const addConfigurationToCart = () => {
+    if (!builderProducts.cpu || !builderProducts.motherboard || !builderProducts.ram || !builderProducts.gpu) {
+      setBuilderNotice("Избери поне процесор, дънна платка, RAM и видеокарта, за да добавиш конфигурацията.");
       return;
     }
 
-    setSendingBuilder(true);
-    setNotice("");
+    const customItem = {
+      id: `config-${Date.now()}`,
+      name: "Персонална PC конфигурация",
+      title: "Персонална PC конфигурация",
+      price: Number(builderNetTotal.toFixed(2)),
+      oldPrice: Number(builderNetTotal.toFixed(2)),
+      originalPrice: Number(builderNetTotal.toFixed(2)),
+      image: builderProducts.case?.image || LOGO_URL,
+      images: builderProducts.case?.images?.length ? builderProducts.case.images : [builderProducts.case?.image || LOGO_URL],
+      category: "Персонални конфигурации",
+      mainCategory: "Компютри",
+      stock: "В наличност",
+      stockStatus: "В наличност",
+      quantity: 1,
+      filters: {},
+      specs: builderSelectedList.map((product) => product.name),
+      parts: builderProducts,
+      source: "config",
+    };
 
-    const { error } = await supabase.from("pc_requests").insert({
-      name: builder.name,
-      phone: builder.phone,
-      budget: builder.budget,
-      platform: builder.platform,
-      gpu: builder.gpu,
-      ram: builder.ram,
-      storage: builder.storage,
-      usage: builder.usage,
-      games: builder.games,
-      notes: builder.notes,
-    });
-
-    setSendingBuilder(false);
-
-    if (error) {
-      setNotice("Заявката не беше записана. Провери RLS policy в Supabase.");
-      console.error(error);
-      return;
-    }
-
-    setNotice("Заявката е изпратена успешно! Ще се свържем с теб.");
-    setBuilder({
-      name: "",
-      phone: "",
-      budget: "750-1000 €",
-      platform: "Няма значение",
-      gpu: "Gaming 1080p",
-      ram: "16GB",
-      storage: "1TB NVMe",
-      usage: "Gaming",
-      games: "",
-      notes: "",
-    });
+    setCartCustomItems((current) => [...current, customItem]);
+    setCartOpen(true);
+    setBuilderNotice("Конфигурацията е добавена в количката.");
   };
 
   const sendOrder = async () => {
@@ -1902,8 +2694,9 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         name: item.name,
         quantity: item.quantity,
         price: item.price,
+        parts: item.parts || null,
       })),
-      total,
+      total: cartGrandTotal,
       user_id: userSession?.user?.id || null,
       invoice_requested: customerProfile?.account_type === "company",
       billing_data: customerProfile ? {
@@ -1924,6 +2717,8 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
             ? "Очаква TBI одобрение"
             : "Наложен платеж",
       order_status: "Нова поръчка",
+      delivery_price: cartDelivery,
+      delivery_method: deliverySettings.provider,
       bank_transfer_details:
         paymentMethod === "bank"
           ? {
@@ -1934,11 +2729,24 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
           : null,
     };
 
-    const { data: savedOrder, error } = await supabase
+    let orderResult = await supabase
       .from("orders")
       .insert(payload)
       .select("*")
       .single();
+
+    if (orderResult.error && /delivery_price|delivery_method/i.test(orderResult.error.message || "")) {
+      const fallbackPayload = { ...payload };
+      delete fallbackPayload.delivery_price;
+      delete fallbackPayload.delivery_method;
+      orderResult = await supabase
+        .from("orders")
+        .insert(fallbackPayload)
+        .select("*")
+        .single();
+    }
+
+    const { data: savedOrder, error } = orderResult;
 
     setSendingOrder(false);
 
@@ -1952,7 +2760,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       paymentMethod === "bank"
         ? "Поръчката е изпратена успешно! Очакваме банков превод."
         : paymentMethod === "tbi"
-          ? "Поръчката е създадена. Продължи към TBI Bank за кандидатстване."
+        ? "Поръчката е създадена. Продължи към TBI Bank за кандидатстване."
           : "Поръчката е изпратена успешно! Документите са генерирани."
     );
     setDocumentOrder(savedOrder || { ...payload, id: Date.now(), created_at: new Date().toISOString() });
@@ -1965,11 +2773,12 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     if (paymentMethod === "tbi") {
       handleTbiCheckout({
         name: cartItems.map((item) => item.name).join(", "),
-        price: total,
+        price: cartGrandTotal,
       });
     }
 
     setCart({});
+    setCartCustomItems([]);
     setCartOpen(false);
     setCheckoutOpen(false);
   };
@@ -1977,32 +2786,46 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const categoryMatch = activeCategory === "Всички" || product.category === activeCategory;
-      const searchMatch = `${product.name} ${product.category} ${product.specs.join(" ")}`.toLowerCase().includes(query.toLowerCase());
+      const searchMatch = `${product.name} ${product.category} ${(product.specs || []).join(" ")} ${Object.keys(product.filters || {}).join(" ")}`.toLowerCase().includes(query.toLowerCase());
       const priceMatch = product.price <= priceLimit;
       return categoryMatch && searchMatch && priceMatch;
     });
   }, [products, activeCategory, query, priceLimit]);
 
-  const cartItems = Object.entries(cart)
+  const standardCartItems = Object.entries(cart)
     .map(([id, quantity]) => {
-      const product = products.find((item) => item.id === Number(id));
+      const product = products.find((item) => String(item.id) === String(id));
       return product ? { ...product, quantity } : null;
     })
     .filter(Boolean);
 
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const delivery = subtotal >= 1000 || subtotal === 0 ? 0 : 8;
-  const total = subtotal + delivery;
+  const cartItems = [...standardCartItems, ...cartCustomItems];
+  const cartCount = cartItems.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
+  const cartSubtotal = cartItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+  const cartVat = calculateVat(cartSubtotal);
+  const cartTotal = calculateGross(cartSubtotal);
+  const freeDeliveryThreshold = Number(deliverySettings.free_delivery_threshold || DEFAULT_DELIVERY_SETTINGS.free_delivery_threshold);
+  const deliveryMin = Number(deliverySettings.delivery_min || DEFAULT_DELIVERY_SETTINGS.delivery_min);
+  const deliveryMax = Number(deliverySettings.delivery_max || DEFAULT_DELIVERY_SETTINGS.delivery_max);
+  const defaultDeliveryPrice = Number(deliverySettings.default_delivery_price || DEFAULT_DELIVERY_SETTINGS.default_delivery_price);
+  const cartDelivery =
+    cartTotal >= freeDeliveryThreshold || cartItems.length === 0
+      ? 0
+      : defaultDeliveryPrice;
+  const cartGrandTotal = cartTotal + cartDelivery;
 
-  const addToCart = (id) => {
-    setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
+  const addToCart = (productOrId) => {
+    const id = String(productOrId?.id || productOrId?.valiId || productOrId?.vali_id || productOrId);
+    if (!id) return;
+
+    setCart((current) => ({ ...current, [id]: Number(current[id] || 0) + 1 }));
     setCartOpen(true);
   };
 
   const handleTbiCheckout = async (product) => {
     try {
       setTbiLoading(true);
+      const checkoutPrice = product.isGross ? Number(product.price || 0) : calculateGross(product.price);
 
       const response = await fetch("/api/tbi", {
         method: "POST",
@@ -2011,7 +2834,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         },
         body: JSON.stringify({
           name: product.name,
-          price: product.price,
+          price: checkoutPrice,
         }),
       });
 
@@ -2021,7 +2844,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
 
       if (data.url) {
         setTbiUrl(data.url);
-        setTbiProduct(product);
+        setTbiProduct({ ...product, price: checkoutPrice });
         setShowTbi(true);
       } else {
         alert("TBI връзката не е налична.");
@@ -2034,6 +2857,15 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   };
 
   const updateQuantity = (id, amount) => {
+    if (String(id).startsWith("config-")) {
+      setCartCustomItems((current) => {
+        return current
+          .map((item) => item.id === id ? { ...item, quantity: Number(item.quantity || 1) + amount } : item)
+          .filter((item) => Number(item.quantity || 1) > 0);
+      });
+      return;
+    }
+
     setCart((current) => {
       const nextQuantity = (current[id] || 0) + amount;
       if (nextQuantity <= 0) {
@@ -2066,15 +2898,23 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        console.error("[AI assistant] /api/chat request failed.", {
+          status: response.status,
+          statusText: response.statusText,
+          error: data?.error,
+          expectedServerEnv: "GEMINI_API_KEY",
+          note: "Frontend calls /api/chat. Gemini is not called directly from Vite/browser code.",
+        });
+
         throw new Error(data.error || "AI assistant error");
       }
 
       setAiMessages((current) => [...current, { role: "assistant", content: data.reply }]);
     } catch (error) {
-      console.error(error);
+      console.error("[AI assistant] Unable to send message.", error);
       setAiMessages((current) => [
         ...current,
         {
@@ -2102,6 +2942,7 @@ if (showLoadingScreen) {
 }
 
   return (
+  <>
   <Routes>
     <Route
       path="/"
@@ -2110,159 +2951,7 @@ if (showLoadingScreen) {
       <div className="rgb-bg" />
       <div className="scanline" />
 
-      <header className="header">
-        <div className="container header-inner">
-          <a className="brand" href="#">
-            <span className="logo-wrap">
-              <img src={LOGO_URL} alt="ВФ Компютри" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-              <Cpu className="fallback-logo" />
-            </span>
-            <span className="brand-text">
-              <b>ВФ <em>Компютри</em></b>
-              <small>Продажба • Ремонт • Поддръжка</small>
-            </span>
-          </a>
-
-          <nav className="desktop-nav">
-  <button
-    className="mega-menu-button"
-    onClick={() => setMegaOpen((current) => !current)}
-  >
-    <Menu size={18} />
-    Категории
-  </button>
-
-  {navLinks}
-</nav>
-
-          <div className="search-box">
-            <Search size={18} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Търси компютър, видеокарта, SSD..." />
-          </div>
-
-          <div className="header-actions">
-            <a className="phone-chip" href={`tel:${storeInfo.rawPhone}`}><Phone size={16} /> {storeInfo.phone}</a>
-            {userSession ? (
-              <button className="account-chip" onClick={() => setProfileOpen(true)} title="Моят профил">
-                <User size={16} />
-                <span>{userSession.user?.user_metadata?.full_name || userSession.user?.email?.split("@")[0] || "Профил"}</span>
-              </button>
-            ) : (
-              <button className="account-chip" onClick={() => openAuth("login")}>
-                <User size={16} />
-                <span>Вход</span>
-              </button>
-            )}
-            <button className="cart-button" onClick={() => setCartOpen(true)}>
-              <ShoppingCart size={19} />
-              {cartCount > 0 && <span>{cartCount}</span>}
-            </button>
-            <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)}><Menu /></button>
-          </div>
-        </div>
-      </header>
-{megaOpen && (
-  <div className="mega-menu-overlay" onClick={() => setMegaOpen(false)}>
-    <div
-      className="mega-menu-panel mega-menu-grid"
-      onClick={(event) => event.stopPropagation()}
-    >
-
-      {megaCategories.map((category) => (
-        <div className="mega-menu-column" key={category.title}>
-
-          <img
-            className="mega-bg"
-            src={category.image}
-            alt={category.title}
-          />
-
-          <div className="mega-content">
-
-            <h2>{category.title}</h2>
-
-            <ul>
-              {category.items.map((item) => (
-                <li
-                  key={item}
-                 onClick={() => {
-  setMegaOpen(false);
-  window.location.href = `/category/${encodeURIComponent(item)}`;
-}}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-          </div>
-
-        </div>
-      ))}
-
-    </div>
-  </div>
-)}
-      {mobileOpen && (
-  <div className="mobile-panel">
-    <button className="mobile-close" onClick={() => setMobileOpen(false)}><X /></button>
-
-    <div className="mobile-brand">ВФ <span>Компютри</span></div>
-
-    <nav>{navLinks}</nav>
-
-    <div className="mobile-categories">
-  <h3>Категории</h3>
-
-  {megaCategories.map((category) => (
-    <div className="mobile-category-group" key={category.title}>
-      <button
-        className="mobile-category-title"
-        onClick={() =>
-          setMobileCategoryOpen(
-            mobileCategoryOpen === category.title ? null : category.title
-          )
-        }
-      >
-        {category.title}
-        <span>{mobileCategoryOpen === category.title ? "−" : "+"}</span>
-      </button>
-
-      {mobileCategoryOpen === category.title && (
-        <div className="mobile-subcategories">
-          {category.items.map((item) => (
-            <button
-              key={item}
-              onClick={() => {
-                setMobileOpen(false);
-                window.location.href = `/category/${encodeURIComponent(item)}`;
-              }}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  ))}
-</div>
-
-    <a className="mobile-call" href={`tel:${storeInfo.rawPhone}`}>
-      Обади се: {storeInfo.phone}
-    </a>
-
-    {userSession ? (
-      <button className="mobile-auth" onClick={() => { setMobileOpen(false); setProfileOpen(true); }}>
-        Моят профил
-      </button>
-    ) : (
-      <button className="mobile-auth" onClick={() => { setMobileOpen(false); openAuth("login"); }}>
-        Вход / Регистрация
-      </button>
-    )}
-  </div>
-)}
-
+      <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} />
       <section className="hero">
         <div className="container hero-grid">
           <div className="hero-copy">
@@ -2434,8 +3123,10 @@ if (showLoadingScreen) {
                 <p className="stock"><CheckCircle2 size={15} /> {product.stock}</p>
                 <div className="product-buy">
                   <div>
-                    <b>{formatPrice(product.price)}</b>
-                    <del>{formatPrice(product.oldPrice)}</del>
+                    <b>{formatPrice(product.price)} <span className="vat-note">без 20% ДДС</span></b>
+                    {Number(product.oldPrice || 0) > Number(product.price || 0) && (
+                      <del>{formatPrice(product.oldPrice)}</del>
+                    )}
                   </div>
                   <button onClick={() => addToCart(product.id)}>Добави</button>
                   <button
@@ -2458,7 +3149,7 @@ if (showLoadingScreen) {
             <p className="section-label">Custom Build</p>
             <h2>Сглоби си компютър</h2>
             <p className="lead">
-              Попълни кратка заявка и ще получиш оферта за конфигурация според бюджет, игри, програми и бъдещи ъпгрейди.
+              Избери реални налични компоненти от каталога и ще заключим несъвместимите варианти вместо теб.
             </p>
             <div className="builder-steps compact">
               {pcBuilderSteps.map(({ icon: Icon, title, text }) => (
@@ -2476,97 +3167,124 @@ if (showLoadingScreen) {
           <div className="pc-builder-form">
             <div className="form-head">
               <div>
-                <h3>Заявка за custom PC</h3>
-                <p>Данните ще се подготвят като имейл към {storeInfo.email}</p>
+                <h3>Конфигуратор на PC</h3>
+                <p>Компонентите са синхронизирани с наличните локални и VALI продукти.</p>
               </div>
               <Sparkles />
             </div>
 
             <div className="builder-form-grid">
               <label>
-                Име
-                <input value={builder.name} onChange={(event) => updateBuilder("name", event.target.value)} placeholder="Вашето име" />
-              </label>
-              <label>
-                Телефон
-                <input value={builder.phone} onChange={(event) => updateBuilder("phone", event.target.value)} placeholder="Телефон за връзка" />
-              </label>
-              <label>
-                Бюджет
-                <select value={builder.budget} onChange={(event) => updateBuilder("budget", event.target.value)}>
-                  <option>до 500 €</option>
-                  <option>500-750 €</option>
-                  <option>750-1000 €</option>
-                  <option>1000-1500 €</option>
-                  <option>над 1500 €</option>
+                1. Процесор
+                <select value={builderSelections.cpu} onChange={(event) => updateBuilderSelection("cpu", event.target.value)}>
+                  <option value="">Избери процесор</option>
+                  {componentPools.cpu.map((product) => {
+                    const issue = getCompatibilityIssue("cpu", product);
+                    return <option key={product.id} value={product.id} disabled={Boolean(issue)}>{product.name}{issue ? ` — ${issue}` : ""}</option>;
+                  })}
                 </select>
               </label>
               <label>
-                Платформа
-                <select value={builder.platform} onChange={(event) => updateBuilder("platform", event.target.value)}>
-                  <option>Няма значение</option>
-                  <option>AMD Ryzen</option>
-                  <option>Intel Core</option>
+                2. Дънна платка
+                <select value={builderSelections.motherboard} onChange={(event) => updateBuilderSelection("motherboard", event.target.value)}>
+                  <option value="">Избери дънна платка</option>
+                  {componentPools.motherboard.map((product) => {
+                    const issue = getCompatibilityIssue("motherboard", product);
+                    return <option key={product.id} value={product.id} disabled={Boolean(issue)}>{product.name}{issue ? ` — ${issue}` : ""}</option>;
+                  })}
                 </select>
               </label>
               <label>
-                Видеокарта / цел
-                <select value={builder.gpu} onChange={(event) => updateBuilder("gpu", event.target.value)}>
-                  <option>Офис / без външна видеокарта</option>
-                  <option>Gaming 1080p</option>
-                  <option>Gaming 1440p</option>
-                  <option>Streaming</option>
-                  <option>Работа / монтаж / AI</option>
+                3. RAM памет
+                <select value={builderSelections.ram} onChange={(event) => updateBuilderSelection("ram", event.target.value)}>
+                  <option value="">Избери RAM</option>
+                  {componentPools.ram.map((product) => {
+                    const issue = getCompatibilityIssue("ram", product);
+                    return <option key={product.id} value={product.id} disabled={Boolean(issue)}>{product.name}{issue ? ` — ${issue}` : ""}</option>;
+                  })}
                 </select>
               </label>
               <label>
-                RAM памет
-                <select value={builder.ram} onChange={(event) => updateBuilder("ram", event.target.value)}>
-                  <option>16GB</option>
-                  <option>32GB</option>
-                  <option>64GB</option>
-                  <option>Не знам, препоръчайте</option>
+                4. Видео карта
+                <select value={builderSelections.gpu} onChange={(event) => updateBuilderSelection("gpu", event.target.value)}>
+                  <option value="">Избери видеокарта</option>
+                  {componentPools.gpu.map((product) => (
+                    <option key={product.id} value={product.id}>{product.name}</option>
+                  ))}
                 </select>
               </label>
               <label>
-                SSD
-                <select value={builder.storage} onChange={(event) => updateBuilder("storage", event.target.value)}>
-                  <option>512GB NVMe</option>
-                  <option>1TB NVMe</option>
-                  <option>2TB NVMe</option>
-                  <option>SSD + HDD</option>
+                5. SSD / HDD
+                <select value={builderSelections.storage} onChange={(event) => updateBuilderSelection("storage", event.target.value)}>
+                  <option value="">Избери устройство</option>
+                  {componentPools.storage.map((product) => (
+                    <option key={product.id} value={product.id}>{product.name}</option>
+                  ))}
                 </select>
               </label>
               <label>
-                Предназначение
-                <select value={builder.usage} onChange={(event) => updateBuilder("usage", event.target.value)}>
-                  <option>Gaming</option>
-                  <option>Офис</option>
-                  <option>Училище / работа</option>
-                  <option>Видео монтаж</option>
-                  <option>Streaming</option>
-                  <option>AI / тежка работа</option>
+                6. Захранване
+                <select value={builderSelections.psu} onChange={(event) => updateBuilderSelection("psu", event.target.value)}>
+                  <option value="">Избери захранване</option>
+                  {componentPools.psu.map((product) => (
+                    <option key={product.id} value={product.id}>{product.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                7. Кутия
+                <select value={builderSelections.case} onChange={(event) => updateBuilderSelection("case", event.target.value)}>
+                  <option value="">Избери кутия</option>
+                  {componentPools.case.map((product) => (
+                    <option key={product.id} value={product.id}>{product.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                8. Охлаждане
+                <select value={builderSelections.cooler} onChange={(event) => updateBuilderSelection("cooler", event.target.value)}>
+                  <option value="">Избери охлаждане</option>
+                  {componentPools.cooler.map((product) => (
+                    <option key={product.id} value={product.id}>{product.name}</option>
+                  ))}
                 </select>
               </label>
               <label className="wide">
-                Игри или програми
-                <input value={builder.games} onChange={(event) => updateBuilder("games", event.target.value)} placeholder="Пример: CS2, GTA V, LoL, Photoshop, AutoCAD..." />
-              </label>
-              <label className="wide">
-                Допълнителни бележки
-                <textarea value={builder.notes} onChange={(event) => updateBuilder("notes", event.target.value)} placeholder="RGB, тиха работа, Wi-Fi, бяла кутия, бъдещ ъпгрейд..." />
+                Примерен FPS — моля въведете игра
+                <input value={builderGame} onChange={(event) => setBuilderGame(event.target.value)} placeholder="Въведете игра, например GTA V, CS2, Fortnite..." />
               </label>
             </div>
 
             <div className="builder-preview">
-              <b>Обобщение:</b>
-              <p>{builder.budget} • {builder.platform} • {builder.gpu} • {builder.ram} • {builder.storage}</p>
+              <b>Обобщение на конфигурацията:</b>
+              <p>{builderSelectedList.length ? builderSelectedList.map((product) => product.name).join(" • ") : "Все още няма избрани компоненти."}</p>
+              <p>Междинна сума: {formatPrice(builderNetTotal)} без ДДС</p>
+              <p>ДДС 20%: {formatPrice(builderVatTotal)}</p>
+              <p>Доставка с {deliverySettings.provider}: {builderDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(builderDelivery)}`}</p>
+              <p>Общо: {formatPrice(builderGrandTotal)} с ДДС</p>
             </div>
 
-            {notice && <div className="notice">{notice}</div>}
+            <div className="builder-preview">
+              <b>Примерен FPS</b>
+              {!builderProducts.cpu || !builderProducts.gpu ? (
+                <p>Изберете процесор и видеокарта, за да изчислим примерен FPS.</p>
+              ) : !builderGame.trim() ? (
+                <p>Въведи игра, за да покажем ориентировъчни стойности.</p>
+              ) : (
+                <>
+                  <p>Ниски настройки: {fpsEstimate?.low} FPS</p>
+                  <p>Средни настройки: {fpsEstimate?.medium} FPS</p>
+                  <p>Високи настройки: {fpsEstimate?.high} FPS</p>
+                </>
+              )}
+              <p>Това е ориентировъчна оценка, не гарантиран FPS.</p>
+              <p>Стойностите са приблизителни и зависят от драйвери, резолюция, охлаждане и настройки.</p>
+            </div>
+
+            {builderNotice && <div className="notice">{builderNotice}</div>}
 
             <div className="builder-actions">
-              <button className="btn primary" onClick={sendBuilderRequest} disabled={sendingBuilder}>{sendingBuilder ? "Изпращане..." : "Изпрати заявка"}</button>
+              <button className="btn primary" onClick={addConfigurationToCart}>Добави конфигурацията в количката</button>
               <a className="btn ghost" href={`tel:${storeInfo.rawPhone}`}>Обади се</a>
             </div>
           </div>
@@ -2638,7 +3356,7 @@ if (showLoadingScreen) {
           </div>
         </div>
         <div className="partners-grid">
-          {partners.map((partner) => (
+          {partnersData.map((partner) => (
             <a className="partner-card" href={partner.url} target="_blank" rel="noreferrer" key={partner.name} aria-label={`Отвори сайта на ${partner.name}`}>
               <div className={`partner-logo partner-logo-${partner.name.toLowerCase().replaceAll(" ", "-").replaceAll("13", "")}`}>{partner.logo}</div>
               <span className="partner-divider" />
@@ -2667,7 +3385,7 @@ if (showLoadingScreen) {
           </div>
           <div className="footer-box">
             <b>Плащане и доставка</b>
-            <p>Наложен платеж, банков превод и плащане на място. Онлайн плащане, Еконт и Спиди могат да се добавят в следващ етап.</p>
+            <p>Наложен платеж, банков превод и плащане на място. Доставка с {deliverySettings.provider}: безплатна над {formatPrice(freeDeliveryThreshold)} с ДДС, иначе от {formatPrice(deliveryMin)} до {formatPrice(deliveryMax)}.</p>
           </div>
         </div>
       </footer>
@@ -2826,7 +3544,7 @@ if (showLoadingScreen) {
         </div>
       )}
 
-      {cartOpen && (
+      {false && cartOpen && (
         <div className="overlay" onClick={() => setCartOpen(false)}>
           <aside className="drawer" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-head">
@@ -2858,16 +3576,18 @@ if (showLoadingScreen) {
               )}
             </div>
             <div className="drawer-total">
-              <p><span>Междинна сума</span><b>{formatPrice(subtotal)}</b></p>
-              <p><span>Доставка</span><b>{delivery === 0 ? "Безплатна" : formatPrice(delivery)}</b></p>
-              <h3><span>Общо</span><b>{formatPrice(total)}</b></h3>
+              <p><span>Междинна сума</span><b>{formatPrice(cartSubtotal)} <span className="vat-note">без 20% ДДС</span></b></p>
+              <div className="cart-vat-row"><span>ДДС 20%</span><b>{formatPrice(cartVat)}</b></div>
+              <div className="cart-vat-row"><span>Доставка с {deliverySettings.provider}</span><b>{cartDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(cartDelivery)}`}</b></div>
+              <div className="cart-total-row"><span>Общо</span><b>{formatPrice(cartGrandTotal)}</b></div>
               <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>Завърши поръчката</button>
               <button
                 className="drawer-tbi-btn"
                 disabled={!cartItems.length}
                 onClick={() => handleTbiCheckout({
                   name: cartItems.map((item) => item.name).join(", "),
-                  price: total,
+                  price: cartGrandTotal,
+                  isGross: true,
                 })}
               >
                 Купи количката на изплащане с TBI
@@ -2877,7 +3597,7 @@ if (showLoadingScreen) {
         </div>
       )}
 
-      {checkoutOpen && (
+      {false && checkoutOpen && (
         <div className="overlay checkout-overlay" onClick={() => setCheckoutOpen(false)}>
           <div className="checkout-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-head">
@@ -2949,7 +3669,7 @@ if (showLoadingScreen) {
 
             <div className="checkout-summary">
               <CreditCard />
-              <span>Обща сума: <b>{formatPrice(total)}</b></span>
+              <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b></span>
             </div>
             <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>
               {sendingOrder
@@ -2973,6 +3693,14 @@ if (showLoadingScreen) {
       products={products}
       addToCart={addToCart}
       handleTbiCheckout={handleTbiCheckout}
+      dynamicMegaCategories={dynamicMegaCategories}
+      cartCount={cartCount}
+      setCartOpen={setCartOpen}
+      userSession={userSession}
+      openAuth={openAuth}
+      setProfileOpen={setProfileOpen}
+      query={query}
+      setQuery={setQuery}
     />
   }
 />
@@ -2983,10 +3711,159 @@ if (showLoadingScreen) {
           products={products}
           addToCart={addToCart}
           handleTbiCheckout={handleTbiCheckout}
+          dynamicMegaCategories={dynamicMegaCategories}
+          cartCount={cartCount}
+          setCartOpen={setCartOpen}
+          userSession={userSession}
+          openAuth={openAuth}
+          setProfileOpen={setProfileOpen}
+          query={query}
+          setQuery={setQuery}
         />
       }
     />
   </Routes>
+
+  {cartOpen && (
+    <div className="overlay" onClick={() => setCartOpen(false)}>
+      <aside className="drawer" onClick={(event) => event.stopPropagation()}>
+        <div className="drawer-head">
+          <div>
+            <h3>Количка</h3>
+            <p>{cartCount} продукта</p>
+          </div>
+          <button onClick={() => setCartOpen(false)}><X size={18} /></button>
+        </div>
+        <div className="cart-items">
+          {cartItems.length === 0 ? (
+            <div className="empty-cart">Количката е празна.</div>
+          ) : (
+            cartItems.map((item) => (
+              <div className="cart-item" key={item.id}>
+                <img src={item.image} alt={item.name} />
+                <div className="cart-item-body">
+                  <b>{item.name}</b>
+                  <p>{formatPrice(item.price)}</p>
+                  <div className="qty">
+                    <button onClick={() => updateQuantity(item.id, -1)}><Minus size={14} /></button>
+                    <span>{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.id, 1)}><Plus size={14} /></button>
+                    <button className="trash" onClick={() => updateQuantity(item.id, -item.quantity)}><Trash2 size={15} /></button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="drawer-total">
+          <p><span>Междинна сума</span><b>{formatPrice(cartSubtotal)} <span className="vat-note">без 20% ДДС</span></b></p>
+          <div className="cart-vat-row"><span>ДДС 20%</span><b>{formatPrice(cartVat)}</b></div>
+          <div className="cart-vat-row"><span>Доставка с {deliverySettings.provider}</span><b>{cartDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(cartDelivery)}`}</b></div>
+          <div className="cart-total-row"><span>Общо</span><b>{formatPrice(cartGrandTotal)}</b></div>
+          <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>Завърши поръчката</button>
+          <button
+            className="drawer-tbi-btn"
+            disabled={!cartItems.length}
+            onClick={() => handleTbiCheckout({
+              name: cartItems.map((item) => item.name).join(", "),
+              price: cartGrandTotal,
+              isGross: true,
+            })}
+          >
+            Купи количката на изплащане с TBI
+          </button>
+        </div>
+      </aside>
+    </div>
+  )}
+
+  {checkoutOpen && (
+    <div className="overlay checkout-overlay" onClick={() => setCheckoutOpen(false)}>
+      <div className="checkout-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="drawer-head">
+          <div>
+            <h3>Финализиране на поръчка</h3>
+            <p>Демо форма. Следващ етап: реални поръчки към имейл и база данни.</p>
+          </div>
+          <button onClick={() => setCheckoutOpen(false)}><X size={18} /></button>
+        </div>
+        <form className="checkout-form">
+          <input placeholder="Име и фамилия" />
+          <input placeholder="Телефон" />
+          <input placeholder="Имейл" />
+          <input placeholder="Град" />
+          <input className="wide" placeholder="Адрес или офис на куриер" />
+          <textarea className="wide" placeholder="Коментар към поръчката" />
+        </form>
+
+        <div className="payment-box">
+          <div className="payment-title">
+            <CreditCard />
+            <div>
+              <b>Метод на плащане</b>
+              <p>Избери как клиентът ще плати поръчката.</p>
+            </div>
+          </div>
+
+          <div className="payment-options">
+            {paymentMethods.map((method) => (
+              <label
+                className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
+                key={method.id}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  value={method.id}
+                  checked={paymentMethod === method.id}
+                  onChange={() => setPaymentMethod(method.id)}
+                />
+                <div>
+                  <span>{method.badge}</span>
+                  <b>{method.title}</b>
+                  <p>{method.text}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {paymentMethod === "bank" && (
+            <div className="bank-transfer-box">
+              <b>Данни за банков превод</b>
+              <p><span>Банка:</span> {bankInfo.bank}</p>
+              <p><span>Титуляр:</span> {bankInfo.holder}</p>
+              <p><span>IBAN:</span> {bankInfo.iban}</p>
+              <p><span>BIC:</span> {bankInfo.bic}</p>
+              <p><span>Основание:</span> Поръчка № ще се генерира след изпращане</p>
+              <small>{bankInfo.note}</small>
+            </div>
+          )}
+
+          {paymentMethod === "tbi" && (
+            <div className="tbi-payment-box">
+              <b>TBI Bank - покупка на изплащане</b>
+              <p>След изпращане на поръчката ще се отвори прозорецът за TBI кандидатстване.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="checkout-summary">
+          <CreditCard />
+          <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b></span>
+        </div>
+        <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>
+          {sendingOrder
+            ? "Изпращане..."
+            : paymentMethod === "bank"
+              ? "Изпрати поръчка с банков превод"
+              : paymentMethod === "tbi"
+                ? "Продължи към TBI"
+                : "Изпрати поръчка с наложен платеж"}
+        </button>
+      </div>
+    </div>
+  )}
+  </>
 );
 }
 
