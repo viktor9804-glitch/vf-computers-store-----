@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   LogIn,
@@ -23,6 +23,22 @@ import { supabase } from "./supabaseClient";
 import "./style.css";
 
 const STORAGE_BUCKET = "product-images";
+const ORDER_STATUSES = ["Приета", "Обработва се", "Изпратена", "Отказана"];
+const STATUS_EMAIL_STATUSES = new Set(["Обработва се", "Изпратена"]);
+const EMAIL_API_BASE = import.meta.env.VITE_EMAIL_API_BASE || "https://vf-computers-store.vercel.app";
+
+const emptyOrderForm = {
+  order_number: "",
+  customer_name: "",
+  customer_phone: "",
+  customer_email: "",
+  customer_city: "",
+  customer_address: "",
+  customer_comment: "",
+  payment_method: "cod",
+  payment_status: "pending",
+  status: "Приета",
+};
 
 const DEFAULT_DELIVERY_SETTINGS = {
   provider: "Еконт",
@@ -153,6 +169,19 @@ const formatPrice = (value) =>
     currency: "EUR",
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
+
+const formatDateTime = (value) =>
+  value ? new Date(value).toLocaleString("bg-BG") : "-";
+
+const getOrderNumber = (order) => order?.order_number || order?.id || "-";
+
+const getOrderItems = (order) => Array.isArray(order?.items) ? order.items : [];
+
+const getOrderItemsText = (order) => {
+  const items = getOrderItems(order);
+  if (!items.length) return "Няма продукти";
+  return items.map((item) => `${item.name || item.title || "Продукт"} x${Number(item.quantity || 1)}`).join(", ");
+};
 
 const normalizeText = (value) => String(value || "").trim();
 
@@ -346,6 +375,12 @@ function App() {
   const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderForm, setOrderForm] = useState(emptyOrderForm);
+  const [orderSaving, setOrderSaving] = useState(false);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [orderToast, setOrderToast] = useState("");
+  const seenOrderIdsRef = useRef(new Set());
   const [tickets, setTickets] = useState([]);
   const [groupedCategories, setGroupedCategories] = useState(buildGroupedCategories());
   const [deliveryForm, setDeliveryForm] = useState(DEFAULT_DELIVERY_SETTINGS);
@@ -440,9 +475,49 @@ function App() {
     setProducts([...(localResult.data || []), ...valiProducts]);
   };
 
-  const loadOrders = async () => {
-    const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
-    setOrders(data || []);
+  const playOrderNotification = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const context = new AudioContext();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.frequency.value = 880;
+      gain.gain.setValueAtTime(0.001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.22);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.24);
+    } catch (error) {
+      console.warn("Order notification sound skipped:", error);
+    }
+  };
+
+  const loadOrders = async ({ notify = false } = {}) => {
+    const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      setNotice(error.message || "Не успях да заредя поръчките.");
+      return;
+    }
+
+    const nextOrders = data || [];
+    const nextIds = new Set(nextOrders.map((order) => String(order.id)));
+    const previousIds = seenOrderIdsRef.current;
+
+    if (notify && previousIds.size > 0) {
+      const freshOrders = nextOrders.filter((order) => !previousIds.has(String(order.id)));
+      if (freshOrders.length > 0) {
+        setNewOrdersCount((count) => count + freshOrders.length);
+        setOrderToast(`Нова поръчка: ${getOrderNumber(freshOrders[0])}`);
+        playOrderNotification();
+        window.setTimeout(() => setOrderToast(""), 5000);
+      }
+    }
+
+    seenOrderIdsRef.current = nextIds;
+    setOrders(nextOrders);
   };
 
   const loadTickets = async () => {
@@ -576,6 +651,14 @@ function App() {
   }, [session]);
 
   useEffect(() => {
+    if (!session) return undefined;
+    const timer = window.setInterval(() => {
+      loadOrders({ notify: true });
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [session]);
+
+  useEffect(() => {
     const nextInputs = {};
     markupPairs.forEach((pair) => {
       const key = `${pair.main_category}||${pair.sub_category}`;
@@ -621,6 +704,115 @@ function App() {
   const logout = async () => {
     await supabase.auth.signOut();
     setSession(null);
+  };
+
+  const openOrder = (order) => {
+    setSelectedOrder(order);
+    setOrderForm({
+      order_number: order.order_number || "",
+      customer_name: order.customer_name || "",
+      customer_phone: order.customer_phone || "",
+      customer_email: order.customer_email || "",
+      customer_city: order.customer_city || "",
+      customer_address: order.customer_address || "",
+      customer_comment: order.customer_comment || "",
+      payment_method: order.payment_method || "cod",
+      payment_status: order.payment_status || "pending",
+      status: order.status || "Приета",
+    });
+  };
+
+  const updateOrderForm = (field, value) => {
+    setOrderForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const sendStatusEmail = async (order, status) => {
+    const response = await fetch(`${EMAIL_API_BASE}/api/send-status-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order: { ...order, status }, status }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(result?.error || "Email send failed");
+    }
+  };
+
+  const saveOrder = async () => {
+    if (!selectedOrder) return;
+    if (!orderForm.customer_name || !orderForm.customer_phone || !orderForm.customer_city || !orderForm.customer_address) {
+      setNotice("Попълни име, телефон, град и адрес за поръчката.");
+      return;
+    }
+
+    setOrderSaving(true);
+    setNotice("");
+
+    const previousStatus = selectedOrder.status || "Приета";
+    const payload = {
+      customer_name: orderForm.customer_name,
+      customer_phone: orderForm.customer_phone,
+      customer_email: orderForm.customer_email || null,
+      customer_city: orderForm.customer_city,
+      customer_address: orderForm.customer_address,
+      customer_comment: orderForm.customer_comment || null,
+      payment_method: orderForm.payment_method || "cod",
+      payment_status: orderForm.payment_status || "pending",
+      status: orderForm.status || "Приета",
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from("orders")
+      .update(payload)
+      .eq("id", selectedOrder.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      setNotice(error.message || "Не успях да запазя поръчката.");
+      setOrderSaving(false);
+      return;
+    }
+
+    const saved = data || { ...selectedOrder, ...payload };
+    setSelectedOrder(saved);
+    setOrders((current) => current.map((order) => order.id === saved.id ? saved : order));
+
+    if (previousStatus !== saved.status && STATUS_EMAIL_STATUSES.has(saved.status)) {
+      try {
+        await sendStatusEmail(saved, saved.status);
+        setNotice("Поръчката е запазена и клиентът получи email за статуса.");
+      } catch (emailError) {
+        console.error("STATUS EMAIL ERROR:", emailError);
+        setNotice(`Поръчката е запазена, но email-ът за статус не беше изпратен: ${emailError.message}`);
+      }
+    } else {
+      setNotice("Поръчката е запазена.");
+    }
+
+    setOrderSaving(false);
+  };
+
+  const deleteOrder = async () => {
+    if (!selectedOrder) return;
+    if (!window.confirm(`Да изтрия ли поръчка ${getOrderNumber(selectedOrder)}?`)) return;
+
+    setOrderSaving(true);
+    const { error } = await supabase.from("orders").delete().eq("id", selectedOrder.id);
+    setOrderSaving(false);
+
+    if (error) {
+      console.error(error);
+      setNotice(error.message || "Не успях да изтрия поръчката.");
+      return;
+    }
+
+    setOrders((current) => current.filter((order) => order.id !== selectedOrder.id));
+    setSelectedOrder(null);
+    setOrderForm(emptyOrderForm);
+    setNotice("Поръчката е изтрита.");
   };
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
@@ -1090,7 +1282,10 @@ function App() {
         <button className={tab === "markups" ? "active" : ""} onClick={() => setTab("markups")}><Percent />Надценки</button>
         <button className={tab === "promotions" ? "active" : ""} onClick={() => setTab("promotions")}><Tags />Промоции</button>
         <button className={tab === "partners" ? "active" : ""} onClick={() => setTab("partners")}><Users />Партньори</button>
-        <button className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}><ShoppingBag />Поръчки</button>
+        <button className={tab === "orders" ? "active" : ""} onClick={() => { setTab("orders"); setNewOrdersCount(0); }}>
+          <ShoppingBag />Поръчки
+          {newOrdersCount > 0 && <span className="nav-badge">{newOrdersCount}</span>}
+        </button>
         <button className={tab === "service" ? "active" : ""} onClick={() => setTab("service")}><Wrench />Сервиз</button>
         <button className={tab === "warranty" ? "active" : ""} onClick={() => setTab("warranty")}><ShieldCheck />Гаранции</button>
 
@@ -1108,6 +1303,7 @@ function App() {
         </header>
 
         {notice && <div className="notice wide">{notice}</div>}
+        {orderToast && <div className="order-toast">{orderToast}</div>}
 
         {tab === "products" && (
           <>
@@ -1381,21 +1577,97 @@ function App() {
         )}
 
         {tab === "orders" && (
-          <section className="list-card">
-            <h2>Поръчки</h2>
-            <div className="product-list">
-              {orders.length === 0 ? <p className="empty">Няма поръчки.</p> : orders.map((order) => (
-                <div className="product-row" key={order.id}>
-                  <div className="no-img">#{order.id}</div>
-                  <div className="info">
-                    <b>{order.customer_name || "Клиент"}</b>
-                    <p>{order.customer_phone} • {formatPrice(order.total || 0)}</p>
-                    <small>{Array.isArray(order.items) ? order.items.map((item) => `${item.name} x${item.quantity}`).join(", ") : "Няма продукти"}</small>
-                  </div>
+          <>
+            <section className="list-card">
+              <div className="section-title">
+                <div>
+                  <h2>Поръчки</h2>
+                  <p>Пълни данни, статуси и управление на клиентски поръчки.</p>
                 </div>
-              ))}
-            </div>
-          </section>
+                <button className="clear-btn" onClick={() => loadOrders()}><RefreshCw size={16} />Обнови</button>
+              </div>
+              <div className="orders-list">
+                {orders.length === 0 ? <p className="empty">Няма поръчки.</p> : orders.map((order) => (
+                  <div className="order-card" key={order.id}>
+                    <div className="order-card-head">
+                      <div>
+                        <b>{getOrderNumber(order)}</b>
+                        <span>{formatDateTime(order.created_at)}</span>
+                      </div>
+                      <span className={`status-pill ${String(order.status || "").toLowerCase().replace(/\s+/g, "-")}`}>
+                        {order.status || "Приета"}
+                      </span>
+                    </div>
+                    <div className="order-grid">
+                      <p><strong>Клиент:</strong> {order.customer_name || "-"}</p>
+                      <p><strong>Телефон:</strong> {order.customer_phone || "-"}</p>
+                      <p><strong>Email:</strong> {order.customer_email || "-"}</p>
+                      <p><strong>Град:</strong> {order.customer_city || "-"}</p>
+                      <p><strong>Адрес:</strong> {order.customer_address || "-"}</p>
+                      <p><strong>Плащане:</strong> {order.payment_method || "-"} / {order.payment_status || "pending"}</p>
+                      <p><strong>Общо:</strong> {formatPrice(order.total || 0)}</p>
+                      <p><strong>Продукти:</strong> {getOrderItemsText(order)}</p>
+                      {order.customer_comment && <p className="wide"><strong>Коментар:</strong> {order.customer_comment}</p>}
+                    </div>
+                    <div className="row-actions">
+                      <button onClick={() => openOrder(order)}><Pencil size={16} />Отвори</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {selectedOrder && (
+              <div className="admin-modal-backdrop" onClick={() => setSelectedOrder(null)}>
+                <section className="admin-modal" onClick={(event) => event.stopPropagation()}>
+                  <div className="section-title">
+                    <div>
+                      <h2>Поръчка {getOrderNumber(selectedOrder)}</h2>
+                      <p>{formatDateTime(selectedOrder.created_at)}</p>
+                    </div>
+                    <button className="clear-btn" onClick={() => setSelectedOrder(null)}><X size={16} />Затвори</button>
+                  </div>
+
+                  <div className="form-grid">
+                    <label>Номер на поръчка<input value={orderForm.order_number || getOrderNumber(selectedOrder)} readOnly /></label>
+                    <label>Статус
+                      <select value={orderForm.status} onChange={(event) => updateOrderForm("status", event.target.value)}>
+                        {ORDER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                      </select>
+                    </label>
+                    <label>Име на клиент<input value={orderForm.customer_name} onChange={(event) => updateOrderForm("customer_name", event.target.value)} /></label>
+                    <label>Телефон<input value={orderForm.customer_phone} onChange={(event) => updateOrderForm("customer_phone", event.target.value)} /></label>
+                    <label>Email<input value={orderForm.customer_email} onChange={(event) => updateOrderForm("customer_email", event.target.value)} /></label>
+                    <label>Град<input value={orderForm.customer_city} onChange={(event) => updateOrderForm("customer_city", event.target.value)} /></label>
+                    <label className="wide">Адрес<input value={orderForm.customer_address} onChange={(event) => updateOrderForm("customer_address", event.target.value)} /></label>
+                    <label>Метод на плащане<input value={orderForm.payment_method} onChange={(event) => updateOrderForm("payment_method", event.target.value)} /></label>
+                    <label>Статус на плащане<input value={orderForm.payment_status} onChange={(event) => updateOrderForm("payment_status", event.target.value)} /></label>
+                    <label className="wide">Коментар<textarea value={orderForm.customer_comment} onChange={(event) => updateOrderForm("customer_comment", event.target.value)} /></label>
+                  </div>
+
+                  <div className="order-items-box">
+                    <h3>Продукти</h3>
+                    {getOrderItems(selectedOrder).length === 0 ? <p>Няма продукти.</p> : getOrderItems(selectedOrder).map((item, index) => (
+                      <div className="order-item-row" key={`${item.id || item.name || "item"}-${index}`}>
+                        <span>{item.name || item.title || "Продукт"}</span>
+                        <b>x{Number(item.quantity || 1)}</b>
+                        <strong>{formatPrice(Number(item.price || 0) * Number(item.quantity || 1))}</strong>
+                      </div>
+                    ))}
+                    <div className="order-total-row">
+                      <span>Обща сума</span>
+                      <strong>{formatPrice(selectedOrder.total || 0)}</strong>
+                    </div>
+                  </div>
+
+                  <div className="modal-actions">
+                    <button className="save-btn" disabled={orderSaving} onClick={saveOrder}><Save size={18} />{orderSaving ? "Запазване..." : "Запази промени"}</button>
+                    <button className="danger-action" disabled={orderSaving} onClick={deleteOrder}><Trash2 size={18} />Изтрий поръчката</button>
+                  </div>
+                </section>
+              </div>
+            )}
+          </>
         )}
 
         {tab === "service" && (

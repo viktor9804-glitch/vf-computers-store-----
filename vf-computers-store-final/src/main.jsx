@@ -2635,12 +2635,12 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     const comment = checkoutForm?.comment?.trim();
 
     if (!customerName || !phone || !city || !address) {
-      setNotice("????????? ?? ? ????????? - ??????? ???????????? ?????.");
+      setNotice("Попълнете име, телефон, град и адрес.");
       return false;
     }
 
     if (!cartItems.length) {
-      setNotice("????????? ? ??????.");
+      setNotice("Количката е празна.");
       return false;
     }
 
@@ -2673,9 +2673,13 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         price: item.price,
         parts: item.parts || null,
       })),
+      subtotal: cartSubtotal,
+      vat: cartVat,
+      shipping: cartDelivery,
       total: cartGrandTotal,
       payment_method: paymentMethod,
-      status: "new",
+      payment_status: "pending",
+      status: "Приета",
       created_at: new Date().toISOString(),
     };
 
@@ -2695,8 +2699,26 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       return false;
     }
 
-    setNotice("Поръчката е изпратена успешно.");
     const savedOrder = Array.isArray(data) ? data[0] : data;
+    let emailWarning = "";
+
+    try {
+      const emailResponse = await fetch("/api/send-order-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: savedOrder || orderPayload }),
+      });
+      const emailResult = await emailResponse.json().catch(() => null);
+
+      if (!emailResponse.ok) {
+        throw new Error(emailResult?.error || "Email send failed");
+      }
+    } catch (emailError) {
+      console.error("ORDER EMAIL ERROR:", emailError);
+      emailWarning = "Поръчката е записана, но email-ът не беше изпратен.";
+    }
+
+    setNotice(emailWarning || "Поръчката е изпратена успешно.");
     setDocumentOrder(savedOrder || { ...orderPayload, id: Date.now(), created_at: new Date().toISOString() });
     setDocumentCustomer(customerProfile || {
       full_name: customerName,
