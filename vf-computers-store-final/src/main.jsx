@@ -34,6 +34,7 @@ const BuilderPage = React.lazy(() => import("./pages/BuilderPage"));
 const CategoryRoutePage = React.lazy(() => import("./pages/Category"));
 const ProductPageRoute = React.lazy(() => import("./pages/Product"));
 const SearchPage = React.lazy(() => import("./pages/SearchPage"));
+const WarrantyCheckPage = React.lazy(() => import("./pages/WarrantyCheck"));
 
 const LOGO_URL = "/VF_logo_1.png";
 
@@ -1920,6 +1921,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
       <a href="/builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
       <a href="/#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
       <a href="/#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
+      <Link to="/warranty-check" onClick={() => setMobileOpen(false)}>Проверка на гаранция</Link>
       <a href="/#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
       <a href="/#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
     </>
@@ -3227,6 +3229,15 @@ const headerProps = {
         <SearchPage
           products={products}
           addToCart={addToCart}
+          HeaderComponent={SiteHeader}
+          headerProps={headerProps}
+        />
+      }
+    />
+    <Route
+      path="/warranty-check"
+      element={
+        <WarrantyCheckPage
           HeaderComponent={SiteHeader}
           headerProps={headerProps}
         />
