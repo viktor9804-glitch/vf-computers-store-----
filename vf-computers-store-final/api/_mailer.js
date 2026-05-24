@@ -1,6 +1,7 @@
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const REPLY_TO = "v.f-computers@abv.bg";
 const STORE_PHONE = "0876 126 326";
+const SITE_URL = process.env.SITE_URL || "https://vf-computers-store.vercel.app";
 
 const escapeHtml = (value) =>
   String(value ?? "")
@@ -38,6 +39,16 @@ const specsText = (value) => {
   return String(value);
 };
 
+const normalizeImageUrl = (url) => {
+  const value = String(url || "").trim();
+  if (!value) return "";
+  if (/^[a-z]:\\/i.test(value)) return "";
+  if (value.startsWith("/src/assets/")) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("/")) return `${SITE_URL}${value}`;
+  return `${SITE_URL}/${value}`;
+};
+
 export const money = (value) =>
   `${numberValue(value).toFixed(2)} €`;
 
@@ -59,9 +70,11 @@ export const normalizeOrderItem = (item = {}) => {
   const serial = compact([item.serial, item.serial_number, item.sku, item.barcode]).join(" / ");
   const warranty = item.warranty || item.warranty_months || "не е посочена";
   const characteristics = specsText(item.description || item.specs || item.characteristics || item.parts || "");
+  const image = normalizeImageUrl(item.image || item.image_url || item.thumbnail || item.main_image || item.images?.[0] || "");
 
   return {
     name: item.title || item.name || item.product_name || "Продукт",
+    image,
     catalogNumber,
     serial,
     quantity,
@@ -96,6 +109,11 @@ const orderItemsRows = (items) => {
 
   return items.map((item) => `
     <tr>
+      <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;">
+        ${item.image
+          ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" width="72" height="72" style="width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid #333;background:#111;display:block;" />`
+          : `<div style="width:72px;height:72px;border-radius:10px;border:1px solid #d1d5db;background:#f3f4f6;color:#6b7280;font-size:11px;line-height:72px;text-align:center;">няма снимка</div>`}
+      </td>
       <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;">
         <strong>${escapeHtml(item.name)}</strong>
         ${item.characteristics ? `<div style="margin-top:5px;color:#6b7280;font-size:12px;line-height:1.45;">${escapeHtml(item.characteristics)}</div>` : ""}
@@ -185,9 +203,10 @@ export const buildOrderEmailHtml = ({ order, introTitle, introText, status }) =>
 
                   <h3 style="margin:0 0 12px;font-size:18px;">Продукти</h3>
                   <div style="overflow-x:auto;">
-                    <table role="presentation" style="width:100%;min-width:760px;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+                    <table role="presentation" style="width:100%;min-width:840px;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
                       <thead>
                         <tr style="background:#111827;color:#ffffff;">
+                          <th align="left" style="padding:12px;">Снимка</th>
                           <th align="left" style="padding:12px;">Продукт</th>
                           <th align="left" style="padding:12px;">Кат. номер</th>
                           <th align="left" style="padding:12px;">SKU/сериен</th>
