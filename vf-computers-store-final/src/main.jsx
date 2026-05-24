@@ -1965,7 +1965,13 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
                   <span>Вход</span>
                 </button>
               )}
-              <button className="cart-button" onClick={() => setCartOpen(true)}>
+              <button
+                className="cart-button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  setCartOpen((prev) => !prev);
+                }}
+              >
                 <ShoppingCart size={19} />
                 {cartCount > 0 && <span>{cartCount}</span>}
               </button>
