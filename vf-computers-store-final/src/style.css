@@ -485,6 +485,18 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
   padding:13px 15px;
   font-weight:900;
 }
+
+.global-notice{
+  position:fixed;
+  top:96px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:10000;
+  width:min(520px,calc(100vw - 28px));
+  margin:0;
+  text-align:center;
+  backdrop-filter:blur(14px);
+}
 button:disabled{
   opacity:.62;
   cursor:not-allowed;

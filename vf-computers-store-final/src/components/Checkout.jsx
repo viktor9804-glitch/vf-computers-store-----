@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { CreditCard, X } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../utils/format";
@@ -12,8 +12,50 @@ export default function Checkout({
   sendingOrder,
 }) {
   const { checkoutOpen, setCheckoutOpen, cartGrandTotal } = useCart();
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    city: "",
+    address: "",
+    comment: "",
+  });
+  const [checkoutError, setCheckoutError] = useState("");
 
   if (!checkoutOpen) return null;
+
+  const updateField = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setCheckoutError("");
+  };
+
+  const handleSendOrder = async () => {
+    const requiredFields = [
+      ["name", "име"],
+      ["phone", "телефон"],
+      ["city", "град"],
+      ["address", "адрес"],
+    ];
+    const missing = requiredFields.find(([field]) => !form[field].trim());
+
+    if (missing) {
+      setCheckoutError(`Моля, попълнете ${missing[1]}.`);
+      return;
+    }
+
+    const sent = await sendOrder(form);
+    if (sent) {
+      setForm({
+        name: "",
+        phone: "",
+        email: "",
+        city: "",
+        address: "",
+        comment: "",
+      });
+      setCheckoutError("");
+    }
+  };
 
   return (
     <div className="overlay checkout-overlay" onClick={() => setCheckoutOpen(false)}>
@@ -21,18 +63,19 @@ export default function Checkout({
         <div className="drawer-head">
           <div>
             <h3>Финализиране на поръчка</h3>
-            <p>Демо форма. Следващ етап: реални поръчки към имейл и база данни.</p>
+            <p>Попълнете данните за доставка и начин на плащане.</p>
           </div>
           <button onClick={() => setCheckoutOpen(false)}><X size={18} /></button>
         </div>
-        <form className="checkout-form">
-          <input placeholder="Име и фамилия" />
-          <input placeholder="Телефон" />
-          <input placeholder="Имейл" />
-          <input placeholder="Град" />
-          <input className="wide" placeholder="Адрес или офис на куриер" />
-          <textarea className="wide" placeholder="Коментар към поръчката" />
+        <form className="checkout-form" onSubmit={(event) => event.preventDefault()}>
+          <input placeholder="Име и фамилия" value={form.name} onChange={(event) => updateField("name", event.target.value)} />
+          <input placeholder="Телефон" value={form.phone} onChange={(event) => updateField("phone", event.target.value)} />
+          <input placeholder="Имейл" value={form.email} onChange={(event) => updateField("email", event.target.value)} />
+          <input placeholder="Град" value={form.city} onChange={(event) => updateField("city", event.target.value)} />
+          <input className="wide" placeholder="Адрес или офис на куриер" value={form.address} onChange={(event) => updateField("address", event.target.value)} />
+          <textarea className="wide" placeholder="Коментар към поръчката" value={form.comment} onChange={(event) => updateField("comment", event.target.value)} />
         </form>
+        {checkoutError && <div className="notice checkout-error">{checkoutError}</div>}
 
         <div className="payment-box">
           <div className="payment-title">
@@ -89,7 +132,7 @@ export default function Checkout({
           <CreditCard />
           <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b></span>
         </div>
-        <button className="send-order" onClick={sendOrder} disabled={sendingOrder}>
+        <button className="send-order" onClick={handleSendOrder} disabled={sendingOrder}>
           {sendingOrder
             ? "Изпращане..."
             : paymentMethod === "bank"

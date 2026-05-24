@@ -2626,7 +2626,63 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     setBuilderNotice("Конфигурацията е добавена в количката.");
   };
 
-  const sendOrder = async () => {
+  const insertOrderWithFallback = async (payload) => {
+    const optionalColumns = [
+      "email",
+      "customer_email",
+      "city",
+      "address",
+      "delivery_address",
+      "comment",
+      "customer_note",
+      "delivery_price",
+      "delivery_method",
+      "bank_transfer_details",
+    ];
+    let nextPayload = { ...payload };
+
+    for (let attempt = 0; attempt <= optionalColumns.length; attempt += 1) {
+      const result = await supabase
+        .from("orders")
+        .insert(nextPayload)
+        .select("*")
+        .single();
+
+      if (!result.error) return result;
+
+      const message = result.error.message || "";
+      const missingColumn = optionalColumns.find((column) =>
+        message.toLowerCase().includes(`'${column}'`) ||
+        message.toLowerCase().includes(`"${column}"`) ||
+        message.toLowerCase().includes(` ${column} `)
+      );
+
+      if (!missingColumn) return result;
+      const { [missingColumn]: _removed, ...rest } = nextPayload;
+      nextPayload = rest;
+    }
+
+    return { data: null, error: new Error("Поръчката не беше записана.") };
+  };
+
+  const sendOrder = async (checkoutForm) => {
+    const customerName = checkoutForm?.name?.trim();
+    const phone = checkoutForm?.phone?.trim();
+    const city = checkoutForm?.city?.trim();
+    const address = checkoutForm?.address?.trim();
+    const email = checkoutForm?.email?.trim();
+    const comment = checkoutForm?.comment?.trim();
+
+    if (!customerName || !phone || !city || !address) {
+      setNotice("Поръчката не е изпратена - липсват задължителни данни.");
+      return false;
+    }
+
+    if (!cartItems.length) {
+      setNotice("Количката е празна.");
+      return false;
+    }
+
     let customerProfile = null;
 
     if (userSession?.user?.id) {
@@ -2639,24 +2695,28 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       customerProfile = data || null;
     }
 
-    const defaultName = customerProfile?.account_type === "company"
-      ? customerProfile?.company_name
-      : customerProfile?.full_name;
-
-    const customerName = defaultName || window.prompt("Име и фамилия / фирма за поръчката:");
-    const phone = customerProfile?.phone || window.prompt("Телефон за връзка:");
-
-    if (!customerName || !phone) {
-      setNotice("Поръчката не е изпратена — липсва име или телефон.");
-      return;
-    }
-
     setSendingOrder(true);
     setNotice("");
+
+    const customerData = {
+      name: customerName,
+      phone,
+      email: email || null,
+      city,
+      address,
+      comment: comment || null,
+    };
 
     const payload = {
       customer_name: customerName,
       phone,
+      email: email || null,
+      customer_email: email || null,
+      city,
+      address,
+      delivery_address: address,
+      comment: comment || null,
+      customer_note: comment || null,
       items: cartItems.map((item) => ({
         id: item.id,
         name: item.name,
@@ -2667,16 +2727,19 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       total: cartGrandTotal,
       user_id: userSession?.user?.id || null,
       invoice_requested: customerProfile?.account_type === "company",
-      billing_data: customerProfile ? {
-        account_type: customerProfile.account_type,
-        full_name: customerProfile.full_name,
-        company_name: customerProfile.company_name,
-        company_eik: customerProfile.company_eik,
-        company_vat: customerProfile.company_vat,
-        company_mol: customerProfile.company_mol,
-        billing_address: customerProfile.billing_address,
-        address: customerProfile.address,
-      } : null,
+      billing_data: {
+        ...(customerProfile ? {
+          account_type: customerProfile.account_type,
+          full_name: customerProfile.full_name,
+          company_name: customerProfile.company_name,
+          company_eik: customerProfile.company_eik,
+          company_vat: customerProfile.company_vat,
+          company_mol: customerProfile.company_mol,
+          billing_address: customerProfile.billing_address,
+          profile_address: customerProfile.address,
+        } : { account_type: "personal" }),
+        checkout: customerData,
+      },
       payment_method: paymentMethod,
       payment_status:
         paymentMethod === "bank"
@@ -2697,57 +2760,38 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
           : null,
     };
 
-    let orderResult = await supabase
-      .from("orders")
-      .insert(payload)
-      .select("*")
-      .single();
-
-    if (orderResult.error && /delivery_price|delivery_method/i.test(orderResult.error.message || "")) {
-      const fallbackPayload = { ...payload };
-      delete fallbackPayload.delivery_price;
-      delete fallbackPayload.delivery_method;
-      orderResult = await supabase
-        .from("orders")
-        .insert(fallbackPayload)
-        .select("*")
-        .single();
-    }
-
-    const { data: savedOrder, error } = orderResult;
+    const { data: savedOrder, error } = await insertOrderWithFallback(payload);
 
     setSendingOrder(false);
 
     if (error) {
       setNotice("Поръчката не беше записана. Провери RLS policy в Supabase.");
       console.error(error);
-      return;
+      return false;
     }
 
-    setNotice(
-      paymentMethod === "bank"
-        ? "Поръчката е изпратена успешно! Очакваме банков превод."
-        : paymentMethod === "tbi"
-        ? "Поръчката е създадена. Продължи към TBI Bank за кандидатстване."
-          : "Поръчката е изпратена успешно! Документите са генерирани."
-    );
+    setNotice("Поръчката е изпратена успешно.");
     setDocumentOrder(savedOrder || { ...payload, id: Date.now(), created_at: new Date().toISOString() });
     setDocumentCustomer(customerProfile || {
       full_name: customerName,
       phone,
+      address,
       account_type: "personal",
     });
-
-    if (paymentMethod === "tbi") {
-      handleTbiCheckout({
-        name: cartItems.map((item) => item.name).join(", "),
-        price: cartGrandTotal,
-      });
-    }
 
     clearCart();
     setCartOpen(false);
     setCheckoutOpen(false);
+
+    if (paymentMethod === "tbi") {
+      await handleTbiCheckout({
+        name: cartItems.map((item) => item.name).join(", "),
+        price: cartGrandTotal,
+        isGross: true,
+      });
+    }
+
+    return true;
   };
 
   const filteredProducts = useMemo(() => {
@@ -2784,12 +2828,12 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         setTbiProduct({ ...product, price: checkoutPrice });
         setShowTbi(true);
       } else {
-        alert("TBI връзката не е налична.");
+        setNotice("TBI връзката не е налична.");
       }
     } catch (err) {
       setTbiLoading(false);
       console.error(err);
-      alert("Грешка при TBI заявката.");
+      setNotice("Грешка при TBI заявката.");
     }
   };
 
@@ -2820,6 +2864,7 @@ const headerProps = {
 
   return (
   <>
+  {notice && <div className="notice global-notice">{notice}</div>}
   <Suspense fallback={<LoadingScreen />}>
   <Routes>
     <Route
