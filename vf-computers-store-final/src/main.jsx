@@ -21,6 +21,7 @@ import { CartProvider, useCart } from "./context/CartContext";
 import AIAssistant from "./components/AIAssistant";
 import Cart from "./components/Cart";
 import Checkout from "./components/Checkout";
+import Footer from "./components/Footer";
 import MegaMenu from "./components/MegaMenu";
 import ProductCard from "./components/ProductCard";
 import ProductFilters from "./components/ProductFilters";
@@ -1969,7 +1970,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
                 </button>
                 {mobileCategoryOpen === category.title && (
                   <div className="mobile-subcategories">
-                    {category.items.slice(0, 10).map((item) => (
+                    {category.items.map((item) => (
                       <button key={item} onClick={() => { setMobileOpen(false); window.location.href = `/category/${encodeURIComponent(item)}`; }}>
                         {item}
                       </button>
@@ -3049,28 +3050,7 @@ const headerProps = {
         </div>
       </section>
 
-      <footer id="contact" className="footer">
-        <div className="container footer-grid">
-          <div>
-            <div className="footer-logo">ВФ <span>Компютри</span></div>
-            <p>Онлайн магазин за компютри, компоненти, лаптопи и сервизни услуги.</p>
-            <div className="social-row">
-              <span>Gaming</span>
-              <span>Repair</span>
-              <span>Hardware</span>
-            </div>
-          </div>
-          <div className="contact-list">
-            <a href={`tel:${storeInfo.rawPhone}`}><Phone /> {storeInfo.phone}</a>
-            <a href={`mailto:${storeInfo.email}`}><Mail /> {storeInfo.email}</a>
-            <p><MapPin /> {storeInfo.address}</p>
-          </div>
-          <div className="footer-box">
-            <b>Плащане и доставка</b>
-            <p>Наложен платеж, банков превод и плащане на място. Доставка с {deliverySettings.provider}: безплатна над {formatPrice(freeDeliveryThreshold)} с ДДС, иначе от {formatPrice(deliveryMin)} до {formatPrice(deliveryMax)}.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer storeInfo={storeInfo} />
 
       <AIAssistant />
 

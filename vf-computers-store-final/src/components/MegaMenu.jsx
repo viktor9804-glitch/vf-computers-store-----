@@ -10,16 +10,11 @@ export default function MegaMenu({ categories, onClose }) {
             <div className="mega-content">
               <h2>{category.title}</h2>
               <ul>
-                {category.items.slice(0, 10).map((item) => (
+                {category.items.map((item) => (
                   <li key={item} onClick={() => { onClose(); window.location.href = `/category/${encodeURIComponent(item)}`; }}>
                     {item}
                   </li>
                 ))}
-                {category.items.length > 10 && (
-                  <li className="mega-view-all" onClick={() => { onClose(); window.location.href = `/category/${encodeURIComponent(category.title)}`; }}>
-                    Виж всички →
-                  </li>
-                )}
               </ul>
             </div>
           </div>
