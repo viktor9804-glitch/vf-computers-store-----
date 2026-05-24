@@ -952,8 +952,8 @@ function OrderDocumentsModal({ order, customerProfile, onClose }) {
           customerProfile?.billing_address ? `Адрес: ${customerProfile.billing_address}` : "",
         ].filter(Boolean).join(" • ")
       : [
-          customerProfile?.phone || order.phone ? `Телефон: ${customerProfile?.phone || order.phone}` : "",
-          customerProfile?.address ? `Адрес: ${customerProfile.address}` : "",
+          customerProfile?.phone || order.customer_phone ? `Телефон: ${customerProfile?.phone || order.customer_phone}` : "",
+          customerProfile?.address || order.customer_address ? `Адрес: ${customerProfile?.address || order.customer_address}` : "",
         ].filter(Boolean).join(" • ");
 
   const items = Array.isArray(order.items) ? order.items : [];
@@ -2659,25 +2659,13 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     setSendingOrder(true);
     setNotice("");
 
-    const customerData = {
-      name: customerName,
-      phone,
-      email: email || null,
-      city,
-      address,
-      comment: comment || null,
-    };
-
     const orderPayload = {
       customer_name: customerName,
-      phone,
-      email: email || null,
+      customer_phone: phone,
       customer_email: email || null,
-      city,
-      address,
-      delivery_address: address,
-      comment: comment || null,
-      customer_note: comment || null,
+      customer_city: city,
+      customer_address: address,
+      customer_comment: comment || null,
       items: cartItems.map((item) => ({
         id: item.id,
         name: item.name,
@@ -2686,39 +2674,9 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         parts: item.parts || null,
       })),
       total: cartGrandTotal,
-      user_id: userSession?.user?.id || null,
-      invoice_requested: customerProfile?.account_type === "company",
-      billing_data: {
-        ...(customerProfile ? {
-          account_type: customerProfile.account_type,
-          full_name: customerProfile.full_name,
-          company_name: customerProfile.company_name,
-          company_eik: customerProfile.company_eik,
-          company_vat: customerProfile.company_vat,
-          company_mol: customerProfile.company_mol,
-          billing_address: customerProfile.billing_address,
-          profile_address: customerProfile.address,
-        } : { account_type: "personal" }),
-        checkout: customerData,
-      },
       payment_method: paymentMethod,
-      payment_status:
-        paymentMethod === "bank"
-          ? "?????? ?????? ??????"
-          : paymentMethod === "tbi"
-            ? "?????? TBI ?????????"
-            : "??????? ??????",
-      order_status: "???? ???????",
-      delivery_price: cartDelivery,
-      delivery_method: deliverySettings.provider,
-      bank_transfer_details:
-        paymentMethod === "bank"
-          ? {
-              bank: bankInfo.bank,
-              iban: bankInfo.iban,
-              holder: bankInfo.holder,
-            }
-          : null,
+      status: "new",
+      created_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
@@ -2737,7 +2695,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       return false;
     }
 
-    setNotice("????????? ? ????????? ???????.");
+    setNotice("Поръчката е изпратена успешно.");
     const savedOrder = Array.isArray(data) ? data[0] : data;
     setDocumentOrder(savedOrder || { ...orderPayload, id: Date.now(), created_at: new Date().toISOString() });
     setDocumentCustomer(customerProfile || {

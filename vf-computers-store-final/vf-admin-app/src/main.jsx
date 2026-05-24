@@ -1031,7 +1031,7 @@ function App() {
       id: `order-${order.id}`,
       order_id: order.id,
       customer_name: order.customer_name || "Клиент",
-      phone: order.phone || "",
+      phone: order.customer_phone || "",
       created_at: order.created_at,
       total: order.total,
       product_name: Array.isArray(order.items) ? order.items.map((item) => item.name).join(", ") : "Няма продукти",
@@ -1389,7 +1389,7 @@ function App() {
                   <div className="no-img">#{order.id}</div>
                   <div className="info">
                     <b>{order.customer_name || "Клиент"}</b>
-                    <p>{order.phone} • {formatPrice(order.total || 0)}</p>
+                    <p>{order.customer_phone} • {formatPrice(order.total || 0)}</p>
                     <small>{Array.isArray(order.items) ? order.items.map((item) => `${item.name} x${item.quantity}`).join(", ") : "Няма продукти"}</small>
                   </div>
                 </div>
