@@ -1,8 +1,6 @@
 import {
-  formatItems,
+  buildOrderEmailHtml,
   getOrderNumber,
-  money,
-  safeText,
   sendEmail,
   sendJson,
   setCors,
@@ -28,22 +26,13 @@ export default async function handler(req, res) {
     }
 
     const orderNumber = getOrderNumber(order);
-    const subject = `Поръчка ${orderNumber} е приета`;
-    const html = `
-      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
-        <h2>Поръчката е изпратена успешно.</h2>
-        <p>Здравейте, ${safeText(order.customer_name || "клиент")}.</p>
-        <p>Получихме Вашата поръчка <strong>${safeText(orderNumber)}</strong>.</p>
-        <p><strong>Статус:</strong> ${safeText(order.status || "Приета")}</p>
-        <p><strong>Метод на плащане:</strong> ${safeText(order.payment_method || "cod")}</p>
-        <p><strong>Град:</strong> ${safeText(order.customer_city || "")}</p>
-        <p><strong>Адрес:</strong> ${safeText(order.customer_address || "")}</p>
-        ${order.customer_comment ? `<p><strong>Коментар:</strong> ${safeText(order.customer_comment)}</p>` : ""}
-        <h3>Продукти</h3>
-        <ul>${formatItems(order.items)}</ul>
-        <p><strong>Обща сума:</strong> ${money(order.total)}</p>
-      </div>
-    `;
+    const subject = `Потвърждение на поръчка №${orderNumber} - ВФ Компютри`;
+    const html = buildOrderEmailHtml({
+      order: { ...order, status: order.status || "Приета" },
+      introTitle: `Поръчка №${orderNumber}`,
+      introText: "Вашата поръчка е приета.",
+      status: "Приета",
+    });
 
     const info = await sendEmail({ to, subject, html });
 

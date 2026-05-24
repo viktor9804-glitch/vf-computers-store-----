@@ -1,6 +1,6 @@
 import {
+  buildOrderEmailHtml,
   getOrderNumber,
-  safeText,
   sendEmail,
   sendJson,
   setCors,
@@ -31,14 +31,13 @@ export default async function handler(req, res) {
     }
 
     const orderNumber = getOrderNumber(order);
-    const subject = `Вашата поръчка е: ${status}`;
-    const html = `
-      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
-        <h2>Вашата поръчка е: ${safeText(status)}</h2>
-        <p>Здравейте, ${safeText(order.customer_name || "клиент")}.</p>
-        <p>Статусът на поръчка <strong>${safeText(orderNumber)}</strong> беше променен.</p>
-      </div>
-    `;
+    const subject = `Вашата поръчка №${orderNumber} е ${status}`;
+    const html = buildOrderEmailHtml({
+      order: { ...order, status },
+      introTitle: `Поръчка №${orderNumber}`,
+      introText: `Статусът на вашата поръчка беше променен на: ${status}`,
+      status,
+    });
 
     const info = await sendEmail({ to, subject, html });
 
