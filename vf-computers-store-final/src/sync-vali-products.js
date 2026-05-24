@@ -144,6 +144,39 @@ function toRow(product) {
   };
 }
 
+function getValiItems(response) {
+  return response.items || response.data || [];
+}
+
+function getValiLastPage(response) {
+  return Number(
+    response.last_page ||
+    response.lastPage ||
+    response.meta?.last_page ||
+    response.pagination?.last_page ||
+    0
+  );
+}
+
+function getValiCurrentPage(response, fallbackPage) {
+  return Number(
+    response.current_page ||
+    response.currentPage ||
+    response.meta?.current_page ||
+    response.pagination?.current_page ||
+    fallbackPage
+  );
+}
+
+function hasValiNextPage(response, rows, pageSize) {
+  return Boolean(
+    response.next_page_url ||
+    response.nextPageUrl ||
+    response.links?.next ||
+    rows.length === pageSize
+  );
+}
+
 async function main() {
   console.log("Starting VALI sync...");
 
@@ -163,23 +196,36 @@ async function main() {
 
   const first = await valiGet(`/products/full?page=1&per_page=${PER_PAGE}`);
 
-  const totalItems = first.total_items;
-  const lastPage = first.last_page;
+  const totalItems =
+    first.total_items ||
+    first.totalItems ||
+    first.meta?.total ||
+    first.pagination?.total ||
+    null;
+  const firstLastPage = getValiLastPage(first);
 
-  console.log(`Total: ${totalItems}`);
-  console.log(`Pages: ${lastPage}`);
+  console.log(`Total: ${totalItems || "unknown"}`);
+  console.log(`Pages: ${firstLastPage || "unknown"}`);
 
   let imported = 0;
+  let page = 1;
 
-  for (let page = 1; page <= lastPage; page++) {
-    console.log(`Fetching page ${page}/${lastPage}`);
-
+  while (true) {
     const data =
       page === 1
         ? first
         : await valiGet(`/products/full?page=${page}&per_page=${PER_PAGE}`);
 
-    const rows = (data.items || []).map(toRow);
+    const rows = getValiItems(data).map(toRow);
+    const currentPage = getValiCurrentPage(data, page);
+    const lastPage = getValiLastPage(data) || firstLastPage;
+
+    console.log(`Fetching page ${currentPage}/${lastPage || "unknown"}`);
+
+    if (rows.length === 0) {
+      console.log("No more VALI products returned.");
+      break;
+    }
 
     const { error } = await supabase
       .from("vali_products")
@@ -189,6 +235,11 @@ async function main() {
 
     imported += rows.length;
     console.log(`Imported so far: ${imported}`);
+
+    if (lastPage && currentPage >= lastPage) break;
+    if (!lastPage && !hasValiNextPage(data, rows, PER_PAGE)) break;
+
+    page = currentPage + 1;
   }
 
   console.log("VALI sync finished.");

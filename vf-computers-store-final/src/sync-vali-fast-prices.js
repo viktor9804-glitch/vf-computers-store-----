@@ -26,21 +26,61 @@ async function valiFetch(path) {
   return JSON.parse(text);
 }
 
+function getValiItems(response) {
+  return response.items || response.data || [];
+}
+
+function getValiLastPage(response) {
+  return Number(
+    response.last_page ||
+    response.lastPage ||
+    response.meta?.last_page ||
+    response.pagination?.last_page ||
+    0
+  );
+}
+
+function getValiCurrentPage(response, fallbackPage) {
+  return Number(
+    response.current_page ||
+    response.currentPage ||
+    response.meta?.current_page ||
+    response.pagination?.current_page ||
+    fallbackPage
+  );
+}
+
+function hasValiNextPage(response, rows, pageSize) {
+  return Boolean(
+    response.next_page_url ||
+    response.nextPageUrl ||
+    response.links?.next ||
+    rows.length === pageSize
+  );
+}
+
 async function run() {
   try {
     console.log("Starting FAST price/stock sync...");
 
     let page = 1;
-    let lastPage = 1;
+    let lastPage = 0;
     let updated = 0;
 
-    do {
+    while (true) {
       console.log(`Fetching page ${page}...`);
 
       const data = await valiFetch(`/products?per_page=500&page=${page}`);
-      lastPage = data.last_page || 1;
+      const products = getValiItems(data);
+      const currentPage = getValiCurrentPage(data, page);
+      lastPage = getValiLastPage(data) || lastPage;
 
-      for (const product of data.items || []) {
+      if (products.length === 0) {
+        console.log("No more VALI products returned.");
+        break;
+      }
+
+      for (const product of products) {
         const { error } = await supabase
           .from("vali_products")
           .update({
@@ -62,9 +102,13 @@ async function run() {
         updated++;
       }
 
-      console.log(`Finished page ${page}/${lastPage} | Updated: ${updated}`);
-      page++;
-    } while (page <= lastPage);
+      console.log(`Finished page ${currentPage}/${lastPage || "unknown"} | Updated: ${updated}`);
+
+      if (lastPage && currentPage >= lastPage) break;
+      if (!lastPage && !hasValiNextPage(data, products, 500)) break;
+
+      page = currentPage + 1;
+    }
 
     console.log("FAST SYNC COMPLETE");
     console.log("TOTAL UPDATED:", updated);

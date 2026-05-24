@@ -339,6 +339,31 @@ const findMarkupPercent = (markups = [], mainCategory, subCategory) => {
   return Number(match?.markup_percent || 0);
 };
 
+const SUPABASE_PAGE_SIZE = 1000;
+
+const fetchAllSupabaseRows = async (buildQuery, pageSize = SUPABASE_PAGE_SIZE) => {
+  const rows = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + pageSize - 1;
+    const { data, error } = await buildQuery(from, to).range(from, to);
+
+    if (error) {
+      return { data: rows, error };
+    }
+
+    const pageRows = data || [];
+    rows.push(...pageRows);
+
+    if (pageRows.length < pageSize) {
+      return { data: rows, error: null };
+    }
+
+    from += pageSize;
+  }
+};
+
 const getValiStockStatus = (product) => {
   const status = Number(product?.status ?? product?.raw?.status ?? 0);
 
@@ -2301,11 +2326,12 @@ function App() {
 
   useEffect(() => {
     const loadValiCategories = async () => {
-      const { data, error } = await supabase
-        .from("vali_products")
-        .select("site_main_category, site_sub_category")
-        .eq("show", true)
-        .limit(12000);
+      const { data, error } = await fetchAllSupabaseRows((from, to) =>
+        supabase
+          .from("vali_products")
+          .select("site_main_category, site_sub_category")
+          .eq("show", true)
+      );
 
       if (error) {
         console.error(error);
@@ -2323,16 +2349,19 @@ function App() {
   useEffect(() => {
     const loadProducts = async () => {
       setLoadingProducts(true);
-      const localRes = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const localRes = await fetchAllSupabaseRows(() =>
+        supabase
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: false })
+      );
 
-      const valiRes = await supabase
-        .from("vali_products")
-        .select("*")
-        .eq("show", true)
-        .limit(12000);
+      const valiRes = await fetchAllSupabaseRows(() =>
+        supabase
+          .from("vali_products")
+          .select("*")
+          .eq("show", true)
+      );
 
       const { data: markupsData, error: markupsError } = await supabase
         .from("category_markups")
