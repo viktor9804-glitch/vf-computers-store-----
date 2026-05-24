@@ -66,11 +66,11 @@ export const getPaymentMethodText = (method) => {
 export const normalizeOrderItem = (item = {}) => {
   const quantity = numberValue(item.quantity ?? item.qty, 1);
   const unitPrice = numberValue(item.price ?? item.unit_price, 0);
-  const catalogNumber = item.catalog_number || item.catalogNumber || item.catalogNo || item.catalog || "";
+  const catalogNumber = item.catalog_number || item.reference_number || item.sku || item.code || item.catalogNumber || item.catalogNo || item.catalog || "";
   const serial = compact([item.serial, item.serial_number, item.sku, item.barcode]).join(" / ");
-  const warranty = item.warranty || item.warranty_months || "не е посочена";
-  const characteristics = specsText(item.description || item.specs || item.characteristics || item.parts || "");
-  const image = normalizeImageUrl(item.image || item.image_url || item.thumbnail || item.main_image || item.images?.[0] || "");
+  const warranty = item.warranty || item.warranty_months || item.guarantee || item.guarantee_months || item.product_warranty || "не е посочена";
+  const characteristics = specsText(item.characteristics || item.specs || item.attributes || item.description || "");
+  const image = normalizeImageUrl(item.image || item.image_url || item.thumbnail || item.main_image || item.images?.[0] || item.imageUrl || "");
 
   return {
     name: item.title || item.name || item.product_name || "Продукт",
