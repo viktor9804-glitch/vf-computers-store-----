@@ -2626,45 +2626,6 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     setBuilderNotice("Конфигурацията е добавена в количката.");
   };
 
-  const insertOrderWithFallback = async (payload) => {
-    const optionalColumns = [
-      "email",
-      "customer_email",
-      "city",
-      "address",
-      "delivery_address",
-      "comment",
-      "customer_note",
-      "delivery_price",
-      "delivery_method",
-      "bank_transfer_details",
-    ];
-    let nextPayload = { ...payload };
-
-    for (let attempt = 0; attempt <= optionalColumns.length; attempt += 1) {
-      const result = await supabase
-        .from("orders")
-        .insert(nextPayload)
-        .select("*")
-        .single();
-
-      if (!result.error) return result;
-
-      const message = result.error.message || "";
-      const missingColumn = optionalColumns.find((column) =>
-        message.toLowerCase().includes(`'${column}'`) ||
-        message.toLowerCase().includes(`"${column}"`) ||
-        message.toLowerCase().includes(` ${column} `)
-      );
-
-      if (!missingColumn) return result;
-      const { [missingColumn]: _removed, ...rest } = nextPayload;
-      nextPayload = rest;
-    }
-
-    return { data: null, error: new Error("Поръчката не беше записана.") };
-  };
-
   const sendOrder = async (checkoutForm) => {
     const customerName = checkoutForm?.name?.trim();
     const phone = checkoutForm?.phone?.trim();
@@ -2674,12 +2635,12 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     const comment = checkoutForm?.comment?.trim();
 
     if (!customerName || !phone || !city || !address) {
-      setNotice("Поръчката не е изпратена - липсват задължителни данни.");
+      setNotice("????????? ?? ? ????????? - ??????? ???????????? ?????.");
       return false;
     }
 
     if (!cartItems.length) {
-      setNotice("Количката е празна.");
+      setNotice("????????? ? ??????.");
       return false;
     }
 
@@ -2707,7 +2668,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       comment: comment || null,
     };
 
-    const payload = {
+    const orderPayload = {
       customer_name: customerName,
       phone,
       email: email || null,
@@ -2743,11 +2704,11 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       payment_method: paymentMethod,
       payment_status:
         paymentMethod === "bank"
-          ? "Очаква банков превод"
+          ? "?????? ?????? ??????"
           : paymentMethod === "tbi"
-            ? "Очаква TBI одобрение"
-            : "Наложен платеж",
-      order_status: "Нова поръчка",
+            ? "?????? TBI ?????????"
+            : "??????? ??????",
+      order_status: "???? ???????",
       delivery_price: cartDelivery,
       delivery_method: deliverySettings.provider,
       bank_transfer_details:
@@ -2760,18 +2721,25 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
           : null,
     };
 
-    const { data: savedOrder, error } = await insertOrderWithFallback(payload);
+    const { data, error } = await supabase
+      .from("orders")
+      .insert([orderPayload])
+      .select();
+
+    console.log("ORDER PAYLOAD:", orderPayload);
+    console.log("ORDER INSERT DATA:", data);
+    console.error("ORDER INSERT ERROR:", error);
 
     setSendingOrder(false);
 
     if (error) {
-      setNotice("Поръчката не беше записана. Провери RLS policy в Supabase.");
-      console.error(error);
+      setNotice(error.message || JSON.stringify(error, null, 2));
       return false;
     }
 
-    setNotice("Поръчката е изпратена успешно.");
-    setDocumentOrder(savedOrder || { ...payload, id: Date.now(), created_at: new Date().toISOString() });
+    setNotice("????????? ? ????????? ???????.");
+    const savedOrder = Array.isArray(data) ? data[0] : data;
+    setDocumentOrder(savedOrder || { ...orderPayload, id: Date.now(), created_at: new Date().toISOString() });
     setDocumentCustomer(customerProfile || {
       full_name: customerName,
       phone,
