@@ -1,4 +1,5 @@
-import nodemailer from "nodemailer";
+const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const REPLY_TO = "v.f-computers@abv.bg";
 
 const escapeHtml = (value) =>
   String(value ?? "")
@@ -29,17 +30,35 @@ export const formatItems = (items) => {
 export const getOrderNumber = (order) =>
   order?.order_number || order?.id || "нова поръчка";
 
-export const createTransport = () => {
-  const port = Number(process.env.SMTP_PORT || 465);
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.abv.bg",
-    port,
-    secure: port === 465,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+export const sendEmail = async ({ to, subject, html }) => {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Missing RESEND_API_KEY");
+  }
+
+  const response = await fetch(RESEND_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM || "VF Computers <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+      reply_to: REPLY_TO,
+    }),
   });
+
+  const result = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(result?.message || result?.error || `Resend error ${response.status}`);
+  }
+
+  return result;
 };
 
 export const sendJson = (res, status, body) => {

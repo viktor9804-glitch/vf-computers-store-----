@@ -1,9 +1,9 @@
 import {
-  createTransport,
   formatItems,
   getOrderNumber,
   money,
   safeText,
+  sendEmail,
   sendJson,
   setCors,
 } from "./_mailer.js";
@@ -27,7 +27,6 @@ export default async function handler(req, res) {
       return sendJson(res, 200, { success: true, skipped: true, reason: "missing customer_email" });
     }
 
-    const transporter = createTransport();
     const orderNumber = getOrderNumber(order);
     const subject = `Поръчка ${orderNumber} е приета`;
     const html = `
@@ -46,14 +45,9 @@ export default async function handler(req, res) {
       </div>
     `;
 
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || "ВФ Компютри <v.f-computers@abv.bg>",
-      to,
-      subject,
-      html,
-    });
+    const info = await sendEmail({ to, subject, html });
 
-    return sendJson(res, 200, { success: true, messageId: info.messageId });
+    return sendJson(res, 200, { success: true, id: info.id });
   } catch (error) {
     console.error("SEND ORDER EMAIL ERROR:", error);
     return sendJson(res, 500, { error: error.message || "Email send failed" });
