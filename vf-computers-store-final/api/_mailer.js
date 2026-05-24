@@ -39,7 +39,7 @@ const specsText = (value) => {
 };
 
 export const money = (value) =>
-  `${numberValue(value).toFixed(2)} лв.`;
+  `${numberValue(value).toFixed(2)} €`;
 
 export const getOrderNumber = (order) =>
   order?.order_number || order?.id || "нова поръчка";
