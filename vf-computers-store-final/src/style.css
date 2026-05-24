@@ -272,10 +272,11 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
   .drawer{
     width:100%;
     height:auto;
+    min-height:unset;
     max-height:calc(100dvh - 90px);
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
-    padding-bottom:120px;
+    padding-bottom:24px;
   }
 
   .cart-items{
@@ -287,8 +288,8 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
     right:auto;
     bottom:0;
     width:calc(100% + 40px);
-    margin:16px -20px -120px;
-    padding-bottom:calc(120px + env(safe-area-inset-bottom, 0px));
+    margin:16px -20px 0;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom, 0px));
   }
 
   .checkout-overlay{
@@ -303,15 +304,19 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
 
   .checkout-modal{
     width:100%;
+    height:auto;
+    min-height:unset;
     max-height:calc(100dvh - 90px);
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
     border-radius:22px 22px 0 0;
-    padding:18px 16px 120px;
+    padding:18px 16px calc(24px + env(safe-area-inset-bottom, 0px));
   }
 
   .checkout-form{
     grid-template-columns:1fr;
+    height:auto;
+    min-height:unset;
     max-height:none;
     overflow:visible;
   }
