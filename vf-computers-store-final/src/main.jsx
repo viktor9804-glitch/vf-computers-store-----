@@ -1383,6 +1383,7 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
 
 function AdminPanel({ onBack }) {
   const emptyForm = {
+    catalog_number: "",
     title: "",
     category: "Gaming PC",
     price: "",
@@ -1472,6 +1473,7 @@ function AdminPanel({ onBack }) {
   const startEditProduct = (product) => {
     setEditingProduct(product);
     setForm({
+      catalog_number: product.catalog_number || "",
       title: product.title || "",
       category: product.category || "Gaming PC",
       price: String(product.price || ""),
@@ -1531,6 +1533,7 @@ function AdminPanel({ onBack }) {
 
       const payload = {
         title: form.title.trim(),
+        catalog_number: form.catalog_number.trim() || null,
         description: form.description.trim(),
         price: Number(form.price),
         image: imageUrls[0] || "",
@@ -1573,7 +1576,7 @@ function AdminPanel({ onBack }) {
   };
 
   const filteredAdminProducts = adminProducts.filter((product) => {
-    const text = `${product.title || ""} ${product.category || ""} ${product.description || ""}`.toLowerCase();
+    const text = `${product.catalog_number || ""} ${product.title || ""} ${product.category || ""} ${product.description || ""}`.toLowerCase();
     return text.includes(adminSearch.toLowerCase());
   });
 
@@ -1642,6 +1645,11 @@ function AdminPanel({ onBack }) {
             <label>
               Име на продукта
               <input value={form.title} onChange={(event) => updateForm("title", event.target.value)} placeholder="Пример: Gaming PC Ryzen 5 RTX 4060" />
+            </label>
+
+            <label>
+              Каталожен номер
+              <input value={form.catalog_number} onChange={(event) => updateForm("catalog_number", event.target.value)} placeholder="VF-P-000001" />
             </label>
 
             <label>
@@ -1723,6 +1731,7 @@ function AdminPanel({ onBack }) {
                     {product.image ? <img src={product.image} alt={product.title} /> : <div className="admin-no-img">IMG</div>}
                     <div className="admin-product-info">
                       <b>{product.title}</b>
+                      {product.catalog_number && <p>Каталожен №: {product.catalog_number}</p>}
                       <p>{product.category} • {formatPrice(product.price)} • наличност: {product.stock}</p>
                       {product.description && <small>{product.description}</small>}
                     </div>
@@ -2376,6 +2385,7 @@ function App() {
       const localProducts = (localRes.data || []).map((product) => ({
         id: `local-${product.id}`,
         localId: product.id,
+        catalog_number: product.catalog_number || "",
         name: product.title,
         title: product.title,
         model: product.model || "",
@@ -2427,6 +2437,7 @@ function App() {
         return ({
         id: `vali-${p.id}`,
         valiId: p.id,
+        catalog_number: p.catalog_number || "",
         title,
         name: title,
         model: p.model || "",

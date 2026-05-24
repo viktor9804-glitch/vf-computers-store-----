@@ -55,6 +55,9 @@ export default function Product({
 
             <div className="product-page-info">
               <span className="product-page-category">{product.category}</span>
+              {product.catalog_number && (
+                <div className="product-catalog-number">Каталожен №: {product.catalog_number}</div>
+              )}
               <h1>{product.name}</h1>
 
               <div className="product-price-row">

@@ -16,6 +16,10 @@ export default function ProductCard({ product, addToCart }) {
             <span>{product.category}</span>
           </div>
 
+          {product.catalog_number && (
+            <div className="catalog-number">Каталожен №: {product.catalog_number}</div>
+          )}
+
           <h3>{product.name}</h3>
 
           <p className="stock">

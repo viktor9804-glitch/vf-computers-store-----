@@ -13,6 +13,7 @@ const getSearchText = (product) => {
     product.category,
     product.mainCategory,
     product.manufacturer,
+    product.catalog_number,
     product.reference_number,
     product.barcode,
   ].map((value) => String(value || "")).join(" ");
