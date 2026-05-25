@@ -27,6 +27,8 @@ export default function BuilderPage({
   deliveryMax,
   storeInfo,
 }) {
+  const builderProductsTotalWithVat = builderNetTotal + builderVatTotal;
+
   return (
     <section id="builder" className="builder-section">
       <div className="container builder-layout">
@@ -162,10 +164,9 @@ export default function BuilderPage({
           <div className="builder-preview">
             <b>Обобщение на конфигурацията:</b>
             <p>{builderSelectedList.length ? builderSelectedList.map((product) => product.name).join(" • ") : "Все още няма избрани компоненти."}</p>
-            <p>Междинна сума: {formatPrice(builderNetTotal)} без ДДС</p>
-            <p>ДДС 20%: {formatPrice(builderVatTotal)}</p>
+            <p>Стойност на продуктите: {formatPrice(builderProductsTotalWithVat)}</p>
             <p>Доставка с {deliverySettings.provider}: {builderDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(builderDelivery)}`}</p>
-            <p>Общо: {formatPrice(builderGrandTotal)} с ДДС</p>
+            <p>Общо: {formatPrice(builderGrandTotal)}</p>
           </div>
 
           <div className="builder-preview payment-required">

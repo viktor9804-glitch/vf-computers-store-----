@@ -1221,8 +1221,8 @@ function OrderDocumentsModal({ order, customerProfile, onClose }) {
                 <tr key={index}>
                   <td>{item.name}</td>
                   <td>{item.quantity}</td>
-                  <td>{formatPrice(item.price)}</td>
-                  <td>{formatPrice(Number(item.price || 0) * Number(item.quantity || 1))}</td>
+                  <td>{formatPrice(calculateGross(item.price))}</td>
+                  <td>{formatPrice(calculateGross(Number(item.price || 0) * Number(item.quantity || 1)))}</td>
                 </tr>
               ))}
             </tbody>
@@ -2025,11 +2025,11 @@ const ProductPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCatego
             <div className="product-price-row">
 
   <div className="product-page-price">
-    <b>{formatPrice(product.price)} <span className="vat-note">без 20% ДДС</span></b>
+    <b>{formatPrice(calculateGross(product.price))}</b>
 
     {Number(product.oldPrice || 0) > Number(product.price || 0) && (
       <del>
-        {formatPrice(product.oldPrice)}
+        {formatPrice(calculateGross(product.oldPrice))}
       </del>
     )}
   </div>
@@ -3290,9 +3290,9 @@ const headerProps = {
                 <p className="stock"><CheckCircle2 size={15} /> {product.stock}</p>
                 <div className="product-buy">
                   <div>
-                    <b>{formatPrice(product.price)} <span className="vat-note">без 20% ДДС</span></b>
+                    <b>{formatPrice(calculateGross(product.price))}</b>
                     {Number(product.oldPrice || 0) > Number(product.price || 0) && (
-                      <del>{formatPrice(product.oldPrice)}</del>
+                      <del>{formatPrice(calculateGross(product.oldPrice))}</del>
                     )}
                   </div>
                   <button onClick={() => addToCart(product.id)}>Добави</button>

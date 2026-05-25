@@ -52,6 +52,9 @@ const normalizeImageUrl = (url) => {
 export const money = (value) =>
   `${numberValue(value).toFixed(2)} €`;
 
+export const moneyWithVat = (value) =>
+  money(numberValue(value) * 1.2);
+
 export const getOrderNumber = (order) =>
   order?.order_number || order?.id || "нова поръчка";
 
@@ -122,22 +125,21 @@ const orderItemsRows = (items) => {
       <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;">${escapeHtml(item.catalogNumber || "-")}</td>
       <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;">${escapeHtml(item.serial || "-")}</td>
       <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:center;">${item.quantity}</td>
-      <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:right;">${money(item.unitPrice)}</td>
+      <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:right;">${moneyWithVat(item.unitPrice)}</td>
       <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;">${escapeHtml(item.warranty)}</td>
-      <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:right;"><strong>${money(item.rowTotal)}</strong></td>
+      <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:right;"><strong>${moneyWithVat(item.rowTotal)}</strong></td>
     </tr>
   `).join("");
 };
 
-const totalsTable = ({ subtotal, vat, shipping, total }) => `
-  <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:18px;">
+const totalsTable = ({ subtotal, vat, shipping, total }) => {
+  const productsTotalWithVat = numberValue(subtotal) + numberValue(vat);
+
+  return `
+    <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:18px;">
     <tr>
-      <td style="padding:7px 0;color:#4b5563;">Междинна сума</td>
-      <td style="padding:7px 0;text-align:right;font-weight:700;">${money(subtotal)}</td>
-    </tr>
-    <tr>
-      <td style="padding:7px 0;color:#4b5563;">ДДС</td>
-      <td style="padding:7px 0;text-align:right;font-weight:700;">${money(vat)}</td>
+      <td style="padding:7px 0;color:#4b5563;">Стойност на продуктите</td>
+      <td style="padding:7px 0;text-align:right;font-weight:700;">${money(productsTotalWithVat)}</td>
     </tr>
     <tr>
       <td style="padding:7px 0;color:#4b5563;">Доставка</td>
@@ -148,7 +150,8 @@ const totalsTable = ({ subtotal, vat, shipping, total }) => `
       <td style="padding:13px 0 0;border-top:2px solid #ef4444;text-align:right;font-size:22px;font-weight:900;color:#dc2626;">${money(total)}</td>
     </tr>
   </table>
-`;
+  `;
+};
 
 export const buildOrderEmailHtml = ({ order, introTitle, introText, status }) => {
   const orderNumber = getOrderNumber(order);

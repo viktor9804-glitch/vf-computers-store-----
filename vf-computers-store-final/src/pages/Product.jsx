@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ProductGallery from "../components/ProductGallery";
 import { useScrollTop } from "../hooks/useScrollTop";
-import { formatPrice } from "../utils/format";
+import { formatDisplayPrice } from "../utils/format";
 import { normalizeComparableValue } from "../utils/text";
 
 export default function Product({
@@ -62,9 +62,9 @@ export default function Product({
 
               <div className="product-price-row">
                 <div className="product-page-price">
-                  <b>{formatPrice(product.price)} <span className="vat-note">без 20% ДДС</span></b>
+                  <b>{formatDisplayPrice(product.price)}</b>
                   {Number(product.oldPrice || 0) > Number(product.price || 0) && (
-                    <del>{formatPrice(product.oldPrice)}</del>
+                    <del>{formatDisplayPrice(product.oldPrice)}</del>
                   )}
                 </div>
 

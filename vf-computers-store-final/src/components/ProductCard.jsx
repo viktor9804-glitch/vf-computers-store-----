@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
-import { formatPrice } from "../utils/format";
+import { formatDisplayPrice } from "../utils/format";
 
 export default function ProductCard({ product, addToCart }) {
   return (
@@ -29,9 +29,9 @@ export default function ProductCard({ product, addToCart }) {
 
           <div className="product-buy">
             <div>
-              <b>{formatPrice(product.price)} <span className="vat-note">без 20% ДДС</span></b>
+              <b>{formatDisplayPrice(product.price)}</b>
               {Number(product.oldPrice || 0) > Number(product.price || 0) && (
-                <del>{formatPrice(product.oldPrice)}</del>
+                <del>{formatDisplayPrice(product.oldPrice)}</del>
               )}
             </div>
 

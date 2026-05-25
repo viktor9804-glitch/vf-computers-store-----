@@ -1,7 +1,7 @@
 import React from "react";
 import { CreditCard, Minus, Plus, Trash2, X } from "lucide-react";
 import { useCart } from "../context/CartContext";
-import { formatPrice } from "../utils/format";
+import { formatDisplayPrice, formatPrice } from "../utils/format";
 
 export default function Cart({ deliveryProvider, handleTbiCheckout }) {
   const {
@@ -22,6 +22,7 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
   if (!cartOpen) return null;
 
   const hasCustomPcBuild = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
+  const cartProductsTotalWithVat = cartSubtotal + cartVat;
 
   return (
     <div className="overlay" onClick={() => setCartOpen(false)}>
@@ -42,7 +43,7 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
                 <img src={item.image} alt={item.name} />
                 <div className="cart-item-body">
                   <b>{item.name}</b>
-                  <p>{formatPrice(item.price)}</p>
+                  <p>{formatDisplayPrice(item.price)}</p>
                   <div className="qty">
                     <button onClick={() => updateQuantity(item.id, -1)}><Minus size={14} /></button>
                     <span>{item.quantity}</span>
@@ -55,8 +56,7 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
           )}
         </div>
         <div className="drawer-total">
-          <p><span>Междинна сума</span><b>{formatPrice(cartSubtotal)} <span className="vat-note">без 20% ДДС</span></b></p>
-          <div className="cart-vat-row"><span>ДДС 20%</span><b>{formatPrice(cartVat)}</b></div>
+          <p><span>Стойност на продуктите</span><b>{formatPrice(cartProductsTotalWithVat)}</b></p>
           <div className="cart-vat-row"><span>Доставка с {deliveryProvider}</span><b>{cartDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(cartDelivery)}`}</b></div>
           <div className="cart-total-row"><span>Общо</span><b>{formatPrice(cartGrandTotal)}</b></div>
           {hasCustomPcBuild && <p className="cart-payment-note">Плащане: предварително по банков път</p>}

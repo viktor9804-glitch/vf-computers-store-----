@@ -5,3 +5,7 @@ export const formatPrice = (value) => {
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 };
+
+export const calculateDisplayPrice = (value) => Number(value || 0) * 1.2;
+
+export const formatDisplayPrice = (value) => formatPrice(calculateDisplayPrice(value));
