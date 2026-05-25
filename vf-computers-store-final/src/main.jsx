@@ -2742,13 +2742,16 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
 
   const componentPools = useMemo(() => ({
     ...baseComponentPools,
+    cpu: selectedBoardSocket
+      ? baseComponentPools.cpu.filter((product) => getSocket(product) === selectedBoardSocket)
+      : baseComponentPools.cpu,
     motherboard: selectedCpuSocket
       ? baseComponentPools.motherboard.filter((product) => getSocket(product) === selectedCpuSocket)
       : baseComponentPools.motherboard,
     ram: selectedBoardRamType
       ? baseComponentPools.ram.filter((product) => getRamType(product) === selectedBoardRamType)
       : baseComponentPools.ram,
-  }), [baseComponentPools, selectedCpuSocket, selectedBoardRamType]);
+  }), [baseComponentPools, selectedBoardSocket, selectedCpuSocket, selectedBoardRamType]);
 
   const getCompatibilityIssue = (type, product) => {
     if (!product) return "";
@@ -2785,6 +2788,12 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   };
 
   useEffect(() => {
+    if (builderProducts.cpu && selectedBoardSocket && getCompatibilityIssue("cpu", builderProducts.cpu)) {
+      setBuilderSelections((current) => ({ ...current, cpu: "", motherboard: "", ram: "" }));
+      setBuilderNotice(`Избраният процесор беше изчистен. ${getCompatibilityIssue("cpu", builderProducts.cpu)}`);
+      return;
+    }
+
     if (builderProducts.motherboard && selectedCpuSocket && getCompatibilityIssue("motherboard", builderProducts.motherboard)) {
       setBuilderSelections((current) => ({ ...current, motherboard: "", ram: "" }));
       setBuilderNotice(`Избраната дънна платка беше изчистена. ${getCompatibilityIssue("motherboard", builderProducts.motherboard)}`);
@@ -2795,7 +2804,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       setBuilderSelections((current) => ({ ...current, ram: "" }));
       setBuilderNotice(`Избраната RAM беше изчистена. ${getCompatibilityIssue("ram", builderProducts.ram)}`);
     }
-  }, [builderProducts.motherboard, builderProducts.ram, selectedCpuSocket, selectedBoardRamType]);
+  }, [builderProducts.cpu, builderProducts.motherboard, builderProducts.ram, selectedBoardSocket, selectedCpuSocket, selectedBoardRamType]);
 
   const updateBuilderSelection = (type, value) => {
     setBuilderSelections((current) => ({ ...current, [type]: value }));
