@@ -1,4 +1,4 @@
-    import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   LogIn,
@@ -1798,5 +1798,3 @@ function App() {
 }
 
 createRoot(document.getElementById("root")).render(<App />);
-
-    

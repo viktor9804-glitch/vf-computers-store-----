@@ -2445,6 +2445,7 @@ function App() {
   const [categoryMarkups, setCategoryMarkups] = useState([]);
   const [promotionsData, setPromotionsData] = useState([]);
   const [partnersData, setPartnersData] = useState(partners);
+  const [homepageSections, setHomepageSections] = useState([]);
   const [builderSelections, setBuilderSelections] = useState({
     cpu: "",
     motherboard: "",
@@ -2484,6 +2485,22 @@ function App() {
       };
     });
   }, [dbProducts, categoryMarkups, promotionsData]);
+
+  const homepageProductSections = useMemo(() => {
+    if (!homepageSections.length) return [];
+    const productMap = new Map(products.map((product) => [String(product.id), product]));
+
+    return homepageSections
+      .filter((section) => section.is_active !== false)
+      .map((section) => ({
+        ...section,
+        products: (section.product_ids || [])
+          .map((id) => productMap.get(String(id)))
+          .filter(Boolean)
+          .slice(0, Number(section.limit || 8)),
+      }))
+      .filter((section) => section.products.length > 0);
+  }, [homepageSections, products]);
   const showLoadingScreen = loadingProducts && dbProducts.length === 0;
 
   useEffect(() => {
@@ -2526,11 +2543,12 @@ function App() {
 
   useEffect(() => {
     const loadStoreMetadata = async () => {
-      const [deliveryRes, markupsRes, promotionsRes, partnersRes] = await Promise.all([
+      const [deliveryRes, markupsRes, promotionsRes, partnersRes, homepageRes] = await Promise.all([
         supabase.from("store_settings").select("*").eq("key", "delivery_settings").maybeSingle(),
         supabase.from("category_markups").select("*"),
         supabase.from("promotions").select("*").eq("is_active", true),
         supabase.from("partners").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
+        supabase.from("store_settings").select("*").eq("key", "homepage_product_sections").maybeSingle(),
       ]);
 
       if (!deliveryRes.error && deliveryRes.data?.value) {
@@ -2558,6 +2576,10 @@ function App() {
         })));
       } else {
         setPartnersData(partners);
+      }
+
+      if (!homepageRes.error && Array.isArray(homepageRes.data?.value?.sections)) {
+        setHomepageSections(homepageRes.data.value.sections);
       }
     };
 
@@ -2677,7 +2699,42 @@ function App() {
       });
       };
 
-      const [localRes, firstValiRes, markupsRes] = await Promise.all([
+      const normalizeStoreProduct = (product) => {
+        const price = Number(product.price || 0);
+        const image = product.image || "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=1200&q=80";
+
+        return {
+          id: `store-${product.id}`,
+          storeId: product.id,
+          catalog_number: "",
+          name: product.title,
+          title: product.title,
+          model: "",
+          manufacturer: "VF Computers",
+          reference_number: product.serial_number || "",
+          barcode: "",
+          mainCategory: product.category || "Аксесоари",
+          category: product.sub_category || product.category || "Аксесоари",
+          price,
+          oldPrice: price,
+          originalPrice: price,
+          basePrice: price,
+          rating: 4.9,
+          stock: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
+          stockStatus: Number(product.stock || 0) > 0 ? "В наличност" : "По заявка",
+          stockQty: Number(product.stock || 0),
+          badge: product.condition || "VF",
+          image,
+          images: [image].filter(Boolean),
+          description: product.description || product.note || "",
+          warranty: null,
+          filters: {},
+          specs: [product.category, product.condition, product.serial_number].filter(Boolean).slice(0, 4),
+          source: "store",
+        };
+      };
+
+      const [localRes, firstValiRes, markupsRes, storeRes] = await Promise.all([
         fetchAllSupabaseRows(() =>
           supabase
             .from("products")
@@ -2690,6 +2747,11 @@ function App() {
           .eq("show", true)
           .range(0, SUPABASE_PAGE_SIZE - 1),
         supabase.from("category_markups").select("*"),
+        supabase
+          .from("physical_store_products")
+          .select("*")
+          .eq("show_on_site", true)
+          .gt("stock", 0),
       ]);
 
       if (cancelled) return;
@@ -2703,9 +2765,14 @@ function App() {
 
       const localProducts = (localRes.data || []).map(normalizeLocalProduct);
       const firstValiProducts = (firstValiRes.data || []).map(normalizeValiProduct);
+      const storeProducts = storeRes.error ? [] : (storeRes.data || []).map(normalizeStoreProduct);
+      if (storeRes.error) {
+        console.warn(storeRes.error);
+      }
 
       setDbProducts([
         ...localProducts,
+        ...storeProducts,
         ...firstValiProducts
       ]);
       setLoadingProducts(false);
@@ -3294,6 +3361,27 @@ const headerProps = {
           </div>
         </div>
       </section>
+
+      {homepageProductSections.map((section) => (
+        <section className="container products-section" key={section.key}>
+          <div className="section-head">
+            <div>
+              <p className="section-label">Избрани продукти</p>
+              <h2>{section.title}</h2>
+            </div>
+          </div>
+
+          <div className="product-grid">
+            {section.products.map((product) => (
+              <ProductCard
+                key={`${section.key}-${product.id}`}
+                product={product}
+                addToCart={addToCart}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
 
       <section id="products" className="container products-section">
         <div className="section-head">
