@@ -88,6 +88,68 @@ function mapCategory(product) {
   return [mainCategory, subCategory];
 }
 
+function getValiAvailability(product = {}) {
+  const text = String(
+    product.availability_text ??
+    product.availability ??
+    product.delivery_status ??
+    product.stock_status ??
+    product.status_text ??
+    product.expected_delivery ??
+    ""
+  ).toLowerCase();
+  const rawStatus = product.status;
+  const statusNumber = Number(rawStatus);
+  const statusText = typeof rawStatus === "string" ? rawStatus.toLowerCase() : "";
+
+  const qty = Number(
+    product.stock_quantity ??
+    product.quantity ??
+    product.qty ??
+    product.stock ??
+    product.available_quantity ??
+    0
+  );
+
+  if (
+    text.includes("на път") ||
+    text.includes("очаква") ||
+    text.includes("preorder") ||
+    text.includes("on the way") ||
+    statusText.includes("на път") ||
+    statusText.includes("очаква")
+  ) {
+    return {
+      availability_text: "На път",
+      availability_type: "on_the_way",
+      stock_quantity: qty,
+      expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
+    };
+  }
+
+  if (
+    text.includes("налич") ||
+    text.includes("available") ||
+    text.includes("in stock") ||
+    statusNumber === 1 ||
+    qty > 0
+  ) {
+    return {
+      availability_text: "В наличност",
+      availability_type: "in_stock",
+      stock_quantity: qty,
+      expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
+    };
+  }
+
+  return {
+    availability_text: text ? product.availability_text || product.availability || product.delivery_status || product.stock_status || product.status_text : "С поръчка",
+    availability_type: "order",
+    stock_quantity: qty,
+    expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
+  };
+}
+
 async function valiGet(path) {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: {
@@ -106,6 +168,7 @@ async function valiGet(path) {
 
 function toRow(product) {
   const [mainCategory, subCategory] = mapCategory(product);
+  const availability = getValiAvailability(product);
 
   return {
     id: product.id,
@@ -114,6 +177,10 @@ function toRow(product) {
     manufacturer_id: product.manufacturer_id,
     manufacturer: product.manufacturer,
     status: product.status,
+    availability_text: availability.availability_text,
+    availability_type: availability.availability_type,
+    stock_quantity: availability.stock_quantity,
+    expected_delivery: availability.expected_delivery,
 
     price_client: product.price_client,
     price_partner: product.price_partner,

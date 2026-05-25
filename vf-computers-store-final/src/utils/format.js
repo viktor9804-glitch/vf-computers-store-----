@@ -8,4 +8,6 @@ export const formatPrice = (value) => {
 
 export const calculateDisplayPrice = (value) => Number(value || 0) * 1.2;
 
-export const formatDisplayPrice = (value) => formatPrice(calculateDisplayPrice(value));
+export const formatDisplayPrice = (value, options = {}) => (
+  options.isGross ? formatPrice(value) : formatPrice(calculateDisplayPrice(value))
+);

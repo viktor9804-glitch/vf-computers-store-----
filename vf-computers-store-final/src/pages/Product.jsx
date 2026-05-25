@@ -55,6 +55,9 @@ export default function Product({
 
             <div className="product-page-info">
               <span className="product-page-category">{product.category}</span>
+              {product.availabilityType === "on_the_way" && (
+                <span className="product-page-availability-badge">На път</span>
+              )}
               {product.catalog_number && (
                 <div className="product-catalog-number">Каталожен №: {product.catalog_number}</div>
               )}
@@ -76,7 +79,7 @@ export default function Product({
                 </div>
               </div>
 
-              <p className="product-page-stock">{product.stock}</p>
+              <p className="product-page-stock">{product.availabilityLabel || product.stock}</p>
               <div className="product-warranty">
                 <b>Гаранция:</b> {warrantyText}
               </div>

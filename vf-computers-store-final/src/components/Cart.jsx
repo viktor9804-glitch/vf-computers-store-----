@@ -43,7 +43,8 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
                 <img src={item.image} alt={item.name} />
                 <div className="cart-item-body">
                   <b>{item.name}</b>
-                  <p>{formatDisplayPrice(item.price)}</p>
+                  {item.availabilityLabel && <small>{item.availabilityLabel}</small>}
+                  <p>{formatDisplayPrice(item.price, { isGross: item.isGross })}</p>
                   <div className="qty">
                     <button onClick={() => updateQuantity(item.id, -1)}><Minus size={14} /></button>
                     <span>{item.quantity}</span>

@@ -9,6 +9,9 @@ export default function ProductCard({ product, addToCart }) {
       <article className="product-card">
         <div className="product-image">
           <img src={product.image} alt={product.name} loading="lazy" />
+          {product.availabilityType === "on_the_way" && (
+            <span className="badge-product availability-badge">На път</span>
+          )}
         </div>
 
         <div className="product-body">
@@ -24,7 +27,7 @@ export default function ProductCard({ product, addToCart }) {
 
           <p className="stock">
             <CheckCircle2 size={15} />
-            {product.stock}
+            {product.availabilityLabel || product.stock}
           </p>
 
           <div className="product-buy">

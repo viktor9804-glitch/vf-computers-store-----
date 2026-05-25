@@ -92,6 +92,7 @@ const VALI_PRODUCT_SELECT = [
   "description",
   "images",
   "filters",
+  "raw",
   "site_main_category",
   "site_sub_category",
 ].join(",");
@@ -588,15 +589,81 @@ const fetchAllSupabaseRows = async (buildQuery, pageSize = SUPABASE_PAGE_SIZE) =
   }
 };
 
-const getValiStockStatus = (product) => {
-  const status = Number(product?.status ?? product?.raw?.status ?? 0);
+const getValiAvailability = (product = {}) => {
+  const raw = product.raw || {};
+  const explicitType = String(product.availability_type || raw.availability_type || "").toLowerCase().trim();
+  const text = String(
+    product.availability_text ??
+    raw.availability_text ??
+    product.availability ??
+    raw.availability ??
+    product.delivery_status ??
+    raw.delivery_status ??
+    product.stock_status ??
+    raw.stock_status ??
+    product.status_text ??
+    raw.status_text ??
+    product.expected_delivery ??
+    raw.expected_delivery ??
+    ""
+  ).toLowerCase();
+  const rawStatus = product.status ?? raw.status;
+  const statusNumber = Number(rawStatus);
+  const statusText = typeof rawStatus === "string" ? rawStatus.toLowerCase() : "";
 
-  if (status > 0) {
-    return "В наличност";
+  const qty = Number(
+    product.stock_quantity ??
+    raw.stock_quantity ??
+    product.quantity ??
+    raw.quantity ??
+    product.qty ??
+    raw.qty ??
+    product.stock ??
+    raw.stock ??
+    product.available_quantity ??
+    raw.available_quantity ??
+    0
+  );
+
+  if (
+    explicitType === "on_the_way" ||
+    text.includes("на път") ||
+    text.includes("очаква") ||
+    text.includes("preorder") ||
+    text.includes("on the way") ||
+    statusText.includes("на път") ||
+    statusText.includes("очаква")
+  ) {
+    return {
+      label: "На път",
+      type: "on_the_way",
+      canOrder: true,
+    };
   }
 
-  return "Не е в наличност";
+  if (
+    explicitType === "in_stock" ||
+    text.includes("налич") ||
+    text.includes("available") ||
+    text.includes("in stock") ||
+    statusNumber === 1 ||
+    qty > 0
+  ) {
+    return {
+      label: "В наличност",
+      type: "in_stock",
+      canOrder: true,
+    };
+  }
+
+  return {
+    label: "С поръчка",
+    type: "order",
+    canOrder: true,
+  };
 };
+
+const getValiStockStatus = (product) => getValiAvailability(product).label;
 
 const isPromotionCurrentlyActive = (promotion, now = new Date()) => {
   if (!promotion?.is_active) return false;
@@ -2664,7 +2731,8 @@ function App() {
         );
         const finalPrice = Number((basePrice + (basePrice * markupPercent / 100)).toFixed(2));
         const title = getBgText(p.name) || p.model || "VALI продукт";
-        const stockStatus = getValiStockStatus(p);
+        const availability = getValiAvailability(p);
+        const stockStatus = availability.label;
 
         return ({
         id: `vali-${p.id}`,
@@ -2684,9 +2752,13 @@ function App() {
         basePrice,
         markupPercent,
         stock: stockStatus,
-        inStock: stockStatus === "В наличност",
+        inStock: availability.type === "in_stock",
+        availabilityType: availability.type,
+        availabilityLabel: availability.label,
+        canOrder: availability.canOrder,
+        expectedDelivery: p.expected_delivery || p.raw?.expected_delivery || "",
         stockStatus,
-        stockQty: Number(p.stock_qty || p.quantity || 0),
+        stockQty: Number(p.stock_quantity ?? p.raw?.stock_quantity ?? p.quantity ?? p.raw?.quantity ?? p.qty ?? p.raw?.qty ?? p.stock ?? p.raw?.stock ?? p.available_quantity ?? p.raw?.available_quantity ?? 0),
         warranty: p.warranty || p.raw?.warranty || null,
         image: p.images?.[0]?.href || p.image || "/placeholder.webp",
         images: p.images?.map((x) => x.href).filter(Boolean) || [],
@@ -3089,6 +3161,9 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         specs: item.specs || null,
         attributes: item.attributes || null,
         characteristics: item.characteristics || item.specs || item.attributes || item.description || "",
+        availability_label: item.availabilityLabel || item.stockStatus || item.stock || "",
+        availability_type: item.availabilityType || "",
+        stock_quantity: item.stockQty ?? null,
         parts: item.parts || null,
         is_custom_pc_build: Boolean(item.is_custom_pc_build || item.source === "config"),
       })),
@@ -3406,7 +3481,7 @@ const headerProps = {
   <article className="product-card">
               <div className="product-image">
                 <img src={product.image} alt={product.name} loading="lazy" />
-                <span className="badge-product">{product.badge}</span>
+                <span className="badge-product">{product.availabilityType === "on_the_way" ? "На път" : product.badge}</span>
                 <button className="wish" onClick={(event) => event.stopPropagation()}><Heart size={17} /></button>
                 {product.images?.length > 1 && (
                   <div className="product-image-count">+{product.images.length - 1} снимки</div>
@@ -3434,7 +3509,7 @@ const headerProps = {
     : "Натиснете за повече информация..."}
 </small>
                 </div>
-                <p className="stock"><CheckCircle2 size={15} /> {product.stock}</p>
+                <p className="stock"><CheckCircle2 size={15} /> {product.availabilityLabel || product.stock}</p>
                 <div className="product-buy">
                   <div>
                     <b>{formatPrice(calculateGross(product.price))}</b>
