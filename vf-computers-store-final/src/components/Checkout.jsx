@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CreditCard, X } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../utils/format";
@@ -11,7 +11,7 @@ export default function Checkout({
   sendOrder,
   sendingOrder,
 }) {
-  const { checkoutOpen, setCheckoutOpen, cartGrandTotal } = useCart();
+  const { checkoutOpen, setCheckoutOpen, cartGrandTotal, cartItems } = useCart();
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -21,6 +21,18 @@ export default function Checkout({
     comment: "",
   });
   const [checkoutError, setCheckoutError] = useState("");
+  const hasCustomPcBuild = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
+
+  useEffect(() => {
+    if (hasCustomPcBuild && paymentMethod !== "bank_transfer_required") {
+      setPaymentMethod("bank_transfer_required");
+      return;
+    }
+
+    if (!hasCustomPcBuild && paymentMethod === "bank_transfer_required") {
+      setPaymentMethod("cod");
+    }
+  }, [hasCustomPcBuild, paymentMethod, setPaymentMethod]);
 
   if (!checkoutOpen) return null;
 
@@ -82,31 +94,43 @@ export default function Checkout({
             <CreditCard />
             <div>
               <b>Метод на плащане</b>
-              <p>Избери как клиентът ще плати поръчката.</p>
+              <p>{hasCustomPcBuild ? "Конфигурациите от Сглоби PC се изпълняват само след предварително плащане." : "Избери как клиентът ще плати поръчката."}</p>
             </div>
           </div>
 
-          <div className="payment-options">
-            {paymentMethods.map((method) => (
-              <label
-                className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
-                key={method.id}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value={method.id}
-                  checked={paymentMethod === method.id}
-                  onChange={() => setPaymentMethod(method.id)}
-                />
+          {hasCustomPcBuild ? (
+            <div className="payment-options">
+              <div className="payment-option active locked">
                 <div>
-                  <span>{method.badge}</span>
-                  <b>{method.title}</b>
-                  <p>{method.text}</p>
+                  <span>Задължително</span>
+                  <b>Предварително плащане по банков път</b>
+                  <p>След изпращане на заявката ще се свържем с вас за потвърждение и банкови данни.</p>
                 </div>
-              </label>
-            ))}
-          </div>
+              </div>
+            </div>
+          ) : (
+            <div className="payment-options">
+              {paymentMethods.map((method) => (
+                <label
+                  className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
+                  key={method.id}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    value={method.id}
+                    checked={paymentMethod === method.id}
+                    onChange={() => setPaymentMethod(method.id)}
+                  />
+                  <div>
+                    <span>{method.badge}</span>
+                    <b>{method.title}</b>
+                    <p>{method.text}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
 
           {paymentMethod === "bank" && (
             <div className="bank-transfer-box">
@@ -130,11 +154,13 @@ export default function Checkout({
 
         <div className="checkout-summary">
           <CreditCard />
-          <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b></span>
+          <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b>{hasCustomPcBuild ? " • Плащане: предварително по банков път" : ""}</span>
         </div>
         <button className="send-order" onClick={handleSendOrder} disabled={sendingOrder}>
           {sendingOrder
             ? "Изпращане..."
+            : hasCustomPcBuild
+              ? "Изпрати заявка за конфигурация"
             : paymentMethod === "bank"
               ? "Изпрати поръчка с банков превод"
               : paymentMethod === "tbi"

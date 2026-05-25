@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { formatPrice } from "../utils/format";
 
 export default function BuilderPage({
@@ -7,6 +7,9 @@ export default function BuilderPage({
   componentPools,
   builderSelections,
   updateBuilderSelection,
+  updateBuilderStorageSelection,
+  addBuilderStorageRow,
+  removeBuilderStorageRow,
   getCompatibilityIssue,
   builderGame,
   setBuilderGame,
@@ -95,14 +98,33 @@ export default function BuilderPage({
                 ))}
               </select>
             </label>
-            <label>
+            <label className="wide">
               5. SSD / HDD
-              <select value={builderSelections.storage} onChange={(event) => updateBuilderSelection("storage", event.target.value)}>
-                <option value="">Избери устройство</option>
-                {componentPools.storage.map((product) => (
-                  <option key={product.id} value={product.id}>{product.name}</option>
+              <div className="storage-selection-list">
+                {builderSelections.storage.map((row, index) => (
+                  <div className="storage-selection-row" key={row.id}>
+                    <div>
+                      <span>{index === 0 ? "Основен SSD / HDD" : "Допълнителен SSD / HDD"}</span>
+                      <select value={row.product || ""} onChange={(event) => updateBuilderStorageSelection(row.id, event.target.value)}>
+                        <option value="">Избери устройство</option>
+                        {componentPools.storage.map((product) => (
+                          <option key={product.id} value={product.id}>{product.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {index > 0 && (
+                      <button className="storage-remove" type="button" onClick={() => removeBuilderStorageRow(row.id)}>
+                        <Trash2 size={15} />
+                        Премахни
+                      </button>
+                    )}
+                  </div>
                 ))}
-              </select>
+                <button className="storage-add" type="button" onClick={addBuilderStorageRow}>
+                  <Plus size={16} />
+                  Добави допълнително SSD / HDD
+                </button>
+              </div>
             </label>
             <label>
               6. Захранване
@@ -146,6 +168,11 @@ export default function BuilderPage({
             <p>Общо: {formatPrice(builderGrandTotal)} с ДДС</p>
           </div>
 
+          <div className="builder-preview payment-required">
+            <b>Плащане: предварително по банков път</b>
+            <p>Конфигурациите, сглобени чрез 'Сглоби PC', се изпълняват само след предварително плащане по банков път. След изпращане на заявката ще се свържем с вас за потвърждение и банкови данни.</p>
+          </div>
+
           <div className="builder-preview">
             <b>Примерен FPS</b>
             {!builderProducts.cpu || !builderProducts.gpu ? (
@@ -166,7 +193,7 @@ export default function BuilderPage({
           {builderNotice && <div className="notice">{builderNotice}</div>}
 
           <div className="builder-actions">
-            <button className="btn primary" onClick={addConfigurationToCart}>Добави конфигурацията в количката</button>
+            <button className="btn primary" onClick={addConfigurationToCart}>Изпрати заявка за конфигурация</button>
             <a className="btn ghost" href={`tel:${storeInfo.rawPhone}`}>Обади се</a>
           </div>
         </div>

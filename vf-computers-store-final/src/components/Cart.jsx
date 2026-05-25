@@ -21,6 +21,8 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
 
   if (!cartOpen) return null;
 
+  const hasCustomPcBuild = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
+
   return (
     <div className="overlay" onClick={() => setCartOpen(false)}>
       <aside className="drawer" onClick={(event) => event.stopPropagation()}>
@@ -57,19 +59,24 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
           <div className="cart-vat-row"><span>ДДС 20%</span><b>{formatPrice(cartVat)}</b></div>
           <div className="cart-vat-row"><span>Доставка с {deliveryProvider}</span><b>{cartDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(cartDelivery)}`}</b></div>
           <div className="cart-total-row"><span>Общо</span><b>{formatPrice(cartGrandTotal)}</b></div>
-          <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>Завърши поръчката</button>
-          <button
-            className="drawer-tbi-btn"
-            disabled={!cartItems.length}
-            onClick={() => handleTbiCheckout({
-              name: cartItems.map((item) => item.name).join(", "),
-              price: cartGrandTotal,
-              isGross: true,
-            })}
-          >
-            <CreditCard size={17} />
-            Купи количката на изплащане с TBI
+          {hasCustomPcBuild && <p className="cart-payment-note">Плащане: предварително по банков път</p>}
+          <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>
+            {hasCustomPcBuild ? "Изпрати заявка за конфигурация" : "Завърши поръчката"}
           </button>
+          {!hasCustomPcBuild && (
+            <button
+              className="drawer-tbi-btn"
+              disabled={!cartItems.length}
+              onClick={() => handleTbiCheckout({
+                name: cartItems.map((item) => item.name).join(", "),
+                price: cartGrandTotal,
+                isGross: true,
+              })}
+            >
+              <CreditCard size={17} />
+              Купи количката на изплащане с TBI
+            </button>
+          )}
         </div>
       </aside>
     </div>

@@ -100,6 +100,11 @@ const DEFAULT_DELIVERY_SETTINGS = {
   default_delivery_price: 8,
 };
 
+const createStorageSelectionRow = () => ({
+  id: globalThis.crypto?.randomUUID?.() || `storage-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  product: null,
+});
+
 const getBgText = (value) => {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -331,6 +336,207 @@ const isCategoryMatch = (product, keywords = []) => {
   const haystack = `${product.mainCategory || ""} ${product.category || ""} ${product.title || ""} ${product.name || ""}`.toLowerCase();
   return keywords.some((keyword) => haystack.includes(keyword));
 };
+
+const norm = (v = "") => String(v).toLowerCase().trim();
+
+const productText = (p) =>
+  norm([
+    p?.title,
+    p?.name,
+    p?.category,
+    p?.site_main_category,
+    p?.site_sub_category,
+    p?.manufacturer,
+    p?.model,
+  ].filter(Boolean).join(" "));
+
+const normalizeSearchText = (value) => normalizeComparableValue(value).toLowerCase();
+
+const getProductSubCategory = (product) => normalizeSearchText(
+  product?.site_sub_category || product?.subCategory || product?.category
+);
+
+const getProductTypeText = (product) => normalizeSearchText(
+  product?.type || product?.product_type || product?.kind || getFilter(product, ["Type", "Тип", "Product Type", "Продуктов тип"])
+);
+
+const getProductAttributeText = (product) => {
+  const filters = product?.filters || {};
+  const filterText = Object.entries(filters)
+    .flatMap(([key, value]) => [key, ...collectFilterValues(value)])
+    .join(" ");
+
+  return normalizeSearchText([
+    product?.attributes,
+    product?.characteristics,
+    product?.specs,
+    product?.description,
+    filterText,
+  ].filter(Boolean).join(" "));
+};
+
+const getProductNameText = (product) => normalizeSearchText(`${product?.title || ""} ${product?.name || ""}`);
+const getProductCategoryText = (product) => normalizeSearchText(
+  `${product?.site_sub_category || ""} ${product?.category || ""}`
+);
+const getPrimaryProductName = (product) => norm(product?.title || product?.name || "");
+
+const productHasExactSubCategory = (product, categories = []) => {
+  const subCategory = getProductSubCategory(product);
+  return categories.some((category) => subCategory === normalizeSearchText(category));
+};
+
+const productMatchesTypeOrAttributes = (product, keywords = []) => {
+  const typeText = getProductTypeText(product);
+  const attributeText = getProductAttributeText(product);
+  return keywords.some((keyword) => {
+    const normalizedKeyword = normalizeSearchText(keyword);
+    return typeText.includes(normalizedKeyword) || attributeText.includes(normalizedKeyword);
+  });
+};
+
+const productNameIncludes = (product, keywords = []) => {
+  const nameText = getProductNameText(product);
+  return keywords.some((keyword) => nameText.includes(normalizeSearchText(keyword)));
+};
+
+const productNameExcludes = (product, keywords = []) => {
+  const nameText = getProductNameText(product);
+  return keywords.some((keyword) => nameText.includes(normalizeSearchText(keyword)));
+};
+
+const CPU_SUBCATEGORIES = ["Процесори", "CPU", "Processors"];
+const MOTHERBOARD_SUBCATEGORIES = ["Дънни платки", "Дънна платка", "Motherboards", "Mainboards"];
+const RAM_SUBCATEGORIES = ["RAM памети", "RAM памет", "Оперативна памет", "Memory", "Desktop Memory"];
+const STORAGE_SUBCATEGORIES = ["SSD / HDD", "SSD", "HDD", "Твърди дискове", "Hard Drives", "Storage", "NVMe"];
+
+function getSocket(product) {
+  const explicitSocket = normalizeSearchText(getFilter(product, [
+    "CPU Socket",
+    "Socket",
+    "Сокет",
+    "Процесорен сокет",
+    "Processor Socket",
+    "Socket Type",
+  ]));
+  const haystack = `${explicitSocket} ${getProductAttributeText(product)} ${getProductNameText(product)}`;
+
+  const socketPatterns = [
+    ["AM5", /\bam5\b/i],
+    ["AM4", /\bam4\b/i],
+    ["LGA1700", /\blga\s*1700\b|\b1700\b/i],
+    ["LGA1851", /\blga\s*1851\b|\b1851\b/i],
+    ["LGA1200", /\blga\s*1200\b|\b1200\b/i],
+    ["LGA1151", /\blga\s*1151\b|\b1151\b/i],
+    ["TR4", /\btr4\b/i],
+    ["sTRX4", /\bstrx4\b/i],
+  ];
+
+  return socketPatterns.find(([, pattern]) => pattern.test(haystack))?.[0] || "";
+}
+
+function getRamType(product) {
+  const explicitType = normalizeSearchText(getFilter(product, [
+    "RAM Type",
+    "Memory Type",
+    "DDR",
+    "Тип памет",
+    "Памет",
+    "Supported Memory",
+  ]));
+  const haystack = `${explicitType} ${getProductAttributeText(product)} ${getProductNameText(product)}`;
+
+  if (/\bddr5\b/i.test(haystack)) return "DDR5";
+  if (/\bddr4\b/i.test(haystack)) return "DDR4";
+  if (/\bddr3\b/i.test(haystack)) return "DDR3";
+
+  return "";
+}
+
+function getStorageType(product) {
+  const haystack = `${getProductTypeText(product)} ${getProductAttributeText(product)} ${getProductNameText(product)}`;
+
+  if (/\bnvme\b/i.test(haystack)) return "NVMe SSD";
+  if (/\bm\.?2\b/i.test(haystack) && /\bsata\b/i.test(haystack)) return "M.2 SATA SSD";
+  if (/\bhdd\b|\bhard\s*drive\b|твърд диск/i.test(haystack)) return "HDD";
+  if (/\bssd\b/i.test(haystack) && /\bsata\b/i.test(haystack)) return "SATA SSD";
+  if (/\bssd\b|\bsolid\s*state/i.test(haystack)) return "SSD";
+
+  return "";
+}
+
+function isCpu(product) {
+  const name = getPrimaryProductName(product);
+  const text = productText(product);
+  const allowed = name.startsWith("процесор ") || productHasExactSubCategory(product, ["Процесори"]);
+  const blocked = /видео\s*карта|videocard|graphics|gpu|дънна\s*платка|motherboard|mainboard|кутия|case|суич|switch|кабел|cable|адаптер|adapter|софтуер|software/i.test(text);
+
+  return allowed && !blocked;
+}
+
+function isMotherboard(product) {
+  const name = getPrimaryProductName(product);
+  return name.startsWith("дънна платка ") || productHasExactSubCategory(product, ["Дънни платки"]);
+}
+
+function isRam(product) {
+  const name = getPrimaryProductName(product);
+  const text = productText(product);
+  const allowed = name.startsWith("памет ") || /\bddr[345]\b/i.test(text);
+  const blocked = /видео\s*карта|videocard|graphics|gpu|дънна\s*платка|motherboard|mainboard|\bssd\b|\bhdd\b|твърд\s*диск|суич|switch/i.test(text);
+
+  return allowed && !blocked;
+}
+
+function isGpu(product) {
+  const name = getPrimaryProductName(product);
+  const text = productText(product);
+  const allowed = name.startsWith("видео карта ");
+  const blocked = /воден\s*блок|water\s*block|охлаждане|cooling|cooler|брекет|bracket|кабел|cable|софтуер|software/i.test(text);
+
+  return allowed && !blocked;
+}
+
+function isStorage(product) {
+  const name = getPrimaryProductName(product);
+  const text = productText(product);
+  const exactStorageCategory = productHasExactSubCategory(product, ["SSD / HDD", "SSD", "HDD", "Твърди дискове"]);
+  const directDisk = name.startsWith("ssd ") || name.startsWith("твърд диск ") || name.startsWith("hdd ");
+  const hasStorageInterface = /\bnvme\b|\bm\.?2\b|\bsata3\b/i.test(name);
+  const isDiskContext = /\bssd\b|твърд\s*диск|\bhdd\b|\bhard\s*(disk|drive)\b/i.test(name);
+  const blockedComputer = /настолен\s*компютър|готов\s*компютър|компютър|computer|desktop|workstation|мини\s*компютър|mini\s*pc|лаптоп|laptop|notebook/i.test(name);
+  const blockedAccessory = /дънна\s*платка|motherboard|mainboard|скоба|bracket|калъф|case|enclosure|чекмедже|drawer|мултифункционално\s*устройство|multifunction|mfp|адаптер|adapter/i.test(text);
+  const blocked = blockedComputer || blockedAccessory;
+
+  return (exactStorageCategory || directDisk || (hasStorageInterface && isDiskContext)) && !blocked;
+}
+
+function isPsu(product) {
+  const name = getPrimaryProductName(product);
+  const text = productText(product);
+  const allowed = name.startsWith("захранващ блок ");
+  const blocked = /захранващ\s*адаптер|power\s*adapter|\busb\b|hama|разклонител/i.test(text);
+
+  return allowed && !blocked;
+}
+
+function isCase(product) {
+  const name = getPrimaryProductName(product);
+  const text = productText(product);
+  const allowed = name.startsWith("кутия ");
+  const blocked = /кутийка|батерия|battery|\bdvd\b|кабел|cable|адаптер|adapter/i.test(text);
+
+  return allowed && !blocked;
+}
+
+function isCooler(product) {
+  const name = getPrimaryProductName(product);
+  const text = productText(product);
+  const allowed = name.startsWith("охладител ") || name.startsWith("водно охлаждане") || name.startsWith("вентилатор");
+  const blocked = /воден\s*блок|water\s*block/i.test(text) && !/cpu|процесор/i.test(text);
+
+  return allowed && !blocked;
+}
 
 const findMarkupPercent = (markups = [], mainCategory, subCategory) => {
   const match = markups.find((item) =>
@@ -2227,7 +2433,7 @@ function App() {
     motherboard: "",
     ram: "",
     gpu: "",
-    storage: "",
+    storage: [createStorageSelectionRow()],
     psu: "",
     case: "",
     cooler: "",
@@ -2505,59 +2711,71 @@ function App() {
   const [sendingOrder, setSendingOrder] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
 const [activeMega, setActiveMega] = useState(megaCategories[0]);
-  const componentPools = useMemo(() => ({
-    cpu: products.filter((product) => isCategoryMatch(product, ["процесор", "cpu", "processor"])),
-    motherboard: products.filter((product) => isCategoryMatch(product, ["дън", "motherboard", "mainboard"])),
-    ram: products.filter((product) => isCategoryMatch(product, ["ram", "memory", "памет"])),
-    gpu: products.filter((product) => isCategoryMatch(product, ["видео карт", "gpu", "graphics"])),
-    storage: products.filter((product) => isCategoryMatch(product, ["ssd", "hdd", "solid state drive", "storage", "хард", "nvme"])),
-    psu: products.filter((product) => isCategoryMatch(product, ["захранван", "psu", "power supply"])),
-    case: products.filter((product) => isCategoryMatch(product, ["кут", "case", "chassis"])),
-    cooler: products.filter((product) => isCategoryMatch(product, ["охлад", "cooler"])),
+  const baseComponentPools = useMemo(() => ({
+    cpu: products.filter(isCpu),
+    motherboard: products.filter(isMotherboard),
+    ram: products.filter(isRam),
+    gpu: products.filter(isGpu),
+    storage: products.filter(isStorage),
+    psu: products.filter(isPsu),
+    case: products.filter(isCase),
+    cooler: products.filter(isCooler),
   }), [products]);
 
   const builderProducts = useMemo(() => ({
-    cpu: componentPools.cpu.find((product) => product.id === builderSelections.cpu) || null,
-    motherboard: componentPools.motherboard.find((product) => product.id === builderSelections.motherboard) || null,
-    ram: componentPools.ram.find((product) => product.id === builderSelections.ram) || null,
-    gpu: componentPools.gpu.find((product) => product.id === builderSelections.gpu) || null,
-    storage: componentPools.storage.find((product) => product.id === builderSelections.storage) || null,
-    psu: componentPools.psu.find((product) => product.id === builderSelections.psu) || null,
-    case: componentPools.case.find((product) => product.id === builderSelections.case) || null,
-    cooler: componentPools.cooler.find((product) => product.id === builderSelections.cooler) || null,
-  }), [componentPools, builderSelections]);
+    cpu: baseComponentPools.cpu.find((product) => product.id === builderSelections.cpu) || null,
+    motherboard: baseComponentPools.motherboard.find((product) => product.id === builderSelections.motherboard) || null,
+    ram: baseComponentPools.ram.find((product) => product.id === builderSelections.ram) || null,
+    gpu: baseComponentPools.gpu.find((product) => product.id === builderSelections.gpu) || null,
+    storage: (builderSelections.storage || [])
+      .map((row) => baseComponentPools.storage.find((product) => product.id === row.product))
+      .filter(Boolean),
+    psu: baseComponentPools.psu.find((product) => product.id === builderSelections.psu) || null,
+    case: baseComponentPools.case.find((product) => product.id === builderSelections.case) || null,
+    cooler: baseComponentPools.cooler.find((product) => product.id === builderSelections.cooler) || null,
+  }), [baseComponentPools, builderSelections]);
 
-  const selectedCpuSocket = normalizeComparableValue(getFilter(builderProducts.cpu, ["CPU Socket", "Socket", "Сокет", "Процесорен сокет"]));
-  const selectedBoardSocket = normalizeComparableValue(getFilter(builderProducts.motherboard, ["CPU Socket", "Socket", "Сокет", "Процесорен сокет"]));
-  const selectedBoardRamType = normalizeComparableValue(getFilter(builderProducts.motherboard, ["RAM Type", "Memory Type", "DDR", "Тип памет", "Памет"]));
-  const selectedRamType = normalizeComparableValue(getFilter(builderProducts.ram, ["RAM Type", "Memory Type", "DDR", "Тип памет", "Памет"]));
+  const selectedCpuSocket = getSocket(builderProducts.cpu);
+  const selectedBoardSocket = getSocket(builderProducts.motherboard);
+  const selectedBoardRamType = getRamType(builderProducts.motherboard);
+  const selectedRamType = getRamType(builderProducts.ram);
+
+  const componentPools = useMemo(() => ({
+    ...baseComponentPools,
+    motherboard: selectedCpuSocket
+      ? baseComponentPools.motherboard.filter((product) => getSocket(product) === selectedCpuSocket)
+      : baseComponentPools.motherboard,
+    ram: selectedBoardRamType
+      ? baseComponentPools.ram.filter((product) => getRamType(product) === selectedBoardRamType)
+      : baseComponentPools.ram,
+  }), [baseComponentPools, selectedCpuSocket, selectedBoardRamType]);
 
   const getCompatibilityIssue = (type, product) => {
     if (!product) return "";
 
     if (type === "motherboard" && selectedCpuSocket) {
-      const socket = normalizeComparableValue(getFilter(product, ["CPU Socket", "Socket", "Сокет", "Процесорен сокет"]));
+      const socket = getSocket(product);
       if (socket && socket !== selectedCpuSocket) {
         return `Несъвместимо със сокет ${selectedCpuSocket}`;
       }
     }
 
     if (type === "cpu" && selectedBoardSocket) {
-      const socket = normalizeComparableValue(getFilter(product, ["CPU Socket", "Socket", "Сокет", "Процесорен сокет"]));
+      const socket = getSocket(product);
       if (socket && socket !== selectedBoardSocket) {
         return `Несъвместимо със сокет ${selectedBoardSocket}`;
       }
     }
 
     if (type === "ram" && selectedBoardRamType) {
-      const ramType = normalizeComparableValue(getFilter(product, ["RAM Type", "Memory Type", "DDR", "Тип памет", "Памет"]));
+      const ramType = getRamType(product);
       if (ramType && ramType !== selectedBoardRamType) {
         return `Несъвместимо с ${selectedBoardRamType}`;
       }
     }
 
     if (type === "motherboard" && selectedRamType) {
-      const ramType = normalizeComparableValue(getFilter(product, ["RAM Type", "Memory Type", "DDR", "Тип памет", "Памет"]));
+      const ramType = getRamType(product);
       if (ramType && ramType !== selectedRamType) {
         return `Несъвместимо с ${selectedRamType}`;
       }
@@ -2567,23 +2785,57 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   };
 
   useEffect(() => {
-    if (builderProducts.cpu && getCompatibilityIssue("cpu", builderProducts.cpu)) {
-      setBuilderSelections((current) => ({ ...current, cpu: "" }));
-      setBuilderNotice(`Избраният процесор беше изчистен. ${getCompatibilityIssue("cpu", builderProducts.cpu)}`);
+    if (builderProducts.motherboard && selectedCpuSocket && getCompatibilityIssue("motherboard", builderProducts.motherboard)) {
+      setBuilderSelections((current) => ({ ...current, motherboard: "", ram: "" }));
+      setBuilderNotice(`Избраната дънна платка беше изчистена. ${getCompatibilityIssue("motherboard", builderProducts.motherboard)}`);
+      return;
     }
 
     if (builderProducts.ram && getCompatibilityIssue("ram", builderProducts.ram)) {
       setBuilderSelections((current) => ({ ...current, ram: "" }));
       setBuilderNotice(`Избраната RAM беше изчистена. ${getCompatibilityIssue("ram", builderProducts.ram)}`);
     }
-  }, [builderProducts.cpu, builderProducts.ram, selectedBoardSocket, selectedBoardRamType]);
+  }, [builderProducts.motherboard, builderProducts.ram, selectedCpuSocket, selectedBoardRamType]);
 
   const updateBuilderSelection = (type, value) => {
     setBuilderSelections((current) => ({ ...current, [type]: value }));
     setBuilderNotice("");
   };
 
-  const builderSelectedList = Object.values(builderProducts).filter(Boolean);
+  const updateBuilderStorageSelection = (rowId, productId) => {
+    setBuilderSelections((current) => ({
+      ...current,
+      storage: current.storage.map((row) => (
+        row.id === rowId ? { ...row, product: productId } : row
+      )),
+    }));
+    setBuilderNotice("");
+  };
+
+  const addBuilderStorageRow = () => {
+    setBuilderSelections((current) => ({
+      ...current,
+      storage: [...current.storage, createStorageSelectionRow()],
+    }));
+  };
+
+  const removeBuilderStorageRow = (rowId) => {
+    setBuilderSelections((current) => ({
+      ...current,
+      storage: current.storage.filter((row) => row.id !== rowId),
+    }));
+  };
+
+  const builderSelectedList = [
+    builderProducts.cpu,
+    builderProducts.motherboard,
+    builderProducts.ram,
+    builderProducts.gpu,
+    ...builderProducts.storage,
+    builderProducts.psu,
+    builderProducts.case,
+    builderProducts.cooler,
+  ].filter(Boolean);
   const builderNetTotal = builderSelectedList.reduce((sum, product) => sum + Number(product.price || 0), 0);
   const builderVatTotal = calculateVat(builderNetTotal);
   const builderGrossTotal = calculateGross(builderNetTotal);
@@ -2619,11 +2871,15 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       specs: builderSelectedList.map((product) => product.name),
       parts: builderProducts,
       source: "config",
+      is_custom_pc_build: true,
+      payment_method: "bank_transfer_required",
+      payment_label: "Предварително плащане по банков път",
     };
 
     setCartCustomItems((current) => [...current, customItem]);
-    setCartOpen(true);
-    setBuilderNotice("Конфигурацията е добавена в количката.");
+    setCartOpen(false);
+    setCheckoutOpen(true);
+    setBuilderNotice("Конфигурацията е готова за изпращане.");
   };
 
   const sendOrder = async (checkoutForm) => {
@@ -2659,6 +2915,12 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     setSendingOrder(true);
     setNotice("");
 
+    const isCustomPcBuildOrder = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
+    const resolvedPaymentMethod = isCustomPcBuildOrder ? "bank_transfer_required" : paymentMethod;
+    const resolvedPaymentLabel = isCustomPcBuildOrder ? "Предварително плащане по банков път" : (
+      paymentMethods.find((method) => method.id === paymentMethod)?.title || paymentMethod
+    );
+
     const orderPayload = {
       customer_name: customerName,
       customer_phone: phone,
@@ -2693,12 +2955,15 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         attributes: item.attributes || null,
         characteristics: item.characteristics || item.specs || item.attributes || item.description || "",
         parts: item.parts || null,
+        is_custom_pc_build: Boolean(item.is_custom_pc_build || item.source === "config"),
       })),
       subtotal: cartSubtotal,
       vat: cartVat,
       shipping: cartDelivery,
       total: cartGrandTotal,
-      payment_method: paymentMethod,
+      payment_method: resolvedPaymentMethod,
+      payment_label: resolvedPaymentLabel,
+      is_custom_pc_build: isCustomPcBuildOrder,
       payment_status: "pending",
       status: "Приета",
       created_at: new Date().toISOString(),
@@ -2752,7 +3017,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     setCartOpen(false);
     setCheckoutOpen(false);
 
-    if (paymentMethod === "tbi") {
+    if (!isCustomPcBuildOrder && paymentMethod === "tbi") {
       await handleTbiCheckout({
         name: cartItems.map((item) => item.name).join(", "),
         price: cartGrandTotal,
@@ -3217,6 +3482,9 @@ const headerProps = {
             componentPools={componentPools}
             builderSelections={builderSelections}
             updateBuilderSelection={updateBuilderSelection}
+            updateBuilderStorageSelection={updateBuilderStorageSelection}
+            addBuilderStorageRow={addBuilderStorageRow}
+            removeBuilderStorageRow={removeBuilderStorageRow}
             getCompatibilityIssue={getCompatibilityIssue}
             builderGame={builderGame}
             setBuilderGame={setBuilderGame}

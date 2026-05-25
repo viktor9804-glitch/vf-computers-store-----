@@ -60,6 +60,7 @@ export const getPaymentMethodText = (method) => {
   if (value === "cod") return "Наложен платеж";
   if (value === "bank") return "Банков превод";
   if (value === "tbi") return "TBI";
+  if (value === "bank_transfer_required") return "Предварително плащане по банков път";
   return method || "-";
 };
 
@@ -152,7 +153,7 @@ const totalsTable = ({ subtotal, vat, shipping, total }) => `
 export const buildOrderEmailHtml = ({ order, introTitle, introText, status }) => {
   const orderNumber = getOrderNumber(order);
   const totals = getOrderTotals(order);
-  const paymentMethod = getPaymentMethodText(order?.payment_method);
+  const paymentMethod = order?.payment_label || getPaymentMethodText(order?.payment_method);
   const currentStatus = status || order?.status || "Приета";
 
   return `

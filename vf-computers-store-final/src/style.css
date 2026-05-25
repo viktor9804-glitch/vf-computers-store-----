@@ -402,6 +402,43 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
   min-height:92px;
   resize:vertical;
 }
+.storage-selection-list{
+  display:grid;
+  gap:10px;
+}
+.storage-selection-row{
+  display:grid;
+  gap:8px;
+}
+.storage-selection-row > div{
+  display:grid;
+  gap:7px;
+}
+.storage-selection-row span{
+  color:#fecaca;
+  font-size:12px;
+  font-weight:900;
+}
+.storage-remove,
+.storage-add{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border:1px solid rgba(239,68,68,.35);
+  background:rgba(239,68,68,.10);
+  color:#ffffff;
+  border-radius:14px;
+  padding:10px 12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.storage-remove{
+  justify-self:start;
+}
+.storage-add{
+  width:100%;
+}
 .builder-form-grid input:focus,
 .builder-form-grid select:focus,
 .builder-form-grid textarea:focus{
@@ -450,6 +487,21 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
   margin:0;
   color:#fecaca;
   line-height:1.5;
+}
+.payment-required{
+  background:rgba(34,197,94,.10);
+  border-color:rgba(34,197,94,.28);
+}
+.payment-required p{
+  color:#dcfce7;
+}
+.cart-payment-note{
+  margin:10px 0 0;
+  color:#fecaca;
+  font-weight:900;
+}
+.payment-option.locked{
+  cursor:default;
 }
 
 @media (max-width:860px){
