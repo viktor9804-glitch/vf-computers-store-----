@@ -18,10 +18,6 @@ import {
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { CartProvider, useCart } from "./context/CartContext";
-import AIAssistant from "./components/AIAssistant";
-import Cart from "./components/Cart";
-import Checkout from "./components/Checkout";
-import Footer from "./components/Footer";
 import MegaMenu from "./components/MegaMenu";
 import ProductCard from "./components/ProductCard";
 import ProductFilters from "./components/ProductFilters";
@@ -35,6 +31,10 @@ const CategoryRoutePage = React.lazy(() => import("./pages/Category"));
 const ProductPageRoute = React.lazy(() => import("./pages/Product"));
 const SearchPage = React.lazy(() => import("./pages/SearchPage"));
 const WarrantyCheckPage = React.lazy(() => import("./pages/WarrantyCheck"));
+const AIAssistant = React.lazy(() => import("./components/AIAssistant"));
+const Cart = React.lazy(() => import("./components/Cart"));
+const Checkout = React.lazy(() => import("./components/Checkout"));
+const Footer = React.lazy(() => import("./components/Footer"));
 
 const LOGO_URL = "/VF_logo_1.png";
 
@@ -78,6 +78,23 @@ const paymentMethods = [
 
 const ADMIN_PASSWORD = "vfadmin123"; // Смени тази парола след като качиш сайта.
 const STORAGE_BUCKET = "product-images";
+const VALI_PRODUCT_SELECT = [
+  "id",
+  "reference_number",
+  "manufacturer",
+  "status",
+  "price_client",
+  "price_partner",
+  "model",
+  "barcode",
+  "warranty",
+  "name",
+  "description",
+  "images",
+  "filters",
+  "site_main_category",
+  "site_sub_category",
+].join(",");
 
 const formatPrice = (value) => {
   return new Intl.NumberFormat("bg-BG", {
@@ -2570,33 +2587,12 @@ function App() {
 
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadProducts = async () => {
       setLoadingProducts(true);
-      const localRes = await fetchAllSupabaseRows(() =>
-        supabase
-          .from("products")
-          .select("*")
-          .order("created_at", { ascending: false })
-      );
 
-      const valiRes = await fetchAllSupabaseRows(() =>
-        supabase
-          .from("vali_products")
-          .select("*")
-          .eq("show", true)
-      );
-
-      const { data: markupsData, error: markupsError } = await supabase
-        .from("category_markups")
-        .select("*");
-
-      if (markupsError) {
-        console.warn(markupsError);
-      } else if (Array.isArray(markupsData)) {
-        setCategoryMarkups(markupsData);
-      }
-
-      const localProducts = (localRes.data || []).map((product) => ({
+      const normalizeLocalProduct = (product) => ({
         id: `local-${product.id}`,
         localId: product.id,
         catalog_number: product.catalog_number || "",
@@ -2632,19 +2628,19 @@ function App() {
           ? product.description.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4)
           : ["ВФ Компютри", "Проверен продукт"],
         source: "local",
-      }));
+      });
 
-      const valiProducts = (valiRes.data || []).map((p) => {
+      let activeMarkups = categoryMarkups;
+
+      const normalizeValiProduct = (p) => {
         const filters = extractValiFilters(p);
         const basePrice = Number(p.price_partner || p.price_client || 0);
         const markupPercent = findMarkupPercent(
-          markupsData || [],
+          activeMarkups,
           p.site_main_category,
           p.site_sub_category
         );
-        const finalPrice = Number(
-          (basePrice + (basePrice * markupPercent / 100)).toFixed(2)
-        );
+        const finalPrice = Number((basePrice + (basePrice * markupPercent / 100)).toFixed(2));
         const title = getBgText(p.name) || p.model || "VALI продукт";
         const stockStatus = getValiStockStatus(p);
 
@@ -2662,7 +2658,7 @@ function App() {
         category: p.site_sub_category || p.site_main_category || "Други",
         price: finalPrice,
         oldPrice: finalPrice,
-        originalPrice: basePrice,
+        originalPrice: finalPrice,
         basePrice,
         markupPercent,
         stock: stockStatus,
@@ -2679,21 +2675,84 @@ function App() {
           .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`),
         source: "vali",
       });
-      });
+      };
+
+      const [localRes, firstValiRes, markupsRes] = await Promise.all([
+        fetchAllSupabaseRows(() =>
+          supabase
+            .from("products")
+            .select("*")
+            .order("created_at", { ascending: false })
+        ),
+        supabase
+          .from("vali_products")
+          .select(VALI_PRODUCT_SELECT)
+          .eq("show", true)
+          .range(0, SUPABASE_PAGE_SIZE - 1),
+        supabase.from("category_markups").select("*"),
+      ]);
+
+      if (cancelled) return;
+
+      if (!markupsRes.error && Array.isArray(markupsRes.data)) {
+        activeMarkups = markupsRes.data;
+        setCategoryMarkups(markupsRes.data);
+      } else if (markupsRes.error) {
+        console.error(markupsRes.error);
+      }
+
+      const localProducts = (localRes.data || []).map(normalizeLocalProduct);
+      const firstValiProducts = (firstValiRes.data || []).map(normalizeValiProduct);
 
       setDbProducts([
         ...localProducts,
-        ...valiProducts
+        ...firstValiProducts
       ]);
+      setLoadingProducts(false);
 
       if (localRes.error) {
         console.error(localRes.error);
       }
 
-      setLoadingProducts(false);
+      if (firstValiRes.error) {
+        console.error(firstValiRes.error);
+        return;
+      }
+
+      if ((firstValiRes.data || []).length < SUPABASE_PAGE_SIZE) return;
+
+      const remainingValiProducts = [];
+      let from = SUPABASE_PAGE_SIZE;
+
+      while (!cancelled) {
+        const { data, error } = await supabase
+          .from("vali_products")
+          .select(VALI_PRODUCT_SELECT)
+          .eq("show", true)
+          .range(from, from + SUPABASE_PAGE_SIZE - 1);
+
+        if (error) {
+          console.error(error);
+          return;
+        }
+
+        const pageRows = data || [];
+        remainingValiProducts.push(...pageRows.map(normalizeValiProduct));
+
+        if (pageRows.length < SUPABASE_PAGE_SIZE) break;
+        from += SUPABASE_PAGE_SIZE;
+      }
+
+      if (!cancelled && remainingValiProducts.length > 0) {
+        setDbProducts((current) => [...current, ...remainingValiProducts]);
+      }
     };
 
     loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const [activeCategory, setActiveCategory] = useState("Всички");
@@ -3560,19 +3619,21 @@ const headerProps = {
   </Routes>
   </Suspense>
 
-  <Cart
-    deliveryProvider={deliverySettings.provider}
-    handleTbiCheckout={handleTbiCheckout}
-  />
+  <Suspense fallback={null}>
+    <Cart
+      deliveryProvider={deliverySettings.provider}
+      handleTbiCheckout={handleTbiCheckout}
+    />
 
-  <Checkout
-    paymentMethods={paymentMethods}
-    paymentMethod={paymentMethod}
-    setPaymentMethod={setPaymentMethod}
-    bankInfo={bankInfo}
-    sendOrder={sendOrder}
-    sendingOrder={sendingOrder}
-  />
+    <Checkout
+      paymentMethods={paymentMethods}
+      paymentMethod={paymentMethod}
+      setPaymentMethod={setPaymentMethod}
+      bankInfo={bankInfo}
+      sendOrder={sendOrder}
+      sendingOrder={sendingOrder}
+    />
+  </Suspense>
   </>
 );
 }
