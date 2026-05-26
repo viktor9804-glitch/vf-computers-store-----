@@ -22,17 +22,23 @@ export default function Checkout({
   });
   const [checkoutError, setCheckoutError] = useState("");
   const hasCustomPcBuild = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
+  const customPcBuildItem = cartItems.find((item) => item.is_custom_pc_build || item.source === "config");
+  const customPcPaymentMethod = customPcBuildItem?.payment_method || "bank";
+  const customPcPaymentLabel = customPcBuildItem?.payment_label || "Предварително плащане по банков път";
+  const customPcPaymentText = customPcPaymentMethod === "tbi"
+    ? "Заявката ще бъде обработена като покупка на изплащане чрез TBI Bank. След изпращане ще се свържем с вас за потвърждение и оформяне на финансирането."
+    : "След изпращане на заявката ще се свържем с вас за потвърждение и банкови данни.";
 
   useEffect(() => {
-    if (hasCustomPcBuild && paymentMethod !== "bank_transfer_required") {
-      setPaymentMethod("bank_transfer_required");
+    if (hasCustomPcBuild && paymentMethod !== customPcPaymentMethod) {
+      setPaymentMethod(customPcPaymentMethod);
       return;
     }
 
     if (!hasCustomPcBuild && paymentMethod === "bank_transfer_required") {
       setPaymentMethod("cod");
     }
-  }, [hasCustomPcBuild, paymentMethod, setPaymentMethod]);
+  }, [customPcPaymentMethod, hasCustomPcBuild, paymentMethod, setPaymentMethod]);
 
   if (!checkoutOpen) return null;
 
@@ -94,7 +100,7 @@ export default function Checkout({
             <CreditCard />
             <div>
               <b>Метод на плащане</b>
-              <p>{hasCustomPcBuild ? "Конфигурациите от Сглоби PC се изпълняват само след предварително плащане." : "Избери как клиентът ще плати поръчката."}</p>
+              <p>{hasCustomPcBuild ? "Избраният метод от PC конфигуратора ще бъде добавен към заявката." : "Избери как клиентът ще плати поръчката."}</p>
             </div>
           </div>
 
@@ -102,9 +108,9 @@ export default function Checkout({
             <div className="payment-options">
               <div className="payment-option active locked">
                 <div>
-                  <span>Задължително</span>
-                  <b>Предварително плащане по банков път</b>
-                  <p>След изпращане на заявката ще се свържем с вас за потвърждение и банкови данни.</p>
+                  <span>Избрано</span>
+                  <b>{customPcPaymentLabel}</b>
+                  <p>{customPcPaymentText}</p>
                 </div>
               </div>
             </div>
@@ -147,14 +153,14 @@ export default function Checkout({
           {paymentMethod === "tbi" && (
             <div className="tbi-payment-box">
               <b>TBI Bank - покупка на изплащане</b>
-              <p>След изпращане на поръчката ще се отвори прозорецът за TBI кандидатстване.</p>
+              <p>{hasCustomPcBuild ? customPcPaymentText : "След изпращане на поръчката ще се отвори прозорецът за TBI кандидатстване."}</p>
             </div>
           )}
         </div>
 
         <div className="checkout-summary">
           <CreditCard />
-          <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b>{hasCustomPcBuild ? " • Плащане: предварително по банков път" : ""}</span>
+          <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b>{hasCustomPcBuild ? ` • Плащане: ${customPcPaymentLabel}` : ""}</span>
         </div>
         <button className="send-order" onClick={handleSendOrder} disabled={sendingOrder}>
           {sendingOrder

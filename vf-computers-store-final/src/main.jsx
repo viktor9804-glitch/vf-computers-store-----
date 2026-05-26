@@ -2524,6 +2524,7 @@ function App() {
     cooler: "",
   });
   const [builderGame, setBuilderGame] = useState("");
+  const [builderPaymentMethod, setBuilderPaymentMethod] = useState("bank");
   const [builderNotice, setBuilderNotice] = useState("");
   const products = useMemo(() => {
     const sourceProducts = dbProducts.length > 0 ? dbProducts : fallbackProducts;
@@ -3060,6 +3061,9 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       return;
     }
 
+    const builderPaymentLabel = builderPaymentMethod === "tbi"
+      ? "На изплащане чрез TBI Bank"
+      : "Предварително плащане по банков път";
     const customItem = {
       id: `config-${Date.now()}`,
       name: "Персонална PC конфигурация",
@@ -3079,8 +3083,8 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       parts: builderProducts,
       source: "config",
       is_custom_pc_build: true,
-      payment_method: "bank_transfer_required",
-      payment_label: "Предварително плащане по банков път",
+      payment_method: builderPaymentMethod,
+      payment_label: builderPaymentLabel,
     };
 
     setCartCustomItems((current) => [...current, customItem]);
@@ -3123,8 +3127,9 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     setNotice("");
 
     const isCustomPcBuildOrder = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
-    const resolvedPaymentMethod = isCustomPcBuildOrder ? "bank_transfer_required" : paymentMethod;
-    const resolvedPaymentLabel = isCustomPcBuildOrder ? "Предварително плащане по банков път" : (
+    const customPcBuildItem = cartItems.find((item) => item.is_custom_pc_build || item.source === "config");
+    const resolvedPaymentMethod = isCustomPcBuildOrder ? (customPcBuildItem?.payment_method || "bank") : paymentMethod;
+    const resolvedPaymentLabel = isCustomPcBuildOrder ? (customPcBuildItem?.payment_label || "Предварително плащане по банков път") : (
       paymentMethods.find((method) => method.id === paymentMethod)?.title || paymentMethod
     );
 
@@ -3166,6 +3171,8 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         stock_quantity: item.stockQty ?? null,
         parts: item.parts || null,
         is_custom_pc_build: Boolean(item.is_custom_pc_build || item.source === "config"),
+        payment_method: item.payment_method || null,
+        payment_label: item.payment_label || null,
       })),
       subtotal: cartSubtotal,
       vat: cartVat,
@@ -3719,6 +3726,8 @@ const headerProps = {
             getCompatibilityIssue={getCompatibilityIssue}
             builderGame={builderGame}
             setBuilderGame={setBuilderGame}
+            builderPaymentMethod={builderPaymentMethod}
+            setBuilderPaymentMethod={setBuilderPaymentMethod}
             builderSelectedList={builderSelectedList}
             builderNetTotal={builderNetTotal}
             builderVatTotal={builderVatTotal}

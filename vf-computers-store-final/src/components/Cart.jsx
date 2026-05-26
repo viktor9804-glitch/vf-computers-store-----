@@ -22,6 +22,8 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
   if (!cartOpen) return null;
 
   const hasCustomPcBuild = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
+  const customPcBuildItem = cartItems.find((item) => item.is_custom_pc_build || item.source === "config");
+  const customPcPaymentLabel = customPcBuildItem?.payment_label || "Предварително плащане по банков път";
   const cartProductsTotalWithVat = cartSubtotal + cartVat;
 
   return (
@@ -60,7 +62,7 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
           <p><span>Стойност на продуктите</span><b>{formatPrice(cartProductsTotalWithVat)}</b></p>
           <div className="cart-vat-row"><span>Доставка с {deliveryProvider}</span><b>{cartDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(cartDelivery)}`}</b></div>
           <div className="cart-total-row"><span>Общо</span><b>{formatPrice(cartGrandTotal)}</b></div>
-          {hasCustomPcBuild && <p className="cart-payment-note">Плащане: предварително по банков път</p>}
+          {hasCustomPcBuild && <p className="cart-payment-note">Плащане: {customPcPaymentLabel}</p>}
           <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>
             {hasCustomPcBuild ? "Изпрати заявка за конфигурация" : "Завърши поръчката"}
           </button>

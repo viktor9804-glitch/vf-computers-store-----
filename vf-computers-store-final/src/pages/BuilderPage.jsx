@@ -13,6 +13,8 @@ export default function BuilderPage({
   getCompatibilityIssue,
   builderGame,
   setBuilderGame,
+  builderPaymentMethod,
+  setBuilderPaymentMethod,
   builderSelectedList,
   builderNetTotal,
   builderVatTotal,
@@ -28,6 +30,12 @@ export default function BuilderPage({
   storeInfo,
 }) {
   const builderProductsTotalWithVat = builderNetTotal + builderVatTotal;
+  const builderPaymentLabel = builderPaymentMethod === "tbi"
+    ? "На изплащане чрез TBI Bank"
+    : "Предварително плащане по банков път";
+  const builderPaymentText = builderPaymentMethod === "tbi"
+    ? "Заявката ще бъде обработена като покупка на изплащане чрез TBI Bank. След изпращане ще се свържем с вас за потвърждение и оформяне на финансирането."
+    : "Конфигурациите, сглобени чрез 'Сглоби PC', се изпълняват само след предварително плащане по банков път. След изпращане на заявката ще се свържем с вас за потвърждение и банкови данни.";
 
   return (
     <section id="builder" className="builder-section">
@@ -166,11 +174,38 @@ export default function BuilderPage({
             <p>Стойност на продуктите: {formatPrice(builderProductsTotalWithVat)}</p>
             <p>Доставка с {deliverySettings.provider}: {builderDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(builderDelivery)}`}</p>
             <p>Общо: {formatPrice(builderGrandTotal)}</p>
+            <p>Плащане: {builderPaymentLabel}</p>
           </div>
 
           <div className="builder-preview payment-required">
-            <b>Плащане: предварително по банков път</b>
-            <p>Конфигурациите, сглобени чрез 'Сглоби PC', се изпълняват само след предварително плащане по банков път. След изпращане на заявката ще се свържем с вас за потвърждение и банкови данни.</p>
+            <b>Начин на плащане</b>
+            <div className="payment-options">
+              <label className={`payment-option ${builderPaymentMethod === "bank" ? "active" : ""}`}>
+                <input
+                  type="radio"
+                  name="builder-payment"
+                  value="bank"
+                  checked={builderPaymentMethod === "bank"}
+                  onChange={() => setBuilderPaymentMethod("bank")}
+                />
+                <div>
+                  <b>Предварително плащане по банков път</b>
+                </div>
+              </label>
+              <label className={`payment-option ${builderPaymentMethod === "tbi" ? "active" : ""}`}>
+                <input
+                  type="radio"
+                  name="builder-payment"
+                  value="tbi"
+                  checked={builderPaymentMethod === "tbi"}
+                  onChange={() => setBuilderPaymentMethod("tbi")}
+                />
+                <div>
+                  <b>На изплащане чрез TBI Bank</b>
+                </div>
+              </label>
+            </div>
+            <p>{builderPaymentText}</p>
           </div>
 
           <div className="builder-preview">
