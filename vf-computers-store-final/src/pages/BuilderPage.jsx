@@ -55,7 +55,6 @@ export default function BuilderPage({
           <div className="form-head">
             <div>
               <h3>Конфигуратор на PC</h3>
-              <p>Компонентите са синхронизирани с наличните локални и VALI продукти.</p>
             </div>
             <Sparkles />
           </div>
