@@ -49,9 +49,13 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
     }
 
     setLoading(true);
-    const { data, error } = await supabase.rpc("check_warranty_by_code", {
-      search_code: normalizedCode,
-    });
+    const { data, error } = await supabase
+  .from("warranties")
+  .select("*")
+  .or(
+    `warranty_number.eq.${normalizedCode},public_code.eq.${normalizedCode},warranty_code.eq.${normalizedCode}`
+  )
+  .maybeSingle();
 
     setLoading(false);
 
@@ -60,7 +64,7 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
       return;
     }
 
-    const found = Array.isArray(data) ? data[0] : data;
+    const found = data;
     if (!found) {
       setMessage("Не е намерена гаранция с този код");
       return;
