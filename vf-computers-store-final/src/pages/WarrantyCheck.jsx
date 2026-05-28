@@ -170,7 +170,7 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
         <p><strong>Производител:</strong> {item.manufacturer || "-"}</p>
         <p><strong>Сериен номер:</strong> {item.serial_number || "-"}</p>
         <p><strong>Каталожен номер:</strong> {item.catalog_number || "-"}</p>
-        <p><strong>Цена с ДДС:</strong> {item.sale_price ? `${item.sale_price} €` : "-"}</p>
+        <p><strong>Цена:</strong> {item.sale_price ? `${item.sale_price} €` : "-"}</p>
         <p><strong>Гаранция:</strong> {item.warranty_months || "-"} месеца</p>
         <p><strong>Гаранция до:</strong> {formatDate(item.warranty_end)}</p>
         <p><strong>Описание:</strong> {item.description || "-"}</p>
