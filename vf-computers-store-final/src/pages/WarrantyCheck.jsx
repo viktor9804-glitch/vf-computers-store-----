@@ -51,7 +51,10 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
     setLoading(true);
     const { data, error } = await supabase
   .from("warranties")
-  .select("*")
+  .select(`
+  *,
+  warranty_items (*)
+`)
   .or(
     `warranty_number.eq.${normalizedCode},public_code.eq.${normalizedCode},warranty_code.eq.${normalizedCode}`
   )
@@ -144,6 +147,38 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
                   <div><dt>Гаранция до:</dt><dd>{formatDate(warranty.warranty_until)}</dd></div>
                   <div><dt>Статус:</dt><dd>{STATUS_LABELS[displayStatus] || displayStatus}</dd></div>
                 </dl>
+                {warranty.warranty_items?.length > 0 && (
+  <div className="warranty-products">
+    <h3>Продукти към гаранцията</h3>
+
+    {warranty.warranty_items.map((item, index) => (
+      <div
+        key={index}
+        style={{
+          marginTop: "20px",
+          padding: "16px",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: "14px",
+          background: "rgba(255,255,255,0.03)",
+        }}
+      >
+        <h4>
+          {index + 1}. {item.product_name || "Продукт"}
+        </h4>
+
+        <p><strong>Модел:</strong> {item.product_model || "-"}</p>
+        <p><strong>Производител:</strong> {item.manufacturer || "-"}</p>
+        <p><strong>Сериен номер:</strong> {item.serial_number || "-"}</p>
+        <p><strong>Каталожен номер:</strong> {item.catalog_number || "-"}</p>
+        <p><strong>Цена с ДДС:</strong> {item.sale_price ? `${item.sale_price} €` : "-"}</p>
+        <p><strong>Гаранция:</strong> {item.warranty_months || "-"} месеца</p>
+        <p><strong>Гаранция до:</strong> {formatDate(item.warranty_end)}</p>
+        <p><strong>Описание:</strong> {item.description || "-"}</p>
+        <p><strong>Характеристики:</strong> {item.specifications || "-"}</p>
+      </div>
+    ))}
+  </div>
+)}
               </>
             )}
           </article>
