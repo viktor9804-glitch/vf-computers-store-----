@@ -157,7 +157,7 @@ export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
                   <div><dt>Приет на:</dt><dd>{formatDateTime(protocol.accepted_at)}</dd></div>
                   <div><dt>Последна промяна:</dt><dd>{formatDateTime(protocol.updated_at)}</dd></div>
                   <div><dt>Статус:</dt><dd>{STATUS_LABELS[status] || status}</dd></div>
-                  <div><dt>Какво е правено:</dt><dd>{protocol.public_work_summary || "-"}</dd></div>
+                  <div><dt>Извършени услуги:</dt><dd>{protocol.public_work_summary || "-"}</dd></div>
                   <div><dt>Цена:</dt><dd>{formatMoney(protocol.public_total_price, protocol.currency || "EUR")}</dd></div>
                 </dl>
               </>
