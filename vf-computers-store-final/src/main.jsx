@@ -31,6 +31,7 @@ const CategoryRoutePage = React.lazy(() => import("./pages/Category"));
 const ProductPageRoute = React.lazy(() => import("./pages/Product"));
 const SearchPage = React.lazy(() => import("./pages/SearchPage"));
 const WarrantyCheckPage = React.lazy(() => import("./pages/WarrantyCheck"));
+const ServiceCheckPage = React.lazy(() => import("./pages/ServiceCheck"));
 const AIAssistant = React.lazy(() => import("./components/AIAssistant"));
 const Cart = React.lazy(() => import("./components/Cart"));
 const Checkout = React.lazy(() => import("./components/Checkout"));
@@ -2212,6 +2213,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
       <a href="/#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
       <a href="/#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
       <Link to="/warranty-check" onClick={() => setMobileOpen(false)}>Проверка на гаранция</Link>
+      <Link to="/service-check" onClick={() => setMobileOpen(false)}>Проверка на ремонт</Link>
       <a href="/#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
       <a href="/#contact" onClick={() => setMobileOpen(false)}>Контакти</a>
     </>
@@ -3760,6 +3762,15 @@ const headerProps = {
       path="/warranty-check"
       element={
         <WarrantyCheckPage
+          HeaderComponent={SiteHeader}
+          headerProps={headerProps}
+        />
+      }
+    />
+    <Route
+      path="/service-check"
+      element={
+        <ServiceCheckPage
           HeaderComponent={SiteHeader}
           headerProps={headerProps}
         />
