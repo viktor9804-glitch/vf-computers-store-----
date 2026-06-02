@@ -55,6 +55,7 @@ export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
 
   const status = protocol?.status || "accepted";
   const StatusIcon = useMemo(() => STATUS_ICONS[status] || ShieldCheck, [status]);
+  const publicServices = Array.isArray(protocol?.public_services) ? protocol.public_services : [];
 
   async function checkService(nextCode = code) {
     const normalizedCode = normalizeCode(nextCode);
@@ -157,9 +158,26 @@ export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
                   <div><dt>Приет на:</dt><dd>{formatDateTime(protocol.accepted_at)}</dd></div>
                   <div><dt>Последна промяна:</dt><dd>{formatDateTime(protocol.updated_at)}</dd></div>
                   <div><dt>Статус:</dt><dd>{STATUS_LABELS[status] || status}</dd></div>
-                  <div><dt>Извършени услуги:</dt><dd>{protocol.public_work_summary || "-"}</dd></div>
                   <div><dt>Цена:</dt><dd>{formatMoney(protocol.public_total_price, protocol.currency || "EUR")}</dd></div>
                 </dl>
+                <section className="service-public-services">
+                  <h3>Извършени услуги</h3>
+                  {publicServices.length ? (
+                    <div className="service-public-list">
+                      {publicServices.map((service, index) => (
+                        <article className="service-public-row" key={`${service.barcode || service.name}-${index}`}>
+                          <div>
+                            <strong>{service.name || "-"}</strong>
+                            <span>{formatDateTime(service.scanned_at)}{service.barcode ? ` · ${service.barcode}` : ""}</span>
+                          </div>
+                          <b>{formatMoney(service.price, protocol.currency || "EUR")}</b>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="service-public-empty">Няма добавени услуги.</p>
+                  )}
+                </section>
               </>
             )}
           </article>
