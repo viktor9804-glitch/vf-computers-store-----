@@ -1,4 +1,4 @@
-import {
+﻿import {
   BrowserRouter,
   Routes,
   Route,
@@ -14,7 +14,7 @@ import {
   Star, Heart, ShieldCheck, Truck, Wrench, Phone, Mail, MapPin, Minus, Plus,
   Trash2, CreditCard, Sparkles, Zap, Settings, CheckCircle2, PackageCheck,
   User, SlidersHorizontal, ChevronDown, Bot, Gauge, Server, MemoryStick,
-  Cable, Fan, Power, Send, ExternalLink
+  Cable, Fan, Power, Send, ExternalLink, Download
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { CartProvider, useCart } from "./context/CartContext";
@@ -2210,6 +2210,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
     <>
       <a href="/" onClick={() => setMobileOpen(false)}>Начало</a>
       <a href="/builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
+      <Link to="/software" onClick={() => setMobileOpen(false)}>Нашите софтуери</Link>
       <a href="/#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
       <a href="/#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
       <Link to="/warranty-check" onClick={() => setMobileOpen(false)}>Проверка на гаранция</Link>
@@ -2325,6 +2326,62 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
     </>
   );
 }
+
+function SoftwarePage({ HeaderComponent, headerProps = {} }) {
+  const browserInstallerUrl = "/software/V-F-Browser-Setup-2.7.4.exe";
+
+  return (
+    <div className="site software-page">
+      <div className="rgb-bg" />
+      <div className="scanline" />
+      {HeaderComponent && <HeaderComponent {...headerProps} />}
+
+      <main className="container software-shell">
+        <section className="software-hero">
+          <div>
+            <p className="section-label">Нашите софтуери</p>
+            <h1>V-F Browser</h1>
+            <p>
+              Бърз Chromium базиран браузър от ВФ Компютри с червено-черен дизайн,
+              вграден AdBlock, управление на пароли, private прозорец, превод на страници
+              и система за автоматични обновления.
+            </p>
+            <div className="software-actions">
+              <a className="btn primary" href={browserInstallerUrl} download>
+                <Download size={18} /> Изтегли V-F Browser
+              </a>
+              <a className="btn ghost" href={browserInstallerUrl}>
+                <ExternalLink size={18} /> Отвори файла
+              </a>
+            </div>
+          </div>
+
+          <div className="software-card">
+            <div className="software-card-head">
+              <span className="live-dot" />
+              V-F Browser Installer
+            </div>
+            <div className="software-logo">
+              <img src={LOGO_URL} alt="V-F Browser" />
+            </div>
+            <div className="software-meta">
+              <span>Версия</span><b>2.7.4</b>
+              <span>Платформа</span><b>Windows x64</b>
+              <span>Файл</span><b>V-F-Browser-Setup-2.7.4.exe</b>
+            </div>
+          </div>
+        </section>
+
+        <section className="software-features">
+          <div><ShieldCheck /><b>Сигурност</b><span>HTTPS update проверки и checksum в браузъра.</span></div>
+          <div><Zap /><b>Бърз старт</b><span>Оптимизиран Electron/Chromium build.</span></div>
+          <div><PackageCheck /><b>Автоматични обновления</b><span>Подготвен за централизирани версии през Supabase.</span></div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
 const CategoryPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCategories, cartCount, setCartOpen, userSession, openAuth, setProfileOpen, query, setQuery }) => {
   const { categoryName } = useParams();
   const navigate = useNavigate();
@@ -3293,6 +3350,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   const navLinks = (
   <>
     <a href="/builder" onClick={() => setMobileOpen(false)}>Сглоби PC</a>
+      <Link to="/software" onClick={() => setMobileOpen(false)}>Нашите софтуери</Link>
     <a href="#services" onClick={() => setMobileOpen(false)}>Сервиз</a>
     <a href="#about-store" onClick={() => setMobileOpen(false)}>За нас</a>
     <a href="#partners" onClick={() => setMobileOpen(false)}>Партньори</a>
@@ -3753,6 +3811,15 @@ const headerProps = {
         <SearchPage
           products={products}
           addToCart={addToCart}
+          HeaderComponent={SiteHeader}
+          headerProps={headerProps}
+        />
+      }
+    />
+    <Route
+      path="/software"
+      element={
+        <SoftwarePage
           HeaderComponent={SiteHeader}
           headerProps={headerProps}
         />
