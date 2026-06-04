@@ -1,10 +1,10 @@
 {
   "appName": "V-F Browser",
-  "version": "2.8.1",
-  "url": "https://vf-computers-store.vercel.app/software/V-F-Browser-Setup-2.8.1.exe",
-  "fileName": "V-F-Browser-Setup-2.8.1.exe",
-  "fileSize": 94695182,
-  "sha256": "b56357887b99230f81aca5686117e6c63f76323a5ff1705511466c031636ee70",
+  "version": "2.8.2",
+  "url": "https://vf-computers-store.vercel.app/software/V-F-Browser-Setup-2.8.2.exe",
+  "fileName": "V-F-Browser-Setup-2.8.2.exe",
+  "fileSize": 94696092,
+  "sha256": "5d1cb41e5c8e3d8b24019a63b21c09cb3e7fe2be13b2775ee3861d4fff6fef10",
   "mandatory": false,
-  "notes": "Version 2.8.1\n\n- Update checks now read the website-hosted manifest first.\n- Browser installer updates can be hosted directly on vf-computers-store.vercel.app.\n- Supabase remains available for telemetry and legacy update metadata.\n- Keeps checksum and file size verification before installing updates."
+  "notes": "Version 2.8.2\n\n- Shows the active update source as Website manifest in the update window.\n- Keeps website-hosted installer updates through vf-computers-store.vercel.app.\n- Supabase remains available for telemetry and legacy update metadata.\n- Keeps checksum and file size verification before installing updates."
 }
