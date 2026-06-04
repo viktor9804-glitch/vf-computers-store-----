@@ -2328,7 +2328,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
 }
 
 function SoftwarePage({ HeaderComponent, headerProps = {} }) {
-  const browserInstallerUrl = "/software/V-F-Browser-Setup-2.8.2.exe";
+  const browserInstallerUrl = "/software/V-F-Browser-Setup-2.8.3.exe";
 
   return (
     <div className="site software-page">
@@ -2365,9 +2365,9 @@ function SoftwarePage({ HeaderComponent, headerProps = {} }) {
               <img src={LOGO_URL} alt="V-F Browser" />
             </div>
             <div className="software-meta">
-              <span>Версия</span><b>2.8.2</b>
+              <span>Версия</span><b>2.8.3</b>
               <span>Платформа</span><b>Windows x64</b>
-              <span>Файл</span><b>V-F-Browser-Setup-2.8.2.exe</b>
+              <span>Файл</span><b>V-F-Browser-Setup-2.8.3.exe</b>
             </div>
           </div>
         </section>
