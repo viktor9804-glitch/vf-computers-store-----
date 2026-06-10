@@ -77,7 +77,7 @@ const paymentMethods = [
   },
 ];
 
-const ADMIN_PASSWORD = "vfadmin123"; // Смени тази парола след като качиш сайта.
+const PUBLIC_ADMIN_DISABLED = true;
 const STORAGE_BUCKET = "product-images";
 const VALI_PRODUCT_SELECT = [
   "id",
@@ -1729,12 +1729,10 @@ function AdminPanel({ onBack }) {
   }, [imageFiles, editingProduct]);
 
   const unlock = () => {
-    if (password === ADMIN_PASSWORD) {
-      localStorage.setItem("vf_admin_unlocked", "yes");
-      setUnlocked(true);
-      setAdminNotice("");
-    } else {
-      setAdminNotice("Грешна парола.");
+    if (PUBLIC_ADMIN_DISABLED) {
+      localStorage.removeItem("vf_admin_unlocked");
+      setUnlocked(false);
+      setAdminNotice("Публичният админ панел е изключен. Използвай VF Admin приложението.");
     }
   };
 
@@ -3242,17 +3240,25 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       is_custom_pc_build: isCustomPcBuildOrder,
       payment_status: "pending",
       status: "Приета",
+      user_id: userSession?.user?.id || null,
       created_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("orders")
       .insert([orderPayload])
       .select();
 
-    console.log("ORDER PAYLOAD:", orderPayload);
-    console.log("ORDER INSERT DATA:", data);
-    console.error("ORDER INSERT ERROR:", error);
+    if (error && String(error.message || "").includes("user_id")) {
+      const { user_id: _userId, ...legacyOrderPayload } = orderPayload;
+      const retryResult = await supabase
+        .from("orders")
+        .insert([legacyOrderPayload])
+        .select();
+
+      data = retryResult.data;
+      error = retryResult.error;
+    }
 
     setSendingOrder(false);
 
@@ -3268,7 +3274,10 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       const emailResponse = await fetch("/api/send-order-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: savedOrder || orderPayload }),
+        body: JSON.stringify({
+          orderId: savedOrder?.id,
+          customerEmail: savedOrder?.customer_email || email || "",
+        }),
       });
       const emailResult = await emailResponse.json().catch(() => null);
 
@@ -3549,7 +3558,16 @@ const headerProps = {
               <div className="product-image">
                 <img src={product.image} alt={product.name} loading="lazy" />
                 <span className="badge-product">{product.availabilityType === "on_the_way" ? "На път" : product.badge}</span>
-                <button className="wish" onClick={(event) => event.stopPropagation()}><Heart size={17} /></button>
+                <button
+                  className="wish"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  aria-label={`Добави ${product.name} в любими`}
+                >
+                  <Heart size={17} />
+                </button>
                 {product.images?.length > 1 && (
                   <div className="product-image-count">+{product.images.length - 1} снимки</div>
                 )}
@@ -3557,7 +3575,14 @@ const headerProps = {
               {product.images?.length > 1 && (
                 <div className="product-thumbs">
                   {product.images.slice(0, 5).map((image, index) => (
-                    <button key={`${image}-${index}`} onClick={() => openProductGallery(product, index)}>
+                    <button
+                      key={`${image}-${index}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openProductGallery(product, index);
+                      }}
+                    >
                       <img src={image} alt={`${product.name} снимка ${index + 1}`} />
                     </button>
                   ))}
@@ -3584,10 +3609,22 @@ const headerProps = {
                       <del>{formatPrice(calculateGross(product.oldPrice))}</del>
                     )}
                   </div>
-                  <button onClick={() => addToCart(product.id)}>Добави</button>
+                  <button
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      addToCart(product.id);
+                    }}
+                  >
+                    Добави
+                  </button>
                   <button
                     className="tbi-btn"
-                    onClick={() => handleTbiCheckout(product)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleTbiCheckout(product);
+                    }}
                   >
                     Купи на изплащане
                   </button>

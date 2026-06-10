@@ -1,8 +1,4 @@
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed",
@@ -11,8 +7,12 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
-    const productName = body.name || body.product || "VF Computers продукт";
+    const productName = String(body.name || body.product || "VF Computers продукт").trim().slice(0, 300);
     const price = Number(body.price || body.amount || 0);
+
+    if (!Number.isFinite(price) || price <= 0) {
+      return res.status(400).json({ error: "Invalid price." });
+    }
 
     const payload = {
       reseller_code: process.env.TBI_RESELLER_CODE,
@@ -22,8 +22,6 @@ export default async function handler(req, res) {
       success_url: "https://vf-computers-store.vercel.app/#tbi-success",
       fail_url: "https://vf-computers-store.vercel.app/#tbi-failed",
     };
-
-    console.log("TBI embedded checkout request:", payload);
 
     /*
       ВАЖНО:

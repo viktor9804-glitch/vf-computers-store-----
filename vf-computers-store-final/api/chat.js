@@ -7,6 +7,23 @@ export default async function handler(req, res) {
     const { messages = [] } = req.body || {};
     const geminiApiKey = process.env.GEMINI_API_KEY;
 
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 12) {
+      return res.status(400).json({ error: "Invalid conversation." });
+    }
+
+    const safeMessages = messages
+      .filter((message) => message && typeof message.content === "string")
+      .slice(-12)
+      .map((message) => ({
+        role: message.role === "assistant" ? "assistant" : "user",
+        content: message.content.trim().slice(0, 1500),
+      }))
+      .filter((message) => message.content);
+
+    if (safeMessages.length === 0) {
+      return res.status(400).json({ error: "Message content is required." });
+    }
+
     if (!geminiApiKey) {
       console.error("[AI assistant] Missing server environment variable GEMINI_API_KEY.", {
         endpoint: "/api/chat",
@@ -50,8 +67,7 @@ export default async function handler(req, res) {
 - Отговаряй като продавач/сервизен консултант на ВФ Компютри.
 `;
 
-    const conversationText = messages
-      .slice(-12)
+    const conversationText = safeMessages
       .map((message) => {
         const role = message.role === "user" ? "Клиент" : "Асистент";
         return `${role}: ${message.content}`;

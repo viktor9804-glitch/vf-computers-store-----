@@ -17,7 +17,7 @@
     "@supabase/supabase-js": "latest",
     "@vitejs/plugin-react": "latest",
     "cacheable-request": "^13.0.19",
-    "concurrently": "latest",
+    "concurrently": "^10.0.3",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",

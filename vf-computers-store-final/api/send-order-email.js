@@ -1,6 +1,7 @@
 import {
   buildOrderEmailHtml,
   getOrderNumber,
+  loadOrderForConfirmation,
   sendEmail,
   sendJson,
   setCors,
@@ -18,13 +19,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const order = req.body?.order || req.body || {};
-    const to = String(order.customer_email || "").trim();
+    const customerEmail = String(req.body?.customerEmail || "").trim();
 
-    if (!to) {
+    if (!customerEmail) {
       return sendJson(res, 200, { success: true, skipped: true, reason: "missing customer_email" });
     }
 
+    const order = await loadOrderForConfirmation({
+      orderId: req.body?.orderId,
+      customerEmail,
+    });
+    const to = String(order.customer_email || "").trim();
     const orderNumber = getOrderNumber(order);
     const subject = `Потвърждение на поръчка №${orderNumber} - ВФ Компютри`;
     const html = buildOrderEmailHtml({
@@ -38,7 +43,9 @@ export default async function handler(req, res) {
 
     return sendJson(res, 200, { success: true, id: info.id });
   } catch (error) {
-    console.error("SEND ORDER EMAIL ERROR:", error);
-    return sendJson(res, 500, { error: error.message || "Email send failed" });
+    if (!error.status || error.status >= 500) {
+      console.error("SEND ORDER EMAIL ERROR:", error);
+    }
+    return sendJson(res, error.status || 500, { error: error.message || "Email send failed" });
   }
 }

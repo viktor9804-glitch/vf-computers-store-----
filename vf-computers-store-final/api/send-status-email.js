@@ -1,6 +1,7 @@
 import {
   buildOrderEmailHtml,
   getOrderNumber,
+  loadOrderForAdmin,
   sendEmail,
   sendJson,
   setCors,
@@ -18,8 +19,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const order = req.body?.order || {};
-    const status = String(req.body?.status || order.status || "").trim();
+    const status = String(req.body?.status || "").trim();
+    const order = await loadOrderForAdmin(req, req.body?.orderId);
     const to = String(order.customer_email || "").trim();
 
     if (!to) {
@@ -28,6 +29,10 @@ export default async function handler(req, res) {
 
     if (!status) {
       return sendJson(res, 400, { error: "Missing status" });
+    }
+
+    if (status !== String(order.status || "").trim()) {
+      return sendJson(res, 409, { error: "Order status does not match the saved order" });
     }
 
     const orderNumber = getOrderNumber(order);
@@ -43,7 +48,9 @@ export default async function handler(req, res) {
 
     return sendJson(res, 200, { success: true, id: info.id });
   } catch (error) {
-    console.error("SEND STATUS EMAIL ERROR:", error);
-    return sendJson(res, 500, { error: error.message || "Email send failed" });
+    if (!error.status || error.status >= 500) {
+      console.error("SEND STATUS EMAIL ERROR:", error);
+    }
+    return sendJson(res, error.status || 500, { error: error.message || "Email send failed" });
   }
 }

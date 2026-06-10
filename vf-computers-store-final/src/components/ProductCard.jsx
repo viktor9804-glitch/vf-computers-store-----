@@ -41,6 +41,7 @@ export default function ProductCard({ product, addToCart }) {
             <button
               onClick={(event) => {
                 event.preventDefault();
+                event.stopPropagation();
                 addToCart(product.id);
               }}
             >

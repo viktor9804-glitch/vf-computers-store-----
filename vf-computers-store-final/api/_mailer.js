@@ -1,7 +1,103 @@
+import { createClient } from "@supabase/supabase-js";
+
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const REPLY_TO = "v.f-computers@abv.bg";
 const STORE_PHONE = "0876 126 326";
 const SITE_URL = process.env.SITE_URL || "https://vf-computers-store.vercel.app";
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+export class ApiError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+const createServerSupabase = () => {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new ApiError(500, "Supabase server credentials are not configured");
+  }
+
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+};
+
+const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+
+const getBearerToken = (req) => {
+  const authorization = String(req.headers?.authorization || "");
+  return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+};
+
+export const loadOrderForConfirmation = async ({ orderId, customerEmail }) => {
+  if (!orderId || !normalizeEmail(customerEmail)) {
+    throw new ApiError(400, "Missing order confirmation data");
+  }
+
+  const supabase = createServerSupabase();
+  const { data: order, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .single();
+
+  if (error || !order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  if (normalizeEmail(order.customer_email) !== normalizeEmail(customerEmail)) {
+    throw new ApiError(403, "Order confirmation data does not match");
+  }
+
+  return order;
+};
+
+export const loadOrderForAdmin = async (req, orderId) => {
+  if (!orderId) {
+    throw new ApiError(400, "Missing order id");
+  }
+
+  const accessToken = getBearerToken(req);
+  if (!accessToken) {
+    throw new ApiError(401, "Missing admin session");
+  }
+
+  const supabase = createServerSupabase();
+  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+  const user = userData?.user;
+
+  if (userError || !user) {
+    throw new ApiError(401, "Invalid admin session");
+  }
+
+  const { data: admin, error: adminError } = await supabase
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (adminError) {
+    throw new ApiError(503, "Admin security migration is not configured");
+  }
+
+  if (!admin) {
+    throw new ApiError(403, "Admin access required");
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .single();
+
+  if (orderError || !order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  return order;
+};
 
 const escapeHtml = (value) =>
   String(value ?? "")
@@ -281,7 +377,7 @@ export const sendJson = (res, status, body) => {
 export const setCors = (res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 };
 
 export const safeText = escapeHtml;

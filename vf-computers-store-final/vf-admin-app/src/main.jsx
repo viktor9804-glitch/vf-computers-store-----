@@ -729,8 +729,11 @@ function App() {
   const sendStatusEmail = async (order, status) => {
     const response = await fetch(`${EMAIL_API_BASE}/api/send-status-email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order: { ...order, status }, status }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token || ""}`,
+      },
+      body: JSON.stringify({ orderId: order.id, status }),
     });
     const result = await response.json().catch(() => null);
     if (!response.ok) {

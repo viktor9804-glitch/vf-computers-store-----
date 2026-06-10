@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 
 const normalizeSearch = (value) => String(value || "").trim().toLowerCase();
+const PRODUCTS_PER_PAGE = 50;
 
 const getSearchText = (product) => {
   return [
@@ -29,6 +30,7 @@ export default function SearchPage({
   const q = searchParams.get("q") || "";
   const normalizedQuery = normalizeSearch(q);
   const Header = HeaderComponent;
+  const [page, setPage] = useState(1);
 
   const results = useMemo(() => {
     if (!normalizedQuery) return [];
@@ -39,6 +41,17 @@ export default function SearchPage({
       return terms.every((term) => haystack.includes(term));
     });
   }, [products, normalizedQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [normalizedQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(results.length / PRODUCTS_PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const visibleResults = results.slice(
+    (safePage - 1) * PRODUCTS_PER_PAGE,
+    safePage * PRODUCTS_PER_PAGE
+  );
 
   return (
     <>
@@ -57,9 +70,27 @@ export default function SearchPage({
             <p className="empty-products">Няма намерени продукти.</p>
           ) : (
             <div className="product-grid">
-              {results.map((product) => (
+              {visibleResults.map((product) => (
                 <ProductCard product={product} addToCart={addToCart} key={product.id} />
               ))}
+            </div>
+          )}
+
+          {results.length > PRODUCTS_PER_PAGE && (
+            <div className="category-pagination">
+              <button
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={safePage <= 1}
+              >
+                Предишна
+              </button>
+              <span>Страница {safePage} от {totalPages}</span>
+              <button
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                disabled={safePage >= totalPages}
+              >
+                Следваща
+              </button>
             </div>
           )}
         </div>
