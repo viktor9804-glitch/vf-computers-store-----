@@ -1,6 +1,77 @@
 import React from "react";
 import { Plus, Sparkles, Trash2 } from "lucide-react";
-import { formatPrice } from "../utils/format";
+import { formatDisplayPrice, formatPrice } from "../utils/format";
+import { normalizeComparableValue } from "../utils/text";
+
+const getProductImage = (product) => {
+  const firstImage = Array.isArray(product?.images) ? product.images[0] : "";
+  if (typeof firstImage === "string" && firstImage) return firstImage;
+  return firstImage?.href || product?.image || "/VF_logo_1.png";
+};
+
+const getProductDetails = (product) => {
+  const filters = product?.filters;
+  const filterDetails = filters && typeof filters === "object" && !Array.isArray(filters)
+    ? Object.entries(filters)
+      .map(([key, value]) => [key, normalizeComparableValue(value)])
+      .filter(([, value]) => value)
+    : [];
+
+  if (filterDetails.length > 0) return filterDetails.slice(0, 4);
+
+  return (product?.specs || [])
+    .map((spec) => normalizeComparableValue(spec))
+    .filter(Boolean)
+    .slice(0, 4)
+    .map((spec) => {
+      const separatorIndex = spec.indexOf(":");
+      return separatorIndex > 0
+        ? [spec.slice(0, separatorIndex), spec.slice(separatorIndex + 1).trim()]
+        : ["Характеристика", spec];
+    });
+};
+
+function SelectedComponentPreview({ label, product }) {
+  const details = getProductDetails(product);
+
+  return (
+    <article className="builder-component-preview">
+      <div className="builder-component-image">
+        <img
+          src={getProductImage(product)}
+          alt={product.name || label}
+          loading="lazy"
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = "/VF_logo_1.png";
+          }}
+        />
+      </div>
+      <div className="builder-component-info">
+        <span className="builder-component-type">{label}</span>
+        <h4>{product.name || product.title}</h4>
+        <div className="builder-component-meta">
+          <strong>{formatDisplayPrice(product.price)}</strong>
+          <span>{product.availabilityLabel || product.stock || "По заявка"}</span>
+        </div>
+        {details.length > 0 && (
+          <dl className="builder-component-specs">
+            {details.map(([key, value], index) => (
+              <div key={`${key}-${index}`}>
+                <dt>{key}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        <div className="builder-component-extra">
+          {product.catalog_number && <span>Код: {product.catalog_number}</span>}
+          {product.warranty && <span>Гаранция: {normalizeComparableValue(product.warranty)}</span>}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function BuilderPage({
   pcBuilderSteps,
@@ -30,6 +101,19 @@ export default function BuilderPage({
   storeInfo,
 }) {
   const builderProductsTotalWithVat = builderNetTotal + builderVatTotal;
+  const selectedComponentCards = [
+    ["Процесор", builderProducts.cpu],
+    ["Дънна платка", builderProducts.motherboard],
+    ["RAM памет", builderProducts.ram],
+    ["Видео карта", builderProducts.gpu],
+    ...(builderProducts.storage || []).map((product, index) => [
+      index === 0 ? "Основен SSD / HDD" : `Допълнителен SSD / HDD ${index}`,
+      product,
+    ]),
+    ["Захранване", builderProducts.psu],
+    ["Кутия", builderProducts.case],
+    ["Охлаждане", builderProducts.cooler],
+  ].filter(([, product]) => Boolean(product));
   const builderPaymentLabel = builderPaymentMethod === "tbi"
     ? "На изплащане чрез TBI Bank"
     : "Предварително плащане по банков път";
@@ -167,6 +251,24 @@ export default function BuilderPage({
               <input value={builderGame} onChange={(event) => setBuilderGame(event.target.value)} placeholder="Въведете игра, например GTA V, CS2, Fortnite..." />
             </label>
           </div>
+
+          {selectedComponentCards.length > 0 && (
+            <section className="builder-selected-section" aria-live="polite">
+              <div className="builder-selected-head">
+                <b>Избрани компоненти</b>
+                <span>Първа снимка и основни характеристики</span>
+              </div>
+              <div className="builder-selected-components">
+                {selectedComponentCards.map(([label, product]) => (
+                  <SelectedComponentPreview
+                    key={`${label}-${product.id}`}
+                    label={label}
+                    product={product}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
           <div className="builder-preview">
             <b>Обобщение на конфигурацията:</b>
