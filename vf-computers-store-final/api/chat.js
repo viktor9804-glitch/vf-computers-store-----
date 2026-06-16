@@ -1,35 +1,75 @@
+import {
+  buildPcOffer,
+  extractPcBuildParams,
+  formatBuildOfferForChat,
+} from "./_aiBuildPcCore.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { messages = [] } = req.body || {};
-    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const body = req.body || {};
+    const incomingHistory = Array.isArray(body.history) ? body.history : [];
+    const message =
+      typeof body.message === "string"
+        ? body.message
+        : Array.isArray(body.messages)
+          ? body.messages.at(-1)?.content || ""
+          : "";
 
-    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 12) {
-      return res.status(400).json({ error: "Invalid conversation." });
-    }
+    const legacyMessages = Array.isArray(body.messages) ? body.messages : [];
+    const combinedMessages =
+      incomingHistory.length > 0
+        ? [...incomingHistory, { role: "user", content: message }]
+        : legacyMessages.length > 0
+          ? legacyMessages
+          : [{ role: "user", content: message }];
 
-    const safeMessages = messages
-      .filter((message) => message && typeof message.content === "string")
-      .slice(-12)
-      .map((message) => ({
-        role: message.role === "assistant" ? "assistant" : "user",
-        content: message.content.trim().slice(0, 1500),
+    const safeMessages = combinedMessages
+      .filter((item) => item && typeof item.content === "string")
+      .slice(-16)
+      .map((item) => ({
+        role: item.role === "assistant" ? "assistant" : "user",
+        content: item.content.trim().slice(0, 1500),
       }))
-      .filter((message) => message.content);
+      .filter((item) => item.content);
 
     if (safeMessages.length === 0) {
       return res.status(400).json({ error: "Message content is required." });
     }
 
+    const buildParams = extractPcBuildParams({
+      message: message || safeMessages.at(-1)?.content || "",
+      history: incomingHistory.length > 0 ? incomingHistory : safeMessages.slice(0, -1),
+    });
+
+    if (buildParams.missingBudget) {
+      return res.status(200).json({
+        reply:
+          "Разбрах, че търсите компютърна конфигурация. Какъв е бюджетът в евро? Мога да съобразя и игри, RGB и AMD/Intel предпочитание.",
+      });
+    }
+
+    if (buildParams.shouldBuild) {
+      const offer = await buildPcOffer({
+        ...buildParams,
+        history: incomingHistory,
+      });
+
+      return res.status(200).json({
+        reply: formatBuildOfferForChat(offer),
+        offer,
+      });
+    }
+
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+
     if (!geminiApiKey) {
       console.error("[AI assistant] Missing server environment variable GEMINI_API_KEY.", {
         endpoint: "/api/chat",
         expectedVariable: "GEMINI_API_KEY",
-        viteVariablePresent: Boolean(process.env.VITE_GEMINI_API_KEY),
-        note: "Gemini is called from the serverless API route, so the key must be configured as GEMINI_API_KEY in the server/Vercel environment. Do not rely on VITE_GEMINI_API_KEY for this endpoint.",
       });
 
       return res.status(500).json({
@@ -42,15 +82,7 @@ export default async function handler(req, res) {
 Отговаряй само на български език.
 Бъди полезен, кратък, професионален и приятелски.
 
-Магазинът се занимава с:
-- продажба на компютри
-- gaming конфигурации
-- компютърни компоненти
-- лаптопи
-- монитори
-- периферия
-- сервиз и поддръжка
-- диагностика, почистване, термопаста, Windows инсталация, ъпгрейди
+Магазинът се занимава с продажба на компютри, gaming конфигурации, компоненти, лаптопи, монитори, периферия, сервиз и поддръжка.
 
 Контакти:
 Телефон: 0876 126 326
@@ -60,18 +92,14 @@ export default async function handler(req, res) {
 Валута: евро (€).
 
 Правила:
-- Не измисляй наличности.
-- Не обещавай точна цена без потвърждение от магазина.
-- При custom PC попитай за бюджет, игри/програми, AMD/Intel и дали иска RGB/тиха работа.
+- Не измисляй продукти, наличности, цени или линкове.
+- При custom PC, gaming PC или конкретна конфигурация backend-ът вече трябва да използва реалния продуктов endpoint. Ако тук няма върната оферта, попитай за бюджет, игри/програми, AMD/Intel и RGB.
 - При сервиз попитай какъв е проблемът и насочи към диагностика.
 - Отговаряй като продавач/сервизен консултант на ВФ Компютри.
 `;
 
     const conversationText = safeMessages
-      .map((message) => {
-        const role = message.role === "user" ? "Клиент" : "Асистент";
-        return `${role}: ${message.content}`;
-      })
+      .map((item) => `${item.role === "user" ? "Клиент" : "Асистент"}: ${item.content}`)
       .join("\n");
 
     const prompt = `${systemContext}\n\nРазговор:\n${conversationText}\n\nОтговори като асистент на ВФ Компютри:`;
@@ -80,16 +108,9 @@ export default async function handler(req, res) {
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: prompt }],
-            },
-          ],
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.45,
             maxOutputTokens: 700,
@@ -118,14 +139,13 @@ export default async function handler(req, res) {
       data?.candidates?.[0]?.content?.parts
         ?.map((part) => part.text || "")
         .join("")
-        .trim() ||
-      "Не успях да генерирам отговор. Моля, опитай отново.";
+        .trim() || "Не успях да генерирам отговор. Моля, опитайте отново.";
 
     return res.status(200).json({ reply });
   } catch (error) {
-    console.error("[AI assistant] Server error while contacting Gemini.", error);
+    console.error("[AI assistant] Server error.", error);
     return res.status(500).json({
-      error: "Server error while contacting Gemini assistant.",
+      error: "Server error while contacting AI assistant.",
     });
   }
 }

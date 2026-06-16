@@ -2,6 +2,7 @@ node_modules
 dist
 release
 .vscode
+.codex-remote-attachments/
 
 vf-admin-app/node_modules
 vf-admin-app/dist
