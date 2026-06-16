@@ -223,7 +223,6 @@ const getValiAvailability = (product = {}) => {
     text.includes("налич") ||
     text.includes("available") ||
     text.includes("in stock") ||
-    statusNumber === 0 ||
     statusNumber === 1 ||
     qty > 0
   ) {
