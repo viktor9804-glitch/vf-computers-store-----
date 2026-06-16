@@ -3900,6 +3900,7 @@ const headerProps = {
           handleTbiCheckout={handleTbiCheckout}
           HeaderComponent={SiteHeader}
           headerProps={headerProps}
+          loadingProducts={loadingProducts}
         />
       }
     />

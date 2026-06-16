@@ -447,6 +447,9 @@ const estimatePerformance = ({ games = [], useCase = "", gpu, cpu }) => {
   }
   if (/fortnite/.test(text)) return "Fortnite: добра 1080p gaming конфигурация, с опция за competitive настройки.";
   if (/gta/.test(text)) return "GTA V: комфортна 1080p конфигурация на високи настройки.";
+  if (/valorant|league|minecraft/.test(text)) return "Избраните e-sports игри: конфигурацията е насочена към висок FPS на 1080p.";
+  if (/warzone|apex|pubg|cyberpunk|forza/.test(text)) return "Избраните по-тежки игри: конфигурацията е балансирана за 1080p gaming според бюджета.";
+  if (/fifa|ea\s*fc/.test(text)) return "EA FC / FIFA: конфигурацията е подходяща за плавна игра на 1080p.";
   if (/стрийм|stream/.test(text)) return "Стрийминг: балансирана CPU/GPU конфигурация за игра и encode според избраните настройки.";
   if (/office|офис/.test(text)) return "Офис работа: бърза ежедневна работа, браузър, документи и леки приложения.";
   if (/ryzen\s*7|i7|ryzen\s*9|i9/.test(cpuText)) return "Силна многозадачна конфигурация с резерв за игри и работа.";
@@ -766,7 +769,7 @@ export const extractPcBuildParams = ({ message = "", history = [] } = {}) => {
   );
 
   const pcIntentPattern =
-    /gaming\s*pc|гейминг|компютър\s+за|pc\s+за|сглоби|конфигурац|custom|cs2|counter|fortnite|gta|стрийм|stream|офис\s*pc|office\s*pc|монтаж/i;
+    /gaming\s*pc|гейминг|компютър\s+за|pc\s+за|сглоби|конфигурац|custom|cs2|counter|fortnite|gta|valorant|minecraft|league|warzone|apex|pubg|cyberpunk|forza|fifa|ea\s*fc|стрийм|stream|офис\s*pc|office\s*pc|монтаж/i;
   const hasCurrentIntent = pcIntentPattern.test(current);
   const hasContextIntent = pcIntentPattern.test(previousUserText) || /бюджет|amd|intel|rgb|какъв е бюджетът/i.test(assistantText);
 
@@ -779,10 +782,19 @@ export const extractPcBuildParams = ({ message = "", history = [] } = {}) => {
   if (/cs2|counter/.test(text)) games.push("CS2");
   if (/fortnite/.test(text)) games.push("Fortnite");
   if (/gta/.test(text)) games.push("GTA V");
+  if (/valorant/.test(text)) games.push("Valorant");
+  if (/minecraft/.test(text)) games.push("Minecraft");
+  if (/league/.test(text)) games.push("League of Legends");
+  if (/warzone/.test(text)) games.push("Warzone");
+  if (/apex/.test(text)) games.push("Apex Legends");
+  if (/pubg/.test(text)) games.push("PUBG");
+  if (/cyberpunk/.test(text)) games.push("Cyberpunk 2077");
+  if (/forza/.test(text)) games.push("Forza Horizon 5");
+  if (/fifa|ea\s*fc/.test(text)) games.push("FIFA / EA FC");
 
   let useCase = "custom";
   if (/офис|office/.test(text)) useCase = "office";
-  if (/gaming|гейминг|cs2|fortnite|gta|игр/.test(text)) useCase = "gaming";
+  if (/gaming|гейминг|cs2|fortnite|gta|valorant|minecraft|league|warzone|apex|pubg|cyberpunk|forza|fifa|ea\s*fc|игр/.test(text)) useCase = "gaming";
   if (/стрийм|stream/.test(text)) useCase = "streaming";
   if (/монтаж|video editing|premiere|davinci/.test(text)) useCase = "editing";
 

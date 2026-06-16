@@ -11,6 +11,7 @@ export default function Product({
   handleTbiCheckout,
   HeaderComponent,
   headerProps,
+  loadingProducts = false,
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -19,6 +20,17 @@ export default function Product({
   const Header = HeaderComponent;
 
   useScrollTop(id);
+
+  if (!product && loadingProducts) {
+    return (
+      <>
+        {Header && <Header {...headerProps} />}
+        <div className="product-page-loading">
+          <h2>Зареждане на продукта...</h2>
+        </div>
+      </>
+    );
+  }
 
   if (!product) {
     return (
