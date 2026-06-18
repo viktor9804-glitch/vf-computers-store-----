@@ -1,0 +1,10 @@
+{
+  "appName": "V-F Browser",
+  "version": "2.8.4",
+  "url": "https://vf-computers-store.vercel.app/software/V-F-Browser-Setup-2.8.4.exe",
+  "fileName": "V-F-Browser-Setup-2.8.4.exe",
+  "fileSize": 94695248,
+  "sha256": "afb2deb368716c50f4c0fd59acc52f8142847eb5ce00aa5d5e62c5a95ac564f5",
+  "mandatory": false,
+  "notes": "Version 2.8.4\n\n- Rescue build: restored Bulgarian UI text after encoding corruption.\n- Fixed update downloads failing with EPERM in Program Files.\n- Updates are downloaded to the user profile data folder before installation.\n- Website-hosted update manifest remains active with checksum verification."
+}

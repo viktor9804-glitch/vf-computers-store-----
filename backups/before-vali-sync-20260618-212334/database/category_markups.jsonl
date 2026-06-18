@@ -1,0 +1,161 @@
+{"id":1,"main_category":"TEST","sub_category":"TEST","markup_percent":10,"created_at":"2026-05-23T19:10:15.206767+00:00","updated_at":"2026-05-23T19:10:15.206767+00:00"}
+{"id":64,"main_category":"Мобилни телефони и аксесоари","sub_category":"Bluetooth слушалки","markup_percent":16,"created_at":"2026-05-23T19:56:47.709394+00:00","updated_at":"2026-05-23T19:56:47.632+00:00"}
+{"id":65,"main_category":"Монитори","sub_category":"Монитори и публични дисплеи","markup_percent":16,"created_at":"2026-05-23T19:56:54.067184+00:00","updated_at":"2026-05-23T19:56:53.97+00:00"}
+{"id":66,"main_category":"Монитори","sub_category":"Стойки за монитори","markup_percent":16,"created_at":"2026-05-23T19:57:01.387994+00:00","updated_at":"2026-05-23T19:57:01.292+00:00"}
+{"id":67,"main_category":"Мрежово оборудване","sub_category":"Безжични рутери","markup_percent":16,"created_at":"2026-05-23T19:57:10.099195+00:00","updated_at":"2026-05-23T19:57:10.018+00:00"}
+{"id":68,"main_category":"Мрежово оборудване","sub_category":"Блутут адаптери","markup_percent":16,"created_at":"2026-05-23T19:57:17.994417+00:00","updated_at":"2026-05-23T19:57:17.886+00:00"}
+{"id":69,"main_category":"Мрежово оборудване","sub_category":"Кабелни канали и шлаух спирали","markup_percent":16,"created_at":"2026-05-23T19:57:25.045261+00:00","updated_at":"2026-05-23T19:57:24.932+00:00"}
+{"id":3,"main_category":"Компоненти","sub_category":"Видео карти","markup_percent":14,"created_at":"2026-05-23T19:16:35.031622+00:00","updated_at":"2026-05-25T15:44:56.327+00:00"}
+{"id":11,"main_category":"TV, Видео и аксесоари","sub_category":"Телевизори","markup_percent":17,"created_at":"2026-05-23T19:51:55.124768+00:00","updated_at":"2026-05-23T19:51:54.591+00:00"}
+{"id":13,"main_category":"Батерии и зарядни у-ва","sub_category":"Батерии за баркод скенери","markup_percent":17,"created_at":"2026-05-23T19:52:00.717531+00:00","updated_at":"2026-05-23T19:52:00.613+00:00"}
+{"id":14,"main_category":"Батерии и зарядни у-ва","sub_category":"Батерии за лаптопи","markup_percent":17,"created_at":"2026-05-23T19:52:02.850445+00:00","updated_at":"2026-05-23T19:52:02.704+00:00"}
+{"id":15,"main_category":"Батерии и зарядни у-ва","sub_category":"Батерии за UPS и СОТ-аларми","markup_percent":17,"created_at":"2026-05-23T19:52:04.899156+00:00","updated_at":"2026-05-23T19:52:04.775+00:00"}
+{"id":16,"main_category":"Батерии и зарядни у-ва","sub_category":"Зарядни устройства и адаптери","markup_percent":17,"created_at":"2026-05-23T19:52:06.538766+00:00","updated_at":"2026-05-23T19:52:06.438+00:00"}
+{"id":17,"main_category":"Битова техника","sub_category":"Пречистватели за въздух / вентилатори","markup_percent":17,"created_at":"2026-05-23T19:52:08.345025+00:00","updated_at":"2026-05-23T19:52:08.275+00:00"}
+{"id":18,"main_category":"Водно охлаждане","sub_category":"Блокове за видеокарти","markup_percent":17,"created_at":"2026-05-23T19:52:10.741964+00:00","updated_at":"2026-05-23T19:52:10.68+00:00"}
+{"id":19,"main_category":"Водно охлаждане","sub_category":"Блокове за процесори","markup_percent":17,"created_at":"2026-05-23T19:52:13.389358+00:00","updated_at":"2026-05-23T19:52:13.296+00:00"}
+{"id":20,"main_category":"Водно охлаждане","sub_category":"Помпи и резервоари","markup_percent":17,"created_at":"2026-05-23T19:52:17.104007+00:00","updated_at":"2026-05-23T19:52:16.893+00:00"}
+{"id":21,"main_category":"Водно охлаждане","sub_category":"Тръби","markup_percent":17,"created_at":"2026-05-23T19:52:21.731686+00:00","updated_at":"2026-05-23T19:52:21.609+00:00"}
+{"id":22,"main_category":"Водно охлаждане","sub_category":"Фитинги","markup_percent":17,"created_at":"2026-05-23T19:52:25.083843+00:00","updated_at":"2026-05-23T19:52:24.985+00:00"}
+{"id":23,"main_category":"Геймърски компютри","sub_category":"Аксесоари за компютри","markup_percent":17,"created_at":"2026-05-23T19:52:28.845767+00:00","updated_at":"2026-05-23T19:52:28.653+00:00"}
+{"id":24,"main_category":"Геймърски компютри","sub_category":"PC системи","markup_percent":17,"created_at":"2026-05-23T19:52:32.770183+00:00","updated_at":"2026-05-23T19:52:32.675+00:00"}
+{"id":25,"main_category":"Електроника и роботика","sub_category":"Мултимедийни плейъри","markup_percent":17,"created_at":"2026-05-23T19:52:36.457885+00:00","updated_at":"2026-05-23T19:52:36.343+00:00"}
+{"id":26,"main_category":"Електроника и роботика","sub_category":"Преносими тонколони","markup_percent":17,"created_at":"2026-05-23T19:52:40.24296+00:00","updated_at":"2026-05-23T19:52:40.169+00:00"}
+{"id":27,"main_category":"Електроника и роботика","sub_category":"eBook четци","markup_percent":17,"created_at":"2026-05-23T19:52:44.532187+00:00","updated_at":"2026-05-23T19:52:44.447+00:00"}
+{"id":28,"main_category":"Кабели","sub_category":"Адаптери, конвертори","markup_percent":16,"created_at":"2026-05-23T19:52:50.151841+00:00","updated_at":"2026-05-23T19:52:50.055+00:00"}
+{"id":29,"main_category":"Кабели","sub_category":"Аудио кабели","markup_percent":16,"created_at":"2026-05-23T19:52:55.330909+00:00","updated_at":"2026-05-23T19:52:55.219+00:00"}
+{"id":30,"main_category":"Кабели","sub_category":"Видео кабели","markup_percent":16,"created_at":"2026-05-23T19:52:59.299405+00:00","updated_at":"2026-05-23T19:52:59.223+00:00"}
+{"id":31,"main_category":"Кабели","sub_category":"Захранващи кабели","markup_percent":16,"created_at":"2026-05-23T19:53:02.475953+00:00","updated_at":"2026-05-23T19:53:02.371+00:00"}
+{"id":32,"main_category":"Кабели","sub_category":"Кабели за мобилни устройства","markup_percent":16,"created_at":"2026-05-23T19:53:07.790179+00:00","updated_at":"2026-05-23T19:53:07.686+00:00"}
+{"id":33,"main_category":"Кабели","sub_category":"Кабели за принтери","markup_percent":16,"created_at":"2026-05-23T19:53:12.759205+00:00","updated_at":"2026-05-23T19:53:12.687+00:00"}
+{"id":34,"main_category":"Кабели","sub_category":"Мрежови кабели","markup_percent":16,"created_at":"2026-05-23T19:53:16.835723+00:00","updated_at":"2026-05-23T19:53:16.759+00:00"}
+{"id":35,"main_category":"Компоненти","sub_category":"Вентилатори","markup_percent":17,"created_at":"2026-05-23T19:53:24.786586+00:00","updated_at":"2026-05-23T19:53:24.707+00:00"}
+{"id":36,"main_category":"Кабели","sub_category":"PC кабели","markup_percent":16,"created_at":"2026-05-23T19:53:38.349979+00:00","updated_at":"2026-05-23T19:53:38.119+00:00"}
+{"id":37,"main_category":"Компоненти","sub_category":"Входно-изходни контролери","markup_percent":16,"created_at":"2026-05-23T19:53:46.331027+00:00","updated_at":"2026-05-23T19:53:46.226+00:00"}
+{"id":39,"main_category":"Компоненти","sub_category":"Захранвания","markup_percent":16,"created_at":"2026-05-23T19:54:00.225146+00:00","updated_at":"2026-05-23T19:54:00.116+00:00"}
+{"id":40,"main_category":"Компоненти","sub_category":"Звукови карти","markup_percent":16,"created_at":"2026-05-23T19:54:05.029781+00:00","updated_at":"2026-05-23T19:54:04.946+00:00"}
+{"id":41,"main_category":"Компоненти","sub_category":"Контролери за вентилатори","markup_percent":16,"created_at":"2026-05-23T19:54:11.121578+00:00","updated_at":"2026-05-23T19:54:11.018+00:00"}
+{"id":42,"main_category":"Компоненти","sub_category":"Кутии за компютри","markup_percent":16,"created_at":"2026-05-23T19:54:15.868032+00:00","updated_at":"2026-05-23T19:54:15.75+00:00"}
+{"id":43,"main_category":"Компоненти","sub_category":"Охладители за процесори","markup_percent":16,"created_at":"2026-05-23T19:54:20.29083+00:00","updated_at":"2026-05-23T19:54:20.2+00:00"}
+{"id":44,"main_category":"Компоненти","sub_category":"Памети","markup_percent":16,"created_at":"2026-05-23T19:54:24.959178+00:00","updated_at":"2026-05-23T19:54:24.878+00:00"}
+{"id":45,"main_category":"Компоненти","sub_category":"Памети за лаптоп","markup_percent":16,"created_at":"2026-05-23T19:54:29.797809+00:00","updated_at":"2026-05-23T19:54:29.716+00:00"}
+{"id":46,"main_category":"Компоненти","sub_category":"Процесори","markup_percent":16,"created_at":"2026-05-23T19:54:34.679903+00:00","updated_at":"2026-05-23T19:54:34.602+00:00"}
+{"id":47,"main_category":"Компоненти","sub_category":"Термо пасти и подложки","markup_percent":16,"created_at":"2026-05-23T19:54:40.231914+00:00","updated_at":"2026-05-23T19:54:40.151+00:00"}
+{"id":48,"main_category":"Компоненти","sub_category":"Хард дискове - 3.5\"","markup_percent":16,"created_at":"2026-05-23T19:54:45.500522+00:00","updated_at":"2026-05-23T19:54:45.409+00:00"}
+{"id":49,"main_category":"Компоненти","sub_category":"Чекмеджета за дискове","markup_percent":16,"created_at":"2026-05-23T19:54:51.45471+00:00","updated_at":"2026-05-23T19:54:51.351+00:00"}
+{"id":50,"main_category":"Компоненти","sub_category":"Solid State Drive (SSD) дискове","markup_percent":16,"created_at":"2026-05-23T19:54:56.343977+00:00","updated_at":"2026-05-23T19:54:56.267+00:00"}
+{"id":51,"main_category":"Компоненти","sub_category":"TV Тунери и Видео устройства","markup_percent":16,"created_at":"2026-05-23T19:55:01.321976+00:00","updated_at":"2026-05-23T19:55:01.261+00:00"}
+{"id":52,"main_category":"Лаптопи","sub_category":"Аксесоари за графични таблети","markup_percent":16,"created_at":"2026-05-23T19:55:14.391372+00:00","updated_at":"2026-05-23T19:55:14.289+00:00"}
+{"id":53,"main_category":"Лаптопи","sub_category":"Аксесоари за лаптопи/таблети","markup_percent":16,"created_at":"2026-05-23T19:55:25.025173+00:00","updated_at":"2026-05-23T19:55:24.849+00:00"}
+{"id":54,"main_category":"Лаптопи","sub_category":"Графични таблети","markup_percent":16,"created_at":"2026-05-23T19:55:31.258476+00:00","updated_at":"2026-05-23T19:55:31.161+00:00"}
+{"id":55,"main_category":"Лаптопи","sub_category":"Захранвания за лаптопи","markup_percent":16,"created_at":"2026-05-23T19:55:36.88445+00:00","updated_at":"2026-05-23T19:55:36.767+00:00"}
+{"id":56,"main_category":"Лаптопи","sub_category":"Калъфи за таблети","markup_percent":16,"created_at":"2026-05-23T19:55:50.219445+00:00","updated_at":"2026-05-23T19:55:50.1+00:00"}
+{"id":57,"main_category":"Лаптопи","sub_category":"Лаптопи","markup_percent":16,"created_at":"2026-05-23T19:55:56.434849+00:00","updated_at":"2026-05-23T19:55:56.336+00:00"}
+{"id":58,"main_category":"Лаптопи","sub_category":"Охлаждащи поставки за лаптопи","markup_percent":16,"created_at":"2026-05-23T19:56:02.68934+00:00","updated_at":"2026-05-23T19:56:02.588+00:00"}
+{"id":59,"main_category":"Лаптопи","sub_category":"Чанти за лаптопи","markup_percent":16,"created_at":"2026-05-23T19:56:11.522134+00:00","updated_at":"2026-05-23T19:56:11.428+00:00"}
+{"id":60,"main_category":"Мобилни телефони и аксесоари","sub_category":"Външни батерии","markup_percent":16,"created_at":"2026-05-23T19:56:21.089257+00:00","updated_at":"2026-05-23T19:56:20.84+00:00"}
+{"id":61,"main_category":"Мобилни телефони и аксесоари","sub_category":"Зарядни за телефони","markup_percent":16,"created_at":"2026-05-23T19:56:27.603419+00:00","updated_at":"2026-05-23T19:56:27.488+00:00"}
+{"id":62,"main_category":"Мобилни телефони и аксесоари","sub_category":"Поставки за мобилни телефони","markup_percent":16,"created_at":"2026-05-23T19:56:35.083915+00:00","updated_at":"2026-05-23T19:56:34.987+00:00"}
+{"id":63,"main_category":"Мобилни телефони и аксесоари","sub_category":"Смартчасовници","markup_percent":16,"created_at":"2026-05-23T19:56:40.886613+00:00","updated_at":"2026-05-23T19:56:40.782+00:00"}
+{"id":70,"main_category":"Мрежово оборудване","sub_category":"Комуникационен шкаф","markup_percent":16,"created_at":"2026-05-23T19:57:32.069311+00:00","updated_at":"2026-05-23T19:57:31.976+00:00"}
+{"id":71,"main_category":"Мрежово оборудване","sub_category":"Мрежови карти","markup_percent":18,"created_at":"2026-05-23T19:57:42.181333+00:00","updated_at":"2026-05-23T19:57:42.069+00:00"}
+{"id":72,"main_category":"Мрежово оборудване","sub_category":"Рутери","markup_percent":18,"created_at":"2026-05-23T19:57:53.499439+00:00","updated_at":"2026-05-23T19:57:53.397+00:00"}
+{"id":73,"main_category":"Мрежово оборудване","sub_category":"Суичове - без контрол","markup_percent":17,"created_at":"2026-05-23T19:58:02.58652+00:00","updated_at":"2026-05-23T19:58:02.467+00:00"}
+{"id":74,"main_category":"Мрежово оборудване","sub_category":"Суичове - с контрол","markup_percent":17,"created_at":"2026-05-23T19:58:11.54484+00:00","updated_at":"2026-05-23T19:58:11.433+00:00"}
+{"id":81,"main_category":"Оптика","sub_category":"Телескопи","markup_percent":16,"created_at":"2026-05-23T19:59:02.9099+00:00","updated_at":"2026-05-23T19:59:02.816+00:00"}
+{"id":38,"main_category":"Компоненти","sub_category":"Дънни платки","markup_percent":15,"created_at":"2026-05-23T19:53:54.58014+00:00","updated_at":"2026-05-25T17:17:56.144+00:00"}
+{"id":75,"main_category":"Мрежово оборудване","sub_category":"Access Point","markup_percent":17,"created_at":"2026-05-23T19:58:20.382968+00:00","updated_at":"2026-05-23T19:58:20.123+00:00"}
+{"id":76,"main_category":"Мрежово оборудване","sub_category":"KVM Суичове","markup_percent":17,"created_at":"2026-05-23T19:58:27.250447+00:00","updated_at":"2026-05-23T19:58:27.153+00:00"}
+{"id":77,"main_category":"Мрежово оборудване","sub_category":"Powerline адаптери","markup_percent":17,"created_at":"2026-05-23T19:58:33.751087+00:00","updated_at":"2026-05-23T19:58:33.653+00:00"}
+{"id":78,"main_category":"Непрекъсваеми токозахранващи устройства","sub_category":"Инвертори","markup_percent":16,"created_at":"2026-05-23T19:58:42.828685+00:00","updated_at":"2026-05-23T19:58:42.71+00:00"}
+{"id":79,"main_category":"Непрекъсваеми токозахранващи устройства","sub_category":"Неуправляеми UPS-и","markup_percent":16,"created_at":"2026-05-23T19:58:48.708168+00:00","updated_at":"2026-05-23T19:58:48.628+00:00"}
+{"id":80,"main_category":"Непрекъсваеми токозахранващи устройства","sub_category":"Управляеми UPS-и","markup_percent":16,"created_at":"2026-05-23T19:58:55.702381+00:00","updated_at":"2026-05-23T19:58:55.612+00:00"}
+{"id":82,"main_category":"Офис продукти","sub_category":"Ламинатори","markup_percent":16,"created_at":"2026-05-23T19:59:10.144417+00:00","updated_at":"2026-05-23T19:59:10.054+00:00"}
+{"id":83,"main_category":"Офис продукти","sub_category":"Носители CD, DVD, Blu-Ray","markup_percent":16,"created_at":"2026-05-23T19:59:19.311854+00:00","updated_at":"2026-05-23T19:59:19.174+00:00"}
+{"id":84,"main_category":"Офис продукти","sub_category":"Почистващи материали","markup_percent":16,"created_at":"2026-05-23T19:59:27.698385+00:00","updated_at":"2026-05-23T19:59:27.598+00:00"}
+{"id":85,"main_category":"Периферия","sub_category":"Аксесоари за Волани","markup_percent":16,"created_at":"2026-05-23T19:59:33.930362+00:00","updated_at":"2026-05-23T19:59:33.83+00:00"}
+{"id":86,"main_category":"Периферия","sub_category":"Волани и педали","markup_percent":16,"created_at":"2026-05-23T19:59:43.902358+00:00","updated_at":"2026-05-23T19:59:43.798+00:00"}
+{"id":87,"main_category":"Периферия","sub_category":"Външни дискове","markup_percent":16,"created_at":"2026-05-23T19:59:52.444645+00:00","updated_at":"2026-05-23T19:59:52.351+00:00"}
+{"id":88,"main_category":"Периферия","sub_category":"Външни SSD","markup_percent":16,"created_at":"2026-05-23T20:00:02.681162+00:00","updated_at":"2026-05-23T20:00:02.543+00:00"}
+{"id":89,"main_category":"Периферия","sub_category":"Геймпадове","markup_percent":16,"created_at":"2026-05-23T20:00:08.984977+00:00","updated_at":"2026-05-23T20:00:08.875+00:00"}
+{"id":90,"main_category":"Периферия","sub_category":"Геймърски аксесоари","markup_percent":16,"created_at":"2026-05-23T20:00:19.000377+00:00","updated_at":"2026-05-23T20:00:18.822+00:00"}
+{"id":91,"main_category":"Периферия","sub_category":"Геймърски мишки","markup_percent":16,"created_at":"2026-05-23T20:00:29.431948+00:00","updated_at":"2026-05-23T20:00:29.287+00:00"}
+{"id":92,"main_category":"Периферия","sub_category":"Геймърски клавиатури","markup_percent":16,"created_at":"2026-05-23T20:00:41.952305+00:00","updated_at":"2026-05-23T20:00:41.817+00:00"}
+{"id":93,"main_category":"Периферия","sub_category":"Геймърски падове","markup_percent":16,"created_at":"2026-05-23T20:00:51.705413+00:00","updated_at":"2026-05-23T20:00:51.601+00:00"}
+{"id":94,"main_category":"Периферия","sub_category":"Геймърски слушалки","markup_percent":16,"created_at":"2026-05-23T20:01:00.32655+00:00","updated_at":"2026-05-23T20:01:00.203+00:00"}
+{"id":95,"main_category":"Периферия","sub_category":"Геймърски столове","markup_percent":16,"created_at":"2026-05-23T20:01:06.360649+00:00","updated_at":"2026-05-23T20:01:06.271+00:00"}
+{"id":96,"main_category":"Периферия","sub_category":"Дрехи и аксесоари","markup_percent":16,"created_at":"2026-05-23T20:01:14.119481+00:00","updated_at":"2026-05-23T20:01:14.017+00:00"}
+{"id":97,"main_category":"Периферия","sub_category":"Звукови системи и тонколони","markup_percent":16,"created_at":"2026-05-23T20:01:21.004391+00:00","updated_at":"2026-05-23T20:01:20.9+00:00"}
+{"id":98,"main_category":"Периферия","sub_category":"Компютърни и геймърски очила","markup_percent":16,"created_at":"2026-05-23T20:01:35.261999+00:00","updated_at":"2026-05-23T20:01:35.145+00:00"}
+{"id":99,"main_category":"Периферия","sub_category":"Микрофони","markup_percent":16,"created_at":"2026-05-23T20:01:42.367753+00:00","updated_at":"2026-05-23T20:01:42.272+00:00"}
+{"id":100,"main_category":"Периферия","sub_category":"Клавиатури","markup_percent":16,"created_at":"2026-05-23T20:03:14.538293+00:00","updated_at":"2026-05-23T20:03:14.427+00:00"}
+{"id":101,"main_category":"Периферия","sub_category":"Мишки","markup_percent":16,"created_at":"2026-05-23T20:03:30.523758+00:00","updated_at":"2026-05-23T20:03:30.435+00:00"}
+{"id":102,"main_category":"Периферия","sub_category":"Падове за мишки","markup_percent":16,"created_at":"2026-05-23T20:03:35.509181+00:00","updated_at":"2026-05-23T20:03:35.375+00:00"}
+{"id":103,"main_category":"Периферия","sub_category":"Слушалки","markup_percent":16,"created_at":"2026-05-23T20:03:39.650462+00:00","updated_at":"2026-05-23T20:03:39.547+00:00"}
+{"id":104,"main_category":"Периферия","sub_category":"Слушалки (тапи)","markup_percent":16,"created_at":"2026-05-23T20:03:45.251983+00:00","updated_at":"2026-05-23T20:03:45.105+00:00"}
+{"id":105,"main_category":"Периферия","sub_category":"Уеб камери","markup_percent":16,"created_at":"2026-05-23T20:03:51.835201+00:00","updated_at":"2026-05-23T20:03:51.733+00:00"}
+{"id":106,"main_category":"Периферия","sub_category":"Фигурки","markup_percent":16,"created_at":"2026-05-23T20:03:57.43516+00:00","updated_at":"2026-05-23T20:03:57.341+00:00"}
+{"id":107,"main_category":"Периферия","sub_category":"Четци за карти","markup_percent":16,"created_at":"2026-05-23T20:04:03.322185+00:00","updated_at":"2026-05-23T20:04:03.224+00:00"}
+{"id":108,"main_category":"Периферия","sub_category":"USB памети","markup_percent":16,"created_at":"2026-05-23T20:04:12.438237+00:00","updated_at":"2026-05-23T20:04:12.346+00:00"}
+{"id":109,"main_category":"Периферия","sub_category":"USB хъбове","markup_percent":16,"created_at":"2026-05-23T20:04:17.905051+00:00","updated_at":"2026-05-23T20:04:17.806+00:00"}
+{"id":110,"main_category":"Принтери, скенери и консумативи","sub_category":"3D Скенери","markup_percent":16,"created_at":"2026-05-23T20:04:22.766952+00:00","updated_at":"2026-05-23T20:04:22.67+00:00"}
+{"id":111,"main_category":"Принтери, скенери и консумативи","sub_category":"Аксесоари за принтери","markup_percent":16,"created_at":"2026-05-23T20:04:27.190666+00:00","updated_at":"2026-05-23T20:04:27.116+00:00"}
+{"id":114,"main_category":"Принтери, скенери и консумативи","sub_category":"Мултифункционални устройства","markup_percent":16,"created_at":"2026-05-23T20:04:44.748801+00:00","updated_at":"2026-05-23T20:04:44.522+00:00"}
+{"id":119,"main_category":"Продукти за дома","sub_category":"Инструменти","markup_percent":16,"created_at":"2026-05-23T20:05:06.90122+00:00","updated_at":"2026-05-23T20:05:06.824+00:00"}
+{"id":120,"main_category":"Продукти за дома","sub_category":"Метео - станции и термометри","markup_percent":16,"created_at":"2026-05-23T20:05:12.893624+00:00","updated_at":"2026-05-23T20:05:12.806+00:00"}
+{"id":121,"main_category":"Продукти за дома","sub_category":"Отвертки","markup_percent":16,"created_at":"2026-05-23T20:05:17.200906+00:00","updated_at":"2026-05-23T20:05:17.122+00:00"}
+{"id":122,"main_category":"Продукти за дома","sub_category":"Разклонители","markup_percent":16,"created_at":"2026-05-23T20:05:24.968651+00:00","updated_at":"2026-05-23T20:05:24.876+00:00"}
+{"id":124,"main_category":"Продукти за дома","sub_category":"Уреди за измерване и контрол","markup_percent":16,"created_at":"2026-05-23T20:05:35.937681+00:00","updated_at":"2026-05-23T20:05:35.87+00:00"}
+{"id":125,"main_category":"Продукти за дома","sub_category":"Фенери","markup_percent":16,"created_at":"2026-05-23T20:05:40.465176+00:00","updated_at":"2026-05-23T20:05:40.336+00:00"}
+{"id":126,"main_category":"Продукти за дома","sub_category":"Часовници","markup_percent":17,"created_at":"2026-05-23T20:05:47.817658+00:00","updated_at":"2026-05-23T20:05:47.698+00:00"}
+{"id":127,"main_category":"Проектори, интерактивен под, стойки","sub_category":"Екрани","markup_percent":18,"created_at":"2026-05-23T20:05:59.442622+00:00","updated_at":"2026-05-23T20:05:59.349+00:00"}
+{"id":128,"main_category":"Проектори, интерактивен под, стойки","sub_category":"Проектори","markup_percent":17,"created_at":"2026-05-23T20:06:06.202117+00:00","updated_at":"2026-05-23T20:06:05.959+00:00"}
+{"id":129,"main_category":"Софтуер","sub_category":"Творчество и дизайн","markup_percent":18,"created_at":"2026-05-23T20:06:13.914931+00:00","updated_at":"2026-05-23T20:06:13.779+00:00"}
+{"id":130,"main_category":"Софтуер","sub_category":"Office & Desktop & Bussiness приложения","markup_percent":18,"created_at":"2026-05-23T20:06:20.233942+00:00","updated_at":"2026-05-23T20:06:19.937+00:00"}
+{"id":131,"main_category":"Сторидж у-ва и консумативи","sub_category":"Сторидж у-ва и консумативи","markup_percent":17,"created_at":"2026-05-23T20:06:25.048991+00:00","updated_at":"2026-05-23T20:06:24.971+00:00"}
+{"id":132,"main_category":"Фото и видео аксесоари","sub_category":"Други фото и видео аксесоари","markup_percent":17,"created_at":"2026-05-23T20:06:31.229835+00:00","updated_at":"2026-05-23T20:06:31.097+00:00"}
+{"id":133,"main_category":"Фото и видео аксесоари","sub_category":"Карти памет","markup_percent":18,"created_at":"2026-05-23T20:06:39.070369+00:00","updated_at":"2026-05-23T20:06:38.971+00:00"}
+{"id":134,"main_category":"Фото и видео аксесоари","sub_category":"Фото рамки","markup_percent":16,"created_at":"2026-05-23T20:06:46.379234+00:00","updated_at":"2026-05-23T20:06:46.305+00:00"}
+{"id":135,"main_category":"Фото и видео аксесоари","sub_category":"Фотоалбуми","markup_percent":16,"created_at":"2026-05-23T20:06:51.167762+00:00","updated_at":"2026-05-23T20:06:51.097+00:00"}
+{"id":136,"main_category":"STEM","sub_category":"Дизайн и 3D прототипиране","markup_percent":16,"created_at":"2026-05-23T20:06:54.143919+00:00","updated_at":"2026-05-23T20:06:54.059+00:00"}
+{"id":137,"main_category":"STEM","sub_category":"Математика и информатика","markup_percent":16,"created_at":"2026-05-23T20:06:58.24852+00:00","updated_at":"2026-05-23T20:06:58.168+00:00"}
+{"id":138,"main_category":"STEM","sub_category":"Природни науки","markup_percent":16,"created_at":"2026-05-23T20:07:01.429302+00:00","updated_at":"2026-05-23T20:07:01.32+00:00"}
+{"id":139,"main_category":"TV, Видео и аксесоари","sub_category":"Аксесоари за TV","markup_percent":16,"created_at":"2026-05-23T20:07:07.8414+00:00","updated_at":"2026-05-23T20:07:07.73+00:00"}
+{"id":140,"main_category":"TV, Видео и аксесоари","sub_category":"Антени","markup_percent":16,"created_at":"2026-05-23T20:07:14.499745+00:00","updated_at":"2026-05-23T20:07:14.418+00:00"}
+{"id":141,"main_category":"TV, Видео и аксесоари","sub_category":"Дистанционни","markup_percent":16,"created_at":"2026-05-23T20:07:18.255781+00:00","updated_at":"2026-05-23T20:07:18.17+00:00"}
+{"id":142,"main_category":"TV, Видео и аксесоари","sub_category":"Стойки за TV и високоговорители","markup_percent":16,"created_at":"2026-05-23T20:07:23.243913+00:00","updated_at":"2026-05-23T20:07:23.108+00:00"}
+{"id":2,"main_category":"Батерии и зарядни у-ва","sub_category":"Батерии","markup_percent":17,"created_at":"2026-05-23T19:14:46.854585+00:00","updated_at":"2026-05-23T22:12:13.526+00:00"}
+{"id":147,"main_category":"Аксесоари за велосипеди","sub_category":"Заключващи устройства за велосипед","markup_percent":15,"created_at":"2026-05-25T16:57:37.621999+00:00","updated_at":"2026-05-25T16:57:37.535+00:00"}
+{"id":148,"main_category":"Батерии и зарядни у-ва","sub_category":"Батерии за дистанционни за кран","markup_percent":15,"created_at":"2026-05-25T16:57:42.810598+00:00","updated_at":"2026-05-25T16:57:42.735+00:00"}
+{"id":149,"main_category":"Други","sub_category":"Други","markup_percent":15,"created_at":"2026-05-25T16:57:47.472164+00:00","updated_at":"2026-05-25T16:57:47.347+00:00"}
+{"id":116,"main_category":"Принтери, скенери и консумативи","sub_category":"Скенери","markup_percent":18,"created_at":"2026-05-23T20:04:53.728681+00:00","updated_at":"2026-05-25T17:34:43.421+00:00"}
+{"id":115,"main_category":"Принтери, скенери и консумативи","sub_category":"Рефили и наливни мастила за принтери","markup_percent":18,"created_at":"2026-05-23T20:04:49.288184+00:00","updated_at":"2026-05-25T17:34:54.313+00:00"}
+{"id":123,"main_category":"Продукти за дома","sub_category":"Универсални почистващи препарати","markup_percent":20,"created_at":"2026-05-23T20:05:31.361006+00:00","updated_at":"2026-06-08T07:58:42.408+00:00"}
+{"id":113,"main_category":"Принтери, скенери и консумативи","sub_category":"Консумативи за лазерни принтери и копири","markup_percent":24,"created_at":"2026-05-23T20:04:39.288494+00:00","updated_at":"2026-05-25T18:55:37.577+00:00"}
+{"id":117,"main_category":"Продукти за дома","sub_category":"Аксесоари за контакти","markup_percent":20,"created_at":"2026-05-23T20:04:59.538751+00:00","updated_at":"2026-06-08T07:59:41.997+00:00"}
+{"id":118,"main_category":"Продукти за дома","sub_category":"Домашни потреби","markup_percent":20,"created_at":"2026-05-23T20:05:03.095823+00:00","updated_at":"2026-06-08T08:00:15.629+00:00"}
+{"id":150,"main_category":"Батерии и зарядни у-ва","sub_category":"Батерии за фотоапарати и камкордери","markup_percent":15,"created_at":"2026-05-25T16:57:52.782668+00:00","updated_at":"2026-05-25T16:57:52.713+00:00"}
+{"id":151,"main_category":"Компоненти","sub_category":"Хард дискове - 2.5\"","markup_percent":15,"created_at":"2026-05-25T16:57:58.429961+00:00","updated_at":"2026-05-25T16:57:58.355+00:00"}
+{"id":152,"main_category":"Компоненти","sub_category":"Оптични устройства","markup_percent":15,"created_at":"2026-05-25T16:58:07.32453+00:00","updated_at":"2026-05-25T16:58:07.233+00:00"}
+{"id":153,"main_category":"Компютри","sub_category":"Реновирани Компютри","markup_percent":15,"created_at":"2026-05-25T16:58:14.287943+00:00","updated_at":"2026-05-25T16:58:14.205+00:00"}
+{"id":154,"main_category":"Лаптопи","sub_category":"Заключващи устройства за лаптоп","markup_percent":15,"created_at":"2026-05-25T16:58:27.760947+00:00","updated_at":"2026-05-25T16:58:27.658+00:00"}
+{"id":155,"main_category":"Мрежово оборудване","sub_category":"Безжични адаптери","markup_percent":15,"created_at":"2026-05-25T16:58:37.76921+00:00","updated_at":"2026-05-25T16:58:37.508+00:00"}
+{"id":156,"main_category":"Навигации, камери и аксесоари за коли","sub_category":"Аксесоари за автомобили","markup_percent":16,"created_at":"2026-05-25T16:58:47.828463+00:00","updated_at":"2026-05-25T16:58:47.726+00:00"}
+{"id":158,"main_category":"Непрекъсваеми токозахранващи устройства","sub_category":"Стабилизатори","markup_percent":17,"created_at":"2026-05-25T16:59:05.327002+00:00","updated_at":"2026-05-25T16:59:05.24+00:00"}
+{"id":159,"main_category":"Оптика","sub_category":"Аксесоари оптика","markup_percent":15,"created_at":"2026-05-25T16:59:13.037134+00:00","updated_at":"2026-05-25T16:59:12.942+00:00"}
+{"id":161,"main_category":"Офис продукти","sub_category":"Гилотини","markup_percent":16,"created_at":"2026-05-25T16:59:33.530515+00:00","updated_at":"2026-05-25T16:59:33.447+00:00"}
+{"id":157,"main_category":"Непрекъсваеми токозахранващи устройства","sub_category":"Аксесоари UPS","markup_percent":17,"created_at":"2026-05-25T16:58:54.453727+00:00","updated_at":"2026-05-25T16:58:54.39+00:00"}
+{"id":160,"main_category":"Оптика","sub_category":"Бинокли","markup_percent":16,"created_at":"2026-05-25T16:59:20.549043+00:00","updated_at":"2026-05-25T16:59:20.462+00:00"}
+{"id":163,"main_category":"Офис продукти","sub_category":"Класьори за CD, DVD","markup_percent":16,"created_at":"2026-05-25T16:59:54.0868+00:00","updated_at":"2026-05-25T16:59:53.973+00:00"}
+{"id":171,"main_category":"Продукти за дома","sub_category":"Кухненски таймери","markup_percent":16,"created_at":"2026-05-25T17:01:39.473956+00:00","updated_at":"2026-05-25T17:01:39.384+00:00"}
+{"id":172,"main_category":"Продукти за дома","sub_category":"Таймери","markup_percent":17,"created_at":"2026-05-25T17:01:49.88583+00:00","updated_at":"2026-05-25T17:01:49.794+00:00"}
+{"id":173,"main_category":"Проектори, интерактивен под, стойки","sub_category":"Стойки и аксесоари","markup_percent":17,"created_at":"2026-05-25T17:01:58.651132+00:00","updated_at":"2026-05-25T17:01:58.562+00:00"}
+{"id":162,"main_category":"Принтери, скенери и консумативи","sub_category":"3D Принтери","markup_percent":18,"created_at":"2026-05-25T16:59:43.567727+00:00","updated_at":"2026-05-25T17:37:34.007+00:00"}
+{"id":112,"main_category":"Принтери, скенери и консумативи","sub_category":"Касети за струйни принтери","markup_percent":60,"created_at":"2026-05-23T20:04:33.554527+00:00","updated_at":"2026-05-25T18:53:47.501+00:00"}
+{"id":165,"main_category":"Принтери, скенери и консумативи","sub_category":"Касети за матрични принтери","markup_percent":30,"created_at":"2026-05-25T17:00:22.61981+00:00","updated_at":"2026-05-25T18:55:00.988+00:00"}
+{"id":167,"main_category":"Принтери, скенери и консумативи","sub_category":"Консумативи за 3D принтери","markup_percent":22,"created_at":"2026-05-25T17:00:55.617681+00:00","updated_at":"2026-05-25T18:55:27.041+00:00"}
+{"id":164,"main_category":"Принтери, скенери и консумативи","sub_category":"Бутилки с тонер","markup_percent":38,"created_at":"2026-05-25T17:00:09.40065+00:00","updated_at":"2026-05-26T08:12:08.687+00:00"}
+{"id":168,"main_category":"Продукти за дома","sub_category":"Аксесоари за микровълнови фурни","markup_percent":20,"created_at":"2026-05-25T17:01:05.437217+00:00","updated_at":"2026-06-08T07:59:24.424+00:00"}
+{"id":166,"main_category":"Продукти за дома","sub_category":"Аксесоари за перални машини","markup_percent":20,"created_at":"2026-05-25T17:00:40.180926+00:00","updated_at":"2026-06-08T08:00:02.653+00:00"}
+{"id":169,"main_category":"Продукти за дома","sub_category":"Комплекти за сервиране","markup_percent":20,"created_at":"2026-05-25T17:01:16.988768+00:00","updated_at":"2026-06-08T08:00:26.421+00:00"}
+{"id":170,"main_category":"Продукти за дома","sub_category":"Кухненски везни","markup_percent":20,"created_at":"2026-05-25T17:01:28.62264+00:00","updated_at":"2026-06-08T08:00:39.27+00:00"}

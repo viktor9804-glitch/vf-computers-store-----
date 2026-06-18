@@ -6,7 +6,8 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const PER_PAGE = 500;
-const BASE_URL = "https://www.vali.bg/api/v1";
+const BASE_URL = (process.env.VALI_API_BASE || "https://www.vali.bg/api/v1").replace(/\/$/, "");
+const DRY_RUN = process.env.VALI_SYNC_DRY_RUN === "true";
 
 if (!VALI_TOKEN) throw new Error("Missing VALI_API_TOKEN");
 if (!SUPABASE_URL) throw new Error("Missing VITE_SUPABASE_URL");
@@ -76,7 +77,9 @@ function mapCategory(product) {
 
   if (ids.length === 0) return ["Други", "Други"];
 
-  const deepestId = ids[ids.length - 1];
+  // VALI returns the primary product category first. The following entries can
+  // be secondary collections (for example STEM), not descendants of the first.
+  const deepestId = ids[0];
 
   const subCategory = getCategoryNameById(deepestId);
 
@@ -88,72 +91,10 @@ function mapCategory(product) {
   return [mainCategory, subCategory];
 }
 
-function getValiAvailability(product = {}) {
-  const text = String(
-    product.availability_text ??
-    product.availability ??
-    product.delivery_status ??
-    product.stock_status ??
-    product.status_text ??
-    product.expected_delivery ??
-    ""
-  ).toLowerCase();
-  const rawStatus = product.status;
-  const statusNumber = Number(rawStatus);
-  const statusText = typeof rawStatus === "string" ? rawStatus.toLowerCase() : "";
-
-  const qty = Number(
-    product.stock_quantity ??
-    product.quantity ??
-    product.qty ??
-    product.stock ??
-    product.available_quantity ??
-    0
-  );
-
-  if (
-    text.includes("на път") ||
-    text.includes("очаква") ||
-    text.includes("preorder") ||
-    text.includes("on the way") ||
-    statusText.includes("на път") ||
-    statusText.includes("очаква")
-  ) {
-    return {
-      availability_text: "На път",
-      availability_type: "on_the_way",
-      stock_quantity: qty,
-      expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
-    };
-  }
-
-  if (
-    text.includes("налич") ||
-    text.includes("available") ||
-    text.includes("in stock") ||
-    statusNumber === 1 ||
-    qty > 0
-  ) {
-    return {
-      availability_text: "В наличност",
-      availability_type: "in_stock",
-      stock_quantity: qty,
-      expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
-    };
-  }
-
-  return {
-    availability_text: text ? product.availability_text || product.availability || product.delivery_status || product.stock_status || product.status_text : "С поръчка",
-    availability_type: "order",
-    stock_quantity: qty,
-    expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
-  };
-}
-
 async function valiGet(path) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const separator = path.includes("?") ? "&" : "?";
+  const res = await fetch(`${BASE_URL}${path}${separator}api_token=${encodeURIComponent(VALI_TOKEN)}`, {
     headers: {
-      Authorization: `Bearer ${VALI_TOKEN}`,
       Accept: "application/json",
     },
   });
@@ -168,8 +109,6 @@ async function valiGet(path) {
 
 function toRow(product) {
   const [mainCategory, subCategory] = mapCategory(product);
-  const availability = getValiAvailability(product);
-
   return {
     id: product.id,
     idwf: product.idWF,
@@ -177,11 +116,6 @@ function toRow(product) {
     manufacturer_id: product.manufacturer_id,
     manufacturer: product.manufacturer,
     status: product.status,
-    availability_text: availability.availability_text,
-    availability_type: availability.availability_type,
-    stock_quantity: availability.stock_quantity,
-    expected_delivery: availability.expected_delivery,
-
     price_client: product.price_client,
     price_partner: product.price_partner,
     price_promo: product.price_promo,
@@ -246,6 +180,7 @@ function hasValiNextPage(response, rows, pageSize) {
 
 async function main() {
   console.log("Starting VALI sync...");
+  if (DRY_RUN) console.log("DRY RUN: database writes are disabled.");
 
   console.log("Loading VALI categories...");
   const categoriesResponse = await valiGet("/categories");
@@ -260,6 +195,22 @@ async function main() {
   );
 
   console.log(`Loaded categories: ${categoryMap.size}`);
+
+  const categoryRows = categoriesList.map((category) => ({
+    id: category.id,
+    parent: category.parent,
+    name_bg: getText(category.name, "bg"),
+    name_en: getText(category.name, "en"),
+    show: category.show,
+    sort_order: category.order,
+    raw: category,
+  }));
+  if (!DRY_RUN) {
+    const { error: categoriesError } = await supabase
+      .from("vali_categories")
+      .upsert(categoryRows, { onConflict: "id" });
+    if (categoriesError) throw categoriesError;
+  }
 
   const first = await valiGet(`/products/full?page=1&per_page=${PER_PAGE}`);
 
@@ -276,6 +227,7 @@ async function main() {
 
   let imported = 0;
   let page = 1;
+  const remoteIds = new Set();
 
   while (true) {
     const data =
@@ -284,6 +236,7 @@ async function main() {
         : await valiGet(`/products/full?page=${page}&per_page=${PER_PAGE}`);
 
     const rows = getValiItems(data).map(toRow);
+    rows.forEach((row) => remoteIds.add(String(row.id)));
     const currentPage = getValiCurrentPage(data, page);
     const lastPage = getValiLastPage(data) || firstLastPage;
 
@@ -294,11 +247,13 @@ async function main() {
       break;
     }
 
-    const { error } = await supabase
-      .from("vali_products")
-      .upsert(rows, { onConflict: "id" });
+    if (!DRY_RUN) {
+      const { error } = await supabase
+        .from("vali_products")
+        .upsert(rows, { onConflict: "id" });
 
-    if (error) throw error;
+      if (error) throw error;
+    }
 
     imported += rows.length;
     console.log(`Imported so far: ${imported}`);
@@ -309,7 +264,38 @@ async function main() {
     page = currentPage + 1;
   }
 
+  // Keep historical rows for orders/overrides, but never show products that
+  // disappeared from the authoritative VALI response.
+  const databaseProducts = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("vali_products")
+      .select("id")
+      .range(from, from + 999);
+    if (error) throw error;
+    databaseProducts.push(...(data || []));
+    if ((data || []).length < 1000) break;
+  }
+
+  const staleIds = databaseProducts
+    .map((product) => product.id)
+    .filter((id) => !remoteIds.has(String(id)));
+
+  for (let index = 0; !DRY_RUN && index < staleIds.length; index += 100) {
+    const { error } = await supabase
+      .from("vali_products")
+      .update({
+        show: false,
+        status: 0,
+        updated_at: new Date().toISOString(),
+      })
+      .in("id", staleIds.slice(index, index + 100));
+    if (error) throw error;
+  }
+
   console.log("VALI sync finished.");
+  console.log(`Imported/updated: ${imported}`);
+  console.log(`Deactivated stale products: ${staleIds.length}`);
 }
 
 main().catch((err) => {

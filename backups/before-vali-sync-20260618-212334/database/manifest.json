@@ -1,0 +1,22 @@
+{
+  "created_at": "2026-06-18T18:23:44.328Z",
+  "source": "https://qmuflwekhqqcfykayjdx.supabase.co",
+  "tables": {
+    "vali_products": {
+      "rows": 10998,
+      "bytes": 65900742
+    },
+    "vali_categories": {
+      "rows": 260,
+      "bytes": 166886
+    },
+    "category_markups": {
+      "rows": 161,
+      "bytes": 35879
+    },
+    "vali_product_overrides": {
+      "rows": 8,
+      "bytes": 1501
+    }
+  }
+}

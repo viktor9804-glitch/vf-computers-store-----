@@ -8,6 +8,7 @@ const supabase = createClient(
 
 const VALI_API_BASE = process.env.VALI_API_BASE;
 const VALI_API_TOKEN = process.env.VALI_API_TOKEN;
+const DRY_RUN = process.env.VALI_SYNC_DRY_RUN === "true";
 
 async function valiFetch(path) {
   const separator = path.includes("?") ? "&" : "?";
@@ -59,75 +60,14 @@ function hasValiNextPage(response, rows, pageSize) {
   );
 }
 
-function getValiAvailability(product = {}) {
-  const text = String(
-    product.availability_text ??
-    product.availability ??
-    product.delivery_status ??
-    product.stock_status ??
-    product.status_text ??
-    product.expected_delivery ??
-    ""
-  ).toLowerCase();
-  const rawStatus = product.status;
-  const statusNumber = Number(rawStatus);
-  const statusText = typeof rawStatus === "string" ? rawStatus.toLowerCase() : "";
-
-  const qty = Number(
-    product.stock_quantity ??
-    product.quantity ??
-    product.qty ??
-    product.stock ??
-    product.available_quantity ??
-    0
-  );
-
-  if (
-    text.includes("на път") ||
-    text.includes("очаква") ||
-    text.includes("preorder") ||
-    text.includes("on the way") ||
-    statusText.includes("на път") ||
-    statusText.includes("очаква")
-  ) {
-    return {
-      availability_text: "На път",
-      availability_type: "on_the_way",
-      stock_quantity: qty,
-      expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
-    };
-  }
-
-  if (
-    text.includes("налич") ||
-    text.includes("available") ||
-    text.includes("in stock") ||
-    statusNumber === 1 ||
-    qty > 0
-  ) {
-    return {
-      availability_text: "В наличност",
-      availability_type: "in_stock",
-      stock_quantity: qty,
-      expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
-    };
-  }
-
-  return {
-    availability_text: text ? product.availability_text || product.availability || product.delivery_status || product.stock_status || product.status_text : "С поръчка",
-    availability_type: "order",
-    stock_quantity: qty,
-    expected_delivery: product.expected_delivery || product.delivery_date || product.expected_date || null,
-  };
-}
-
 async function run() {
   try {
     console.log("Starting FAST price/stock sync...");
+    if (DRY_RUN) console.log("DRY RUN: database writes are disabled.");
 
     let page = 1;
     let lastPage = 0;
-    let updated = 0;
+    const remoteProducts = [];
 
     while (true) {
       console.log(`Fetching page ${page}...`);
@@ -142,34 +82,8 @@ async function run() {
         break;
       }
 
-      for (const product of products) {
-        const availability = getValiAvailability(product);
-        const { error } = await supabase
-          .from("vali_products")
-          .update({
-            status: product.status,
-            show: product.show,
-            availability_text: availability.availability_text,
-            availability_type: availability.availability_type,
-            stock_quantity: availability.stock_quantity,
-            expected_delivery: availability.expected_delivery,
-            price_client: product.price_client,
-            price_partner: product.price_partner,
-            price_promo: product.price_promo,
-            price_client_promo: product.price_client_promo,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", product.id);
-
-        if (error) {
-          console.error("Update error:", product.id, error.message);
-          continue;
-        }
-
-        updated++;
-      }
-
-      console.log(`Finished page ${currentPage}/${lastPage || "unknown"} | Updated: ${updated}`);
+      remoteProducts.push(...products);
+      console.log(`Finished page ${currentPage}/${lastPage || "unknown"} | Fetched: ${remoteProducts.length}`);
 
       if (lastPage && currentPage >= lastPage) break;
       if (!lastPage && !hasValiNextPage(data, products, 500)) break;
@@ -177,10 +91,63 @@ async function run() {
       page = currentPage + 1;
     }
 
+    const existingIds = new Set();
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase
+        .from("vali_products")
+        .select("id")
+        .range(from, from + 999);
+      if (error) throw error;
+      (data || []).forEach((product) => existingIds.add(String(product.id)));
+      if ((data || []).length < 1000) break;
+    }
+
+    const now = new Date().toISOString();
+    const updates = remoteProducts
+      .filter((product) => existingIds.has(String(product.id)))
+      .map((product) => ({
+        id: product.id,
+        status: product.status,
+        show: product.show,
+        price_client: product.price_client,
+        price_partner: product.price_partner,
+        price_promo: product.price_promo,
+        price_client_promo: product.price_client_promo,
+        updated_at: now,
+      }));
+
+    for (let index = 0; !DRY_RUN && index < updates.length; index += 500) {
+      const { error } = await supabase
+        .from("vali_products")
+        .upsert(updates.slice(index, index + 500), { onConflict: "id" });
+      if (error) throw error;
+    }
+
+    const remoteIds = new Set(remoteProducts.map((product) => String(product.id)));
+    const staleIds = [...existingIds].filter((id) => !remoteIds.has(id));
+    for (let index = 0; !DRY_RUN && index < staleIds.length; index += 100) {
+      const { error } = await supabase
+        .from("vali_products")
+        .update({
+          show: false,
+          status: 0,
+          updated_at: now,
+        })
+        .in("id", staleIds.slice(index, index + 100));
+      if (error) throw error;
+    }
+
+    const newProducts = remoteProducts.filter((product) => !existingIds.has(String(product.id)));
     console.log("FAST SYNC COMPLETE");
-    console.log("TOTAL UPDATED:", updated);
+    console.log("TOTAL UPDATED:", updates.length);
+    console.log("DEACTIVATED STALE:", staleIds.length);
+    console.log("NEW PRODUCTS REQUIRING FULL SYNC:", newProducts.length);
+    if (newProducts.length > 0) {
+      console.log("Run npm run sync:vali:full to import their full catalog data.");
+    }
   } catch (error) {
     console.error("SYNC ERROR:", error.message);
+    process.exitCode = 1;
   }
 }
 

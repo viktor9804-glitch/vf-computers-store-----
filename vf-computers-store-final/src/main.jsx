@@ -84,8 +84,11 @@ const VALI_PRODUCT_SELECT = [
   "reference_number",
   "manufacturer",
   "status",
+  "show",
   "price_client",
   "price_partner",
+  "price_promo",
+  "price_client_promo",
   "model",
   "barcode",
   "warranty",
@@ -93,7 +96,6 @@ const VALI_PRODUCT_SELECT = [
   "description",
   "images",
   "filters",
-  "raw",
   "site_main_category",
   "site_sub_category",
 ].join(",");
@@ -626,6 +628,22 @@ const getValiAvailability = (product = {}) => {
     0
   );
 
+  if (explicitType === "discontinued") {
+    return { label: "Вече не се предлага", type: "discontinued", canOrder: false };
+  }
+
+  if (explicitType === "out_of_stock" || statusNumber === 0) {
+    return { label: "Няма наличност", type: "out_of_stock", canOrder: false };
+  }
+
+  if (explicitType === "ask_price" || statusNumber === 5) {
+    return { label: "Попитай за цена", type: "ask_price", canOrder: false };
+  }
+
+  if (explicitType === "limited" || statusNumber === 2) {
+    return { label: "Ограничена наличност (до 3 бр.)", type: "limited", canOrder: true };
+  }
+
   if (
     explicitType === "on_the_way" ||
     text.includes("на път") ||
@@ -633,7 +651,8 @@ const getValiAvailability = (product = {}) => {
     text.includes("preorder") ||
     text.includes("on the way") ||
     statusText.includes("на път") ||
-    statusText.includes("очаква")
+    statusText.includes("очаква") ||
+    statusNumber === 3
   ) {
     return {
       label: "На път",
@@ -655,6 +674,11 @@ const getValiAvailability = (product = {}) => {
       type: "in_stock",
       canOrder: true,
     };
+  }
+
+
+  if (explicitType === "order" || statusNumber === 4) {
+    return { label: "По заявка (обади се)", type: "order", canOrder: true };
   }
 
   return {
@@ -2120,13 +2144,15 @@ const ProductPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCatego
   <div className="product-page-actions-inline">
 
     <button
+      disabled={product.canOrder === false}
       onClick={() => addToCart(product.id)}
     >
-      Добави в количката
+      {product.canOrder === false ? product.availabilityLabel || "Не е наличен" : "Добави в количката"}
     </button>
 
     <button
       className="tbi-btn"
+      disabled={product.canOrder === false}
       onClick={() => handleTbiCheckout(product)}
     >
       Купи на изплащане
@@ -2718,6 +2744,7 @@ function App() {
           .from("vali_products")
           .select("site_main_category, site_sub_category")
           .eq("show", true)
+          .order("id", { ascending: true })
       );
 
       if (error) {
@@ -2864,18 +2891,20 @@ function App() {
         };
       };
 
-      const [localRes, firstValiRes, markupsRes, storeRes] = await Promise.all([
+      const [localRes, valiRes, markupsRes, storeRes] = await Promise.all([
         fetchAllSupabaseRows(() =>
           supabase
             .from("products")
             .select("*")
             .order("created_at", { ascending: false })
         ),
-        supabase
-          .from("vali_products")
-          .select(VALI_PRODUCT_SELECT)
-          .eq("show", true)
-          .range(0, SUPABASE_PAGE_SIZE - 1),
+        fetchAllSupabaseRows(() =>
+          supabase
+            .from("vali_products")
+            .select(VALI_PRODUCT_SELECT)
+            .eq("show", true)
+            .order("id", { ascending: true })
+        ),
         supabase.from("category_markups").select("*"),
         supabase
           .from("physical_store_products")
@@ -2894,7 +2923,7 @@ function App() {
       }
 
       const localProducts = (localRes.data || []).map(normalizeLocalProduct);
-      const firstValiProducts = (firstValiRes.data || []).map(normalizeValiProduct);
+      const valiProducts = (valiRes.data || []).map(normalizeValiProduct);
       const storeProducts = storeRes.error ? [] : (storeRes.data || []).map(normalizeStoreProduct);
       if (storeRes.error) {
         console.warn(storeRes.error);
@@ -2903,7 +2932,7 @@ function App() {
       setDbProducts([
         ...localProducts,
         ...storeProducts,
-        ...firstValiProducts
+        ...valiProducts
       ]);
       setLoadingProducts(false);
 
@@ -2911,37 +2940,8 @@ function App() {
         console.error(localRes.error);
       }
 
-      if (firstValiRes.error) {
-        console.error(firstValiRes.error);
-        return;
-      }
-
-      if ((firstValiRes.data || []).length < SUPABASE_PAGE_SIZE) return;
-
-      const remainingValiProducts = [];
-      let from = SUPABASE_PAGE_SIZE;
-
-      while (!cancelled) {
-        const { data, error } = await supabase
-          .from("vali_products")
-          .select(VALI_PRODUCT_SELECT)
-          .eq("show", true)
-          .range(from, from + SUPABASE_PAGE_SIZE - 1);
-
-        if (error) {
-          console.error(error);
-          return;
-        }
-
-        const pageRows = data || [];
-        remainingValiProducts.push(...pageRows.map(normalizeValiProduct));
-
-        if (pageRows.length < SUPABASE_PAGE_SIZE) break;
-        from += SUPABASE_PAGE_SIZE;
-      }
-
-      if (!cancelled && remainingValiProducts.length > 0) {
-        setDbProducts((current) => [...current, ...remainingValiProducts]);
+      if (valiRes.error) {
+        console.error(valiRes.error);
       }
     };
 
@@ -3610,16 +3610,18 @@ const headerProps = {
                     )}
                   </div>
                   <button
+                    disabled={product.canOrder === false}
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
                       addToCart(product.id);
                     }}
                   >
-                    Добави
+                    {product.canOrder === false ? "Не е наличен" : "Добави"}
                   </button>
                   <button
                     className="tbi-btn"
+                    disabled={product.canOrder === false}
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();

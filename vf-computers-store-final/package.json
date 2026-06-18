@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:vali:full": "node src/sync-vali-products.js",
+    "sync:vali:availability": "node src/sync-vali-fast-prices.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",

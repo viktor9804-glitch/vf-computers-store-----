@@ -1,0 +1,21 @@
+{
+  "name": "vf-computers-v27-real-10-image-gallery-fix",
+  "private": true,
+  "version": "27.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.1",
+    "@vitejs/plugin-react": "latest",
+    "dotenv": "^17.4.2",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "^7.15.1",
+    "vite": "latest"
+  }
+}
