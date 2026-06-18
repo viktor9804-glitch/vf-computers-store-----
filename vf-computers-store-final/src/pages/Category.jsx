@@ -2,9 +2,31 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import ProductFilters from "../components/ProductFilters";
+import { calculateDisplayPrice } from "../utils/format";
 import { collectFilterValues, normalizeText, sortFilterValues } from "../utils/text";
 
 const PRODUCTS_PER_PAGE = 50;
+const AVAILABILITY_OPTIONS = [
+  { type: "in_stock", label: "В наличност" },
+  { type: "out_of_stock", label: "Няма наличност" },
+  { type: "limited", label: "Ограничена наличност (до 3 бр.)" },
+  { type: "on_the_way", label: "На път" },
+  { type: "order", label: "По заявка (обади се)" },
+];
+
+const resolveAvailabilityType = (product = {}) => {
+  if (product.availabilityType) return product.availabilityType;
+
+  const label = normalizeText(product.availabilityLabel || product.stockStatus || product.stock).toLowerCase();
+
+  if (label.includes("няма наличност")) return "out_of_stock";
+  if (label.includes("огранич")) return "limited";
+  if (label.includes("на път") || label.includes("очаква")) return "on_the_way";
+  if (label.includes("по заявка") || label.includes("поръчка")) return "order";
+  if (label.includes("в наличност")) return "in_stock";
+
+  return "";
+};
 
 export default function Category({
   products,
@@ -17,6 +39,8 @@ export default function Category({
   const [selectedFilters, setSelectedFilters] = useState({});
   const [expandedFilters, setExpandedFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
+  const [selectedAvailability, setSelectedAvailability] = useState([]);
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const [page, setPage] = useState(1);
 
   const decodedCategory = decodeURIComponent(categoryName);
@@ -24,6 +48,32 @@ export default function Category({
   const categoryProducts = products.filter(
     (product) => product.category === decodedCategory || product.mainCategory === decodedCategory
   );
+
+  const availabilityOptions = useMemo(() => {
+    const counts = categoryProducts.reduce((result, product) => {
+      const type = resolveAvailabilityType(product);
+      if (type) result[type] = (result[type] || 0) + 1;
+      return result;
+    }, {});
+
+    return AVAILABILITY_OPTIONS.map((option) => ({
+      ...option,
+      count: counts[option.type] || 0,
+    }));
+  }, [categoryProducts]);
+
+  const priceBounds = useMemo(() => {
+    const prices = categoryProducts
+      .map((product) => calculateDisplayPrice(product.price))
+      .filter((price) => Number.isFinite(price) && price >= 0);
+
+    if (prices.length === 0) return { min: 0, max: 0 };
+
+    return {
+      min: Math.floor(Math.min(...prices)),
+      max: Math.ceil(Math.max(...prices)),
+    };
+  }, [categoryProducts]);
 
   const availableFilters = useMemo(() => {
     const map = {};
@@ -56,6 +106,18 @@ export default function Category({
 
   const filteredProducts = useMemo(() => {
     return categoryProducts.filter((product) => {
+      const productAvailability = resolveAvailabilityType(product);
+      if (selectedAvailability.length > 0 && !selectedAvailability.includes(productAvailability)) {
+        return false;
+      }
+
+      const productPrice = calculateDisplayPrice(product.price);
+      const minPrice = priceRange.min === "" ? null : Number(priceRange.min);
+      const maxPrice = priceRange.max === "" ? null : Number(priceRange.max);
+
+      if (minPrice !== null && Number.isFinite(minPrice) && productPrice < minPrice) return false;
+      if (maxPrice !== null && Number.isFinite(maxPrice) && productPrice > maxPrice) return false;
+
       return Object.entries(selectedFilters).every(([filterKey, selectedValues]) => {
         if (!selectedValues?.length) return true;
 
@@ -68,18 +130,20 @@ export default function Category({
         return selectedValues.some((value) => productValues.includes(value));
       });
     });
-  }, [categoryProducts, selectedFilters]);
+  }, [categoryProducts, selectedAvailability, priceRange, selectedFilters]);
 
   useEffect(() => {
     setSelectedFilters({});
     setExpandedFilters({});
     setFilterSearch({});
+    setSelectedAvailability([]);
+    setPriceRange({ min: "", max: "" });
     setPage(1);
   }, [decodedCategory]);
 
   useEffect(() => {
     setPage(1);
-  }, [selectedFilters]);
+  }, [selectedFilters, selectedAvailability, priceRange]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
@@ -109,6 +173,16 @@ export default function Category({
     setSelectedFilters({});
     setExpandedFilters({});
     setFilterSearch({});
+    setSelectedAvailability([]);
+    setPriceRange({ min: "", max: "" });
+  };
+
+  const toggleAvailability = (type) => {
+    setSelectedAvailability((current) => (
+      current.includes(type)
+        ? current.filter((item) => item !== type)
+        : [...current, type]
+    ));
   };
 
   const Header = HeaderComponent;
@@ -139,6 +213,12 @@ export default function Category({
               setExpandedFilters={setExpandedFilters}
               toggleFilterValue={toggleFilterValue}
               clearAllFilters={clearAllFilters}
+              availabilityOptions={availabilityOptions}
+              selectedAvailability={selectedAvailability}
+              toggleAvailability={toggleAvailability}
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              priceBounds={priceBounds}
             />
 
             <div className="products-area">
@@ -150,6 +230,10 @@ export default function Category({
                 {categoryProducts.length === 0 ? (
                   <p className="empty-products">
                     Няма продукти в тази категория.
+                  </p>
+                ) : filteredProducts.length === 0 ? (
+                  <p className="empty-products">
+                    Няма продукти, отговарящи на избраните филтри.
                   </p>
                 ) : (
                   visibleProducts.map((product) => (

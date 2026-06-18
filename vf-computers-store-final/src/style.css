@@ -153,6 +153,14 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
 .filter-option input{accent-color:var(--red);margin-top:2px}
 .filter-option span{overflow-wrap:anywhere}
 .filter-option b{color:#fca5a5;font-size:12px}
+.price-filter-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.price-filter-inputs>label{display:grid;gap:6px;color:#cfcfd8;font-size:12px;font-weight:800}
+.price-filter-field{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:13px;overflow:hidden}
+.price-filter-field:focus-within{border-color:rgba(239,68,68,.7);box-shadow:0 0 0 3px rgba(239,68,68,.12)}
+.price-filter-field input{width:100%;min-width:0;border:0;background:transparent;color:#fff;padding:10px 4px 10px 10px;outline:0;font-size:13px}
+.price-filter-field input::placeholder{color:#8d8d99}
+.price-filter-field b{padding:0 10px 0 4px;color:#fca5a5;font-size:13px}
+.price-filter-hint{margin:9px 0 0;color:#9696a2;font-size:11px;line-height:1.4}
 .filter-more{width:100%;margin-top:10px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.10);color:#ffb4b4;border-radius:13px;padding:9px 10px;font-weight:950;cursor:pointer}
 .filter-more:hover,.filter-clear:hover{background:rgba(239,68,68,.18);color:#fff}
 .category-pagination{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:28px;flex-wrap:wrap}

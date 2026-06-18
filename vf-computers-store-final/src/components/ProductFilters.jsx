@@ -9,14 +9,70 @@ export default function ProductFilters({
   setExpandedFilters,
   toggleFilterValue,
   clearAllFilters,
+  availabilityOptions,
+  selectedAvailability,
+  toggleAvailability,
+  priceRange,
+  setPriceRange,
+  priceBounds,
 }) {
-  if (Object.keys(availableFilters).length === 0) return null;
-
   return (
     <aside className="filters-sidebar">
       <div className="filters-head">
         <h3>Филтри</h3>
         <button className="filter-clear" onClick={clearAllFilters}>Изчисти всички</button>
+      </div>
+
+      <div className="filter-group">
+        <div className="filter-title">Наличност</div>
+        {availabilityOptions.map((option) => (
+          <label className="filter-option" key={option.type}>
+            <input
+              type="checkbox"
+              checked={selectedAvailability.includes(option.type)}
+              onChange={() => toggleAvailability(option.type)}
+            />
+            <span>{option.label}</span>
+            <b>({option.count})</b>
+          </label>
+        ))}
+      </div>
+
+      <div className="filter-group">
+        <div className="filter-title">Цена</div>
+        <div className="price-filter-inputs">
+          <label>
+            <span>От</span>
+            <div className="price-filter-field">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={priceRange.min}
+                placeholder={String(priceBounds.min)}
+                onChange={(event) => setPriceRange((current) => ({ ...current, min: event.target.value }))}
+                aria-label="Минимална цена"
+              />
+              <b>€</b>
+            </div>
+          </label>
+          <label>
+            <span>До</span>
+            <div className="price-filter-field">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={priceRange.max}
+                placeholder={String(priceBounds.max)}
+                onChange={(event) => setPriceRange((current) => ({ ...current, max: event.target.value }))}
+                aria-label="Максимална цена"
+              />
+              <b>€</b>
+            </div>
+          </label>
+        </div>
+        <p className="price-filter-hint">Диапазон в категорията: {priceBounds.min}–{priceBounds.max} €</p>
       </div>
 
       {Object.entries(availableFilters).map(([filterKey, options]) => {
