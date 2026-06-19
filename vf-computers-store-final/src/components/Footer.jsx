@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { supabase } from "../lib/supabase";
 
 const fallbackShippingSettings = {
   supplier: "Еконт",
@@ -10,50 +9,11 @@ const fallbackShippingSettings = {
   default_shipping_price: 8,
 };
 
-export default function Footer({ storeInfo }) {
-  const [shippingSettings, setShippingSettings] = useState(null);
-
-  const reloadSettings = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("store_settings")
-      .select("*")
-      .limit(1)
-      .single();
-
-    if (error) {
-      console.error("STORE SETTINGS LOAD ERROR", error);
-      setShippingSettings(null);
-      return;
-    }
-
-    setShippingSettings(data);
-  }, []);
-
-  useEffect(() => {
-    reloadSettings();
-
-    const channel = supabase
-      .channel("store-settings")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "store_settings",
-        },
-        reloadSettings
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [reloadSettings]);
-
-  const supplier = shippingSettings?.supplier || fallbackShippingSettings.supplier;
-  const freeShipping = shippingSettings?.free_shipping_over || fallbackShippingSettings.free_shipping_over;
-  const minPrice = shippingSettings?.min_shipping_price || fallbackShippingSettings.min_shipping_price;
-  const maxPrice = shippingSettings?.max_shipping_price || fallbackShippingSettings.max_shipping_price;
+export default function Footer({ storeInfo, shippingSettings }) {
+  const supplier = shippingSettings?.provider || fallbackShippingSettings.supplier;
+  const freeShipping = shippingSettings?.free_delivery_threshold || fallbackShippingSettings.free_shipping_over;
+  const minPrice = shippingSettings?.delivery_min || fallbackShippingSettings.min_shipping_price;
+  const maxPrice = shippingSettings?.delivery_max || fallbackShippingSettings.max_shipping_price;
 
   return (
     <footer id="contact" className="footer">

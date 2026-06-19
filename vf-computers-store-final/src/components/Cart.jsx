@@ -2,6 +2,7 @@ import React from "react";
 import { CreditCard, Minus, Plus, Trash2, X } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatDisplayPrice, formatPrice } from "../utils/format";
+import { getOptimizedImageUrl, restoreOriginalImage } from "../utils/images";
 
 export default function Cart({ deliveryProvider, tbiAvailable = false, onTbiCheckout }) {
   const {
@@ -42,7 +43,7 @@ export default function Cart({ deliveryProvider, tbiAvailable = false, onTbiChec
           ) : (
             cartItems.map((item) => (
               <div className="cart-item" key={item.id}>
-                <img src={item.image} alt={item.name} />
+                <img src={getOptimizedImageUrl(item.image, 180, 72)} alt={item.name} loading="lazy" decoding="async" width="180" height="135" onError={(event) => restoreOriginalImage(event, item.image)} />
                 <div className="cart-item-body">
                   <b>{item.name}</b>
                   {item.availabilityLabel && <small>{item.availabilityLabel}</small>}

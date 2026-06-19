@@ -4,7 +4,8 @@
   Route,
   Link,
   useParams,
-  useNavigate
+  useNavigate,
+  useLocation
 } from "react-router-dom";
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
@@ -24,6 +25,7 @@ import ProductFilters from "./components/ProductFilters";
 import ProductGallery from "./components/ProductGallery";
 import Home from "./pages/Home";
 import { useScrollTop } from "./hooks/useScrollTop";
+import { getOptimizedImageUrl, getProductImageSrcSet, restoreOriginalImage } from "./utils/images";
 import "./style.css";
 
 const BuilderPage = React.lazy(() => import("./pages/BuilderPage"));
@@ -37,7 +39,7 @@ const Cart = React.lazy(() => import("./components/Cart"));
 const Checkout = React.lazy(() => import("./components/Checkout"));
 const Footer = React.lazy(() => import("./components/Footer"));
 
-const LOGO_URL = "/VF_logo_1.png";
+const LOGO_URL = "/VF_logo_header.webp";
 
 const storeInfo = {
   name: "ВФ Компютри",
@@ -95,6 +97,24 @@ const VALI_PRODUCT_SELECT = [
   "description",
   "images",
   "filters",
+  "site_main_category",
+  "site_sub_category",
+].join(",");
+
+const VALI_CARD_SELECT = [
+  "id",
+  "reference_number",
+  "manufacturer",
+  "status",
+  "show",
+  "public_price",
+  "public_old_price",
+  "discount_percent",
+  "model",
+  "barcode",
+  "warranty",
+  "name",
+  "images",
   "site_main_category",
   "site_sub_category",
 ].join(",");
@@ -2558,6 +2578,9 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCateg
   );
 };
 function App() {
+  const location = useLocation();
+  const currentPath = location.pathname;
+
   useEffect(() => {
     if (window.location.hash === "#admin") window.location.hash = "";
   }, []);
@@ -2596,6 +2619,14 @@ function App() {
   const [promotionsData, setPromotionsData] = useState([]);
   const [partnersData, setPartnersData] = useState(partners);
   const [homepageSections, setHomepageSections] = useState([]);
+  const homepageProductIdsKey = useMemo(() => (
+    homepageSections
+      .flatMap((section) => section.product_ids || [])
+      .map((id) => String(id).replace(/^vali-/, ""))
+      .filter(Boolean)
+      .sort()
+      .join(",")
+  ), [homepageSections]);
   const [builderSelections, setBuilderSelections] = useState({
     cpu: "",
     motherboard: "",
@@ -2748,7 +2779,20 @@ function App() {
 
   useEffect(() => {
     const loadValiCategories = async () => {
-      const { data, error } = await fetchAllSupabaseRows((from, to) =>
+      try {
+        const response = await fetch("/api/catalog-categories", {
+          headers: { Accept: "application/json" },
+        });
+        const payload = response.ok ? await response.json() : null;
+        if (Array.isArray(payload?.categories) && payload.categories.length > 0) {
+          setDynamicMegaCategories(buildDynamicMegaCategories(payload.categories));
+          return;
+        }
+      } catch {
+        // A direct Supabase fallback keeps navigation working during API outages.
+      }
+
+      const { data, error } = await fetchAllSupabaseRows(() =>
         supabase
           .from("storefront_vali_products")
           .select("site_main_category, site_sub_category")
@@ -2898,6 +2942,94 @@ function App() {
         };
       };
 
+      const isCategoryRoute = currentPath.startsWith("/category/");
+      const categoryRouteName = isCategoryRoute
+        ? decodeURIComponent(currentPath.slice("/category/".length))
+        : "";
+      const requiresFullCatalog = currentPath === "/search"
+        || currentPath.startsWith("/builder");
+      const productRouteId = currentPath.startsWith("/product/")
+        ? decodeURIComponent(currentPath.slice("/product/".length))
+        : "";
+
+      const loadValiProducts = async () => {
+        if (isCategoryRoute && categoryRouteName) {
+          const [mainCategoryRes, subCategoryRes] = await Promise.all([
+            fetchAllSupabaseRows(() =>
+              supabase
+                .from("storefront_vali_products")
+                .select(VALI_PRODUCT_SELECT)
+                .eq("show", true)
+                .eq("site_main_category", categoryRouteName)
+                .order("id", { ascending: true })
+            ),
+            fetchAllSupabaseRows(() =>
+              supabase
+                .from("storefront_vali_products")
+                .select(VALI_PRODUCT_SELECT)
+                .eq("show", true)
+                .eq("site_sub_category", categoryRouteName)
+                .order("id", { ascending: true })
+            ),
+          ]);
+
+          const unique = new Map();
+          [...(mainCategoryRes.data || []), ...(subCategoryRes.data || [])].forEach((row) => {
+            unique.set(String(row.id), row);
+          });
+          return {
+            data: Array.from(unique.values()),
+            error: mainCategoryRes.error || subCategoryRes.error,
+          };
+        }
+
+        if (requiresFullCatalog) {
+          return fetchAllSupabaseRows(() =>
+            supabase
+              .from("storefront_vali_products")
+              .select(VALI_PRODUCT_SELECT)
+              .eq("show", true)
+              .order("id", { ascending: true })
+          );
+        }
+
+        if (productRouteId.startsWith("vali-")) {
+          const { data, error } = await supabase
+            .from("storefront_vali_products")
+            .select(VALI_PRODUCT_SELECT)
+            .eq("show", true)
+            .eq("id", productRouteId.slice("vali-".length))
+            .maybeSingle();
+          return { data: data ? [data] : [], error };
+        }
+
+        const featuredIds = homepageProductIdsKey.split(",").filter(Boolean);
+        const featuredQuery = featuredIds.length > 0
+          ? supabase
+            .from("storefront_vali_products")
+            .select(VALI_CARD_SELECT)
+            .eq("show", true)
+            .in("id", featuredIds)
+          : Promise.resolve({ data: [], error: null });
+
+        const [latestRes, featuredRes] = await Promise.all([
+          supabase
+            .from("storefront_vali_products")
+            .select(VALI_CARD_SELECT)
+            .eq("show", true)
+            .order("id", { ascending: true })
+            .limit(80),
+          featuredQuery,
+        ]);
+
+        const error = latestRes.error || featuredRes.error;
+        const unique = new Map();
+        [...(latestRes.data || []), ...(featuredRes.data || [])].forEach((row) => {
+          unique.set(String(row.id), row);
+        });
+        return { data: Array.from(unique.values()), error };
+      };
+
       const [localRes, valiRes, markupsRes, storeRes] = await Promise.all([
         fetchAllSupabaseRows(() =>
           supabase
@@ -2905,13 +3037,7 @@ function App() {
             .select("*")
             .order("created_at", { ascending: false })
         ),
-        fetchAllSupabaseRows(() =>
-          supabase
-            .from("storefront_vali_products")
-            .select(VALI_PRODUCT_SELECT)
-            .eq("show", true)
-            .order("id", { ascending: true })
-        ),
+        loadValiProducts(),
         supabase.from("category_markups").select("*"),
         supabase
           .from("physical_store_products")
@@ -2936,11 +3062,18 @@ function App() {
         console.warn(storeRes.error);
       }
 
-      setDbProducts([
+      const loadedProducts = [
         ...localProducts,
         ...storeProducts,
         ...valiProducts
-      ]);
+      ];
+
+      setDbProducts((current) => {
+        if (requiresFullCatalog || isCategoryRoute) return loadedProducts;
+        const merged = new Map(current.map((product) => [String(product.id), product]));
+        loadedProducts.forEach((product) => merged.set(String(product.id), product));
+        return Array.from(merged.values());
+      });
       setLoadingProducts(false);
 
       if (localRes.error) {
@@ -2957,7 +3090,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentPath, homepageProductIdsKey]);
 
   const [activeCategory, setActiveCategory] = useState("Всички");
   const [query, setQuery] = useState("");
@@ -3499,7 +3632,14 @@ const headerProps = {
               <div className="pc-card-top">
                 <span className="live-dot" /> VF Build Preview
               </div>
-              <img src="https://images.unsplash.com/photo-1598550476439-6847785fcea6?auto=format&fit=crop&w=1400&q=80" alt="Gaming PC" />
+              <img
+                src={getOptimizedImageUrl("https://images.unsplash.com/photo-1598550476439-6847785fcea6?auto=format&fit=crop&w=1400&q=80", 1200, 80)}
+                alt="Gaming PC"
+                decoding="async"
+                width="1200"
+                height="800"
+                onError={(event) => restoreOriginalImage(event, "https://images.unsplash.com/photo-1598550476439-6847785fcea6?auto=format&fit=crop&w=1400&q=80")}
+              />
               <div className="performance">
                 <div><Gauge /><b>FPS Ready</b><small>Gaming конфигурации</small></div>
                 <div><Zap /><b>Fast Boot</b><small>NVMe SSD</small></div>
@@ -3632,7 +3772,17 @@ const headerProps = {
 >
   <article className="product-card">
               <div className="product-image">
-                <img src={product.image} alt={product.name} loading="lazy" />
+                <img
+                  src={getOptimizedImageUrl(product.image, 640)}
+                  srcSet={getProductImageSrcSet(product.image)}
+                  sizes="(max-width: 640px) 50vw, (max-width: 1100px) 33vw, 280px"
+                  alt={product.name}
+                  loading="lazy"
+                  decoding="async"
+                  width="640"
+                  height="480"
+                  onError={(event) => restoreOriginalImage(event, product.image)}
+                />
                 <span className="badge-product">{product.availabilityType === "on_the_way" ? "На път" : product.badge}</span>
                 <button
                   className="wish"
@@ -3792,7 +3942,7 @@ const headerProps = {
         </div>
       </section>
 
-      <Footer storeInfo={storeInfo} />
+      <Footer storeInfo={storeInfo} shippingSettings={deliverySettings} />
 
       <AIAssistant />
 

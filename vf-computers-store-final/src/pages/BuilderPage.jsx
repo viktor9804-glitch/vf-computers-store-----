@@ -2,11 +2,12 @@ import React from "react";
 import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { formatDisplayPrice, formatPrice } from "../utils/format";
 import { normalizeComparableValue } from "../utils/text";
+import { getOptimizedImageUrl, restoreOriginalImage } from "../utils/images";
 
 const getProductImage = (product) => {
   const firstImage = Array.isArray(product?.images) ? product.images[0] : "";
   if (typeof firstImage === "string" && firstImage) return firstImage;
-  return firstImage?.href || product?.image || "/VF_logo_1.png";
+  return firstImage?.href || product?.image || "/VF_logo_header.webp";
 };
 
 const getProductDetails = (product) => {
@@ -38,12 +39,19 @@ function SelectedComponentPreview({ label, product }) {
     <article className="builder-component-preview">
       <div className="builder-component-image">
         <img
-          src={getProductImage(product)}
+          src={getOptimizedImageUrl(getProductImage(product), 480, 76)}
           alt={product.name || label}
           loading="lazy"
+          decoding="async"
+          width="480"
+          height="360"
           onError={(event) => {
+            if (event.currentTarget.dataset.originalFallback !== "true") {
+              restoreOriginalImage(event, getProductImage(product));
+              return;
+            }
             event.currentTarget.onerror = null;
-            event.currentTarget.src = "/VF_logo_1.png";
+            event.currentTarget.src = "/VF_logo_header.webp";
           }}
         />
       </div>

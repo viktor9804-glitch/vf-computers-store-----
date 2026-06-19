@@ -2,13 +2,24 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { formatDisplayPrice } from "../utils/format";
+import { getOptimizedImageUrl, getProductImageSrcSet, restoreOriginalImage } from "../utils/images";
 
 export default function ProductCard({ product, addToCart }) {
   return (
     <Link to={`/product/${product.id}`} className="product-link">
       <article className="product-card">
         <div className="product-image">
-          <img src={product.image} alt={product.name} loading="lazy" />
+          <img
+            src={getOptimizedImageUrl(product.image, 640)}
+            srcSet={getProductImageSrcSet(product.image)}
+            sizes="(max-width: 640px) 50vw, (max-width: 1100px) 33vw, 280px"
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            width="640"
+            height="480"
+            onError={(event) => restoreOriginalImage(event, product.image)}
+          />
           {product.availabilityType === "on_the_way" && (
             <span className="badge-product availability-badge">На път</span>
           )}

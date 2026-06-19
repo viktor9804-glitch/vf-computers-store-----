@@ -45,9 +45,9 @@ export default function Category({
 
   const decodedCategory = decodeURIComponent(categoryName);
 
-  const categoryProducts = products.filter(
+  const categoryProducts = useMemo(() => products.filter(
     (product) => product.category === decodedCategory || product.mainCategory === decodedCategory
-  );
+  ), [products, decodedCategory]);
 
   const availabilityOptions = useMemo(() => {
     const counts = categoryProducts.reduce((result, product) => {
