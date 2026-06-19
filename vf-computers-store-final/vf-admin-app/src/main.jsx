@@ -502,7 +502,12 @@ function App() {
       return;
     }
 
-    const nextOrders = data || [];
+    // A TBI order becomes operational only after the bank confirms approval.
+    // Pending/rejected/cancelled/error financing attempts remain in the private
+    // TBI audit table and are intentionally hidden from the admin order queue.
+    const nextOrders = (data || []).filter((order) => (
+      order.payment_method !== "tbi" || order.payment_status === "approved"
+    ));
     const nextIds = new Set(nextOrders.map((order) => String(order.id)));
     const previousIds = seenOrderIdsRef.current;
 

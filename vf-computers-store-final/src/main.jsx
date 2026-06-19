@@ -2997,6 +2997,58 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       setBuilderPaymentMethod("bank");
     }
   }, [builderPaymentMethod, tbiAvailable]);
+
+  useEffect(() => {
+    if (!showTbi || !tbiUrl) return undefined;
+
+    let tbiOrigin;
+    try {
+      tbiOrigin = new URL(tbiUrl).origin;
+    } catch {
+      setShowTbi(false);
+      setNotice("TBI върна невалиден адрес за кандидатстване.");
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleTbiMessage = (event) => {
+      if (event.origin !== tbiOrigin) return;
+
+      let message = event.data;
+      if (typeof message === "string") {
+        try {
+          message = JSON.parse(message);
+        } catch {
+          return;
+        }
+      }
+      if (!message || !["close", "close_modal"].includes(message.command)) return;
+
+      setShowTbi(false);
+      setTbiUrl("");
+
+      if (message.url) {
+        try {
+          const returnUrl = new URL(message.url, window.location.origin);
+          if (returnUrl.origin === window.location.origin) {
+            window.location.assign(returnUrl.toString());
+            return;
+          }
+        } catch {
+          // Invalid return URLs are ignored deliberately.
+        }
+      }
+      setNotice("TBI кандидатстването е приключено. Статусът ще се обнови след потвърждение от банката.");
+    };
+
+    window.addEventListener("message", handleTbiMessage);
+    return () => {
+      window.removeEventListener("message", handleTbiMessage);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showTbi, tbiUrl]);
   const baseComponentPools = useMemo(() => ({
     cpu: products.filter(isCpu),
     motherboard: products.filter(isMotherboard),
@@ -3361,10 +3413,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
           price: Number(data.amount || 0),
           reference: data.reference,
         });
-        // A new popup opened after the async order/API flow is commonly blocked
-        // by browsers. Redirecting the current tab is reliable and the TBI
-        // success/fail URLs return the customer to the storefront.
-        window.location.assign(data.url);
+        setShowTbi(true);
         return true;
       } else {
         setNotice(data?.error || "TBI финансирането временно не е налично.");
@@ -3775,55 +3824,29 @@ const headerProps = {
 
       {showTbi && (
         <div className="tbi-modal">
-          <div className="tbi-redirect-card">
-            <button className="tbi-redirect-close" onClick={() => setShowTbi(false)}>✕</button>
-
-            <div className="tbi-bank-mark">TBI Bank</div>
-            <h2>Купи на изплащане</h2>
-            <p className="tbi-redirect-lead">
-              Заявката ще продължи в защитената система на TBI Bank.
-              Това е нормално, защото банката не позволява формата да се зарежда вътре в друг сайт.
-            </p>
-
-            <div className="tbi-summary-box">
+          <div className="tbi-modal-content">
+            <div className="tbi-modal-head">
               <div>
-                <span>Продукт / поръчка</span>
-                <b>{tbiProduct?.name || "Избрани продукти"}</b>
+                <b>TBI Bank — кандидатстване на изплащане</b>
+                <p>{tbiProduct?.name || "Избрани продукти"} • {formatPrice(tbiProduct?.price || 0)}</p>
               </div>
-              <div>
-                <span>Сума</span>
-                <b>{formatPrice(tbiProduct?.price || 0)}</b>
-              </div>
-              <div>
-                <span>Примерна вноска</span>
-                <b>от {formatPrice((Number(tbiProduct?.price || 0) / 24).toFixed(0))} / мес.</b>
-              </div>
-            </div>
-
-            <div className="tbi-info-list">
-              <span>✓ Бърза онлайн заявка</span>
-              <span>✓ Защитена страница на TBI Bank</span>
-              <span>✓ Връщане към магазина след заявката</span>
-            </div>
-
-            <div className="tbi-redirect-actions">
               <button
-                className="tbi-continue"
+                type="button"
+                aria-label="Затвори TBI кандидатстването"
                 onClick={() => {
-                  window.open(tbiUrl, "_blank", "noopener,noreferrer");
                   setShowTbi(false);
+                  setTbiUrl("");
                 }}
               >
-                Продължи към TBI Bank
-              </button>
-              <button className="tbi-cancel" onClick={() => setShowTbi(false)}>
-                Отказ
+                ✕
               </button>
             </div>
-
-            <small>
-              ВФ Компютри не съхранява банкови данни. Одобрението и условията се обработват от TBI Bank.
-            </small>
+            <iframe
+              src={tbiUrl}
+              title="TBI Bank кандидатстване за финансиране"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allow="clipboard-read; clipboard-write"
+            />
           </div>
         </div>
       )}
