@@ -1,12 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildFinancingRequest,
   decryptTbiPayload,
   encryptTbiPayload,
   normalizeCallbackStatus,
   resolveCallbackStatus,
   safeEqual,
 } from "./_tbi.js";
+
+test("order financing requires the private order token", async () => {
+  await assert.rejects(
+    () => buildFinancingRequest({}, { order_id: "7ec66ad2-5051-4e29-a742-2f2016eb9416" }, {}),
+    (error) => error?.code === "ORDER_NOT_FOUND"
+  );
+});
 
 test("AES-256-CTR payload matches the supplied PHP Cryptor format", () => {
   const payload = { orderid: "VF-1", currency: "EUR" };

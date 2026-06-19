@@ -31,8 +31,8 @@ const getBearerToken = (req) => {
   return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
 };
 
-export const loadOrderForConfirmation = async ({ orderId, customerEmail }) => {
-  if (!orderId || !normalizeEmail(customerEmail)) {
+export const loadOrderForConfirmation = async ({ orderId, customerEmail, orderToken }) => {
+  if (!orderId || !normalizeEmail(customerEmail) || !/^[A-Za-z0-9_-]{20,100}$/.test(String(orderToken || ""))) {
     throw new ApiError(400, "Missing order confirmation data");
   }
 
@@ -41,6 +41,7 @@ export const loadOrderForConfirmation = async ({ orderId, customerEmail }) => {
     .from("orders")
     .select("*")
     .eq("id", orderId)
+    .eq("idempotency_key", orderToken)
     .single();
 
   if (error || !order) {

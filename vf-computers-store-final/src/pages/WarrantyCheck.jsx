@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Search, ShieldCheck, X } from "lucide-react";
-import { supabase } from "../supabaseClient";
 
 const STATUS_LABELS = {
   active: "Активна",
@@ -12,7 +11,8 @@ const STATUS_LABELS = {
 
 function formatDate(value) {
   if (!value) return "-";
-  return new Intl.DateTimeFormat("bg-BG").format(new Date(`${value}T00:00:00`));
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : new Intl.DateTimeFormat("bg-BG").format(date);
 }
 
 function normalizeCode(value) {
@@ -24,7 +24,8 @@ function getDisplayStatus(warranty) {
   if (warranty.status === "service" || warranty.status === "rejected") return warranty.status;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const until = new Date(`${warranty.warranty_until}T00:00:00`);
+  const until = new Date(warranty.warranty_end);
+  if (Number.isNaN(until.getTime())) return warranty.status || "active";
   return until < today ? "expired" : "active";
 }
 
@@ -49,21 +50,25 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
     }
 
     setLoading(true);
-    const { data, error } = await supabase
-  .from("warranties")
-  .select(`
-  *,
-  warranty_items (*)
-`)
-  .or(
-    `warranty_number.eq.${normalizedCode},public_code.eq.${normalizedCode},warranty_code.eq.${normalizedCode}`
-  )
-  .maybeSingle();
+    let data = null;
+    let error = null;
+    try {
+      const response = await fetch("/api/warranty-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ warranty_code: normalizedCode }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) error = new Error(result?.error || "Warranty check failed");
+      else data = result?.warranty || null;
+    } catch (requestError) {
+      error = requestError;
+    }
 
     setLoading(false);
 
     if (error) {
-      setMessage("Възникна грешка при проверката. Опитайте отново.");
+      setMessage("Няма намерен запис с този код.");
       return;
     }
 
@@ -142,9 +147,8 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
                 <dl>
                   <div><dt>Гаранционен код:</dt><dd>{warranty.warranty_code}</dd></div>
                   <div><dt>Продукт:</dt><dd>{warranty.product_name || "-"}</dd></div>
-                  <div><dt>Сериен номер:</dt><dd>{warranty.product_serial || "-"}</dd></div>
-                  <div><dt>Дата на продажба:</dt><dd>{formatDate(warranty.sale_date)}</dd></div>
-                  <div><dt>Гаранция до:</dt><dd>{formatDate(warranty.warranty_until)}</dd></div>
+                  <div><dt>Начало на гаранцията:</dt><dd>{formatDate(warranty.warranty_start)}</dd></div>
+                  <div><dt>Гаранция до:</dt><dd>{formatDate(warranty.warranty_end)}</dd></div>
                   <div><dt>Статус:</dt><dd>{STATUS_LABELS[displayStatus] || displayStatus}</dd></div>
                 </dl>
                 {warranty.warranty_items?.length > 0 && (
@@ -168,13 +172,8 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
 
         <p><strong>Модел:</strong> {item.product_model || "-"}</p>
         <p><strong>Производител:</strong> {item.manufacturer || "-"}</p>
-        <p><strong>Сериен номер:</strong> {item.serial_number || "-"}</p>
-        <p><strong>Каталожен номер:</strong> {item.catalog_number || "-"}</p>
-        <p><strong>Цена:</strong> {item.sale_price ? `${item.sale_price} €` : "-"}</p>
         <p><strong>Гаранция:</strong> {item.warranty_months || "-"} месеца</p>
         <p><strong>Гаранция до:</strong> {formatDate(item.warranty_end)}</p>
-        <p><strong>Описание:</strong> {item.description || "-"}</p>
-        <p><strong>Характеристики:</strong> {item.specifications || "-"}</p>
       </div>
     ))}
   </div>

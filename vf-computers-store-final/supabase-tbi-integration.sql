@@ -15,7 +15,7 @@ alter table public.orders
 create table if not exists public.tbi_applications (
   id uuid primary key default gen_random_uuid(),
   -- Production orders.id is bigint in the deployed VF Computers schema.
-  order_id bigint references public.orders(id) on delete set null,
+  order_id bigint references public.orders(id) on delete cascade,
   product_id text,
   tbi_reference text not null unique,
   status text not null default 'pending'

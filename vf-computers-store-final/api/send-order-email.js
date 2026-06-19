@@ -6,6 +6,13 @@ import {
   sendJson,
   setCors,
 } from "./_mailer.js";
+import {
+  assertAllowedKeys,
+  enforceRateLimit,
+  validateRequestSize,
+} from "./_serverSecurity.js";
+
+const ALLOWED_BODY_KEYS = new Set(["orderId", "customerEmail", "orderToken"]);
 
 export default async function handler(req, res) {
   setCors(res);
@@ -19,6 +26,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    enforceRateLimit(req, { scope: "order-email", limit: 5 });
+    validateRequestSize(req, 2048);
+    assertAllowedKeys(req.body || {}, ALLOWED_BODY_KEYS);
     const customerEmail = String(req.body?.customerEmail || "").trim();
 
     if (!customerEmail) {
@@ -28,6 +38,7 @@ export default async function handler(req, res) {
     const order = await loadOrderForConfirmation({
       orderId: req.body?.orderId,
       customerEmail,
+      orderToken: req.body?.orderToken,
     });
     const to = String(order.customer_email || "").trim();
     const orderNumber = getOrderNumber(order);

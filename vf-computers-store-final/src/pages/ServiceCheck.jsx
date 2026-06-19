@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Clock, PackageSearch, Search, ShieldCheck, Wrench, X } from "lucide-react";
-import { supabase } from "../supabaseClient";
 
 const STATUS_LABELS = {
   accepted: "Приет",
@@ -35,16 +34,6 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
-function formatMoney(value, currency = "EUR") {
-  if (value === null || value === undefined || value === "") return "-";
-  const amount = Number(value);
-  if (Number.isNaN(amount)) return `${value} ${currency}`;
-  return new Intl.NumberFormat("bg-BG", {
-    style: "currency",
-    currency,
-  }).format(amount);
-}
-
 export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCode = normalizeCode(searchParams.get("code"));
@@ -55,7 +44,6 @@ export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
 
   const status = protocol?.status || "accepted";
   const StatusIcon = useMemo(() => STATUS_ICONS[status] || ShieldCheck, [status]);
-  const publicServices = Array.isArray(protocol?.public_services) ? protocol.public_services : [];
 
   async function checkService(nextCode = code) {
     const normalizedCode = normalizeCode(nextCode);
@@ -68,15 +56,24 @@ export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
     }
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from("service_protocol_public")
-      .select("*")
-      .eq("public_code", normalizedCode)
-      .maybeSingle();
+    let data = null;
+    let error = null;
+    try {
+      const response = await fetch("/api/service-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ public_code: normalizedCode }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) error = new Error(result?.error || "Service check failed");
+      else data = result?.service || null;
+    } catch (requestError) {
+      error = requestError;
+    }
     setLoading(false);
 
     if (error) {
-      setMessage("Възникна грешка при проверката. Опитайте отново.");
+      setMessage("Няма намерен запис с този код.");
       return;
     }
 
@@ -154,30 +151,9 @@ export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
                 <dl>
                   <div><dt>Сервизен код:</dt><dd>{protocol.public_code}</dd></div>
                   <div><dt>Устройство:</dt><dd>{[protocol.device_type, protocol.brand, protocol.model].filter(Boolean).join(" ") || "-"}</dd></div>
-                  <div><dt>Сериен номер:</dt><dd>{protocol.serial_number || "-"}</dd></div>
-                  <div><dt>Приет на:</dt><dd>{formatDateTime(protocol.accepted_at)}</dd></div>
                   <div><dt>Последна промяна:</dt><dd>{formatDateTime(protocol.updated_at)}</dd></div>
                   <div><dt>Статус:</dt><dd>{STATUS_LABELS[status] || status}</dd></div>
-                  <div><dt>Цена:</dt><dd>{formatMoney(protocol.public_total_price, protocol.currency || "EUR")}</dd></div>
                 </dl>
-                <section className="service-public-services">
-                  <h3>Извършени услуги</h3>
-                  {publicServices.length ? (
-                    <div className="service-public-list">
-                      {publicServices.map((service, index) => (
-                        <article className="service-public-row" key={`${service.barcode || service.name}-${index}`}>
-                          <div>
-                            <strong>{service.name || "-"}</strong>
-                            <span>{formatDateTime(service.scanned_at)}{service.barcode ? ` · ${service.barcode}` : ""}</span>
-                          </div>
-                          <b>{formatMoney(service.price, protocol.currency || "EUR")}</b>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="service-public-empty">Няма добавени услуги.</p>
-                  )}
-                </section>
               </>
             )}
           </article>

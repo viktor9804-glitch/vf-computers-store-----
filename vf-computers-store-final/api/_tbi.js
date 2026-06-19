@@ -360,6 +360,10 @@ export async function buildFinancingRequest(supabase, input, config) {
   if (hasProduct === hasOrder) {
     throw new TbiError(400, "INVALID_TARGET", "Изпратете точно един product_id или order_id.");
   }
+  const suppliedOrderToken = text(input.order_token, 100);
+  if (hasOrder && !/^[A-Za-z0-9_-]{20,100}$/.test(suppliedOrderToken)) {
+    throw new TbiError(404, "ORDER_NOT_FOUND", "Поръчката не е намерена.");
+  }
 
   const pricing = await loadPricingContext(supabase);
   const reference = `VF-TBI-${Date.now()}-${randomBytes(4).toString("hex").toUpperCase()}`;
@@ -371,7 +375,15 @@ export async function buildFinancingRequest(supabase, input, config) {
     const product = pricedProduct(await loadProduct(supabase, input.product_id), pricing);
     productsWithQuantity = [{ product, quantity: validateQuantity(input.quantity) }];
   } else {
-    const orderResult = await supabase.from("orders").select("*").eq("id", text(input.order_id, 100)).maybeSingle();
+    const orderToken = text(input.order_token, 100);
+    if (!/^[A-Za-z0-9_-]{20,100}$/.test(orderToken)) {
+      throw new TbiError(404, "ORDER_NOT_FOUND", "Поръчката не е намерена.");
+    }
+    const orderResult = await supabase.from("orders")
+      .select("*")
+      .eq("id", text(input.order_id, 100))
+      .eq("idempotency_key", orderToken)
+      .maybeSingle();
     if (orderResult.error || !orderResult.data) {
       throw new TbiError(404, "ORDER_NOT_FOUND", "Поръчката не е намерена.");
     }

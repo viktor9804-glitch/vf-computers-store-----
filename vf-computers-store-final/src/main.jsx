@@ -85,10 +85,9 @@ const VALI_PRODUCT_SELECT = [
   "manufacturer",
   "status",
   "show",
-  "price_client",
-  "price_partner",
-  "price_promo",
-  "price_client_promo",
+  "public_price",
+  "public_old_price",
+  "discount_percent",
   "model",
   "barcode",
   "warranty",
@@ -2615,17 +2614,26 @@ function App() {
 
     return sourceProducts.map((product) => {
       const basePrice = Number(product.basePrice ?? product.originalPrice ?? product.price ?? 0);
-      const markupPercent = product.source === "vali"
+      const publicPriceResolved = product.source === "vali" && product.publicPriceResolved;
+      const markupPercent = product.source === "vali" && !publicPriceResolved
         ? findMarkupPercent(categoryMarkups, product.mainCategory, product.category)
         : 0;
-      const priceAfterMarkup = Number((basePrice * (1 + (markupPercent / 100))).toFixed(2));
-      const originalPrice = Number(product.source === "vali" ? priceAfterMarkup : basePrice);
-      const promotion = findBestPromotion(product, promotionsData);
+      const priceAfterMarkup = publicPriceResolved
+        ? Number(product.price || 0)
+        : Number((basePrice * (1 + (markupPercent / 100))).toFixed(2));
+      const originalPrice = publicPriceResolved
+        ? Number(product.publicOldPrice ?? product.price ?? 0)
+        : Number(product.source === "vali" ? priceAfterMarkup : basePrice);
+      const promotion = publicPriceResolved ? null : findBestPromotion(product, promotionsData);
       const discountPercent = Number(promotion?.discount_percent || 0);
-      const discountedPrice = promotion
-        ? Number((originalPrice * (1 - (discountPercent / 100))).toFixed(2))
-        : Number(product.price ?? originalPrice);
-      const hasPromotion = Boolean(promotion) && discountedPrice < originalPrice;
+      const discountedPrice = publicPriceResolved
+        ? Number(product.price || 0)
+        : promotion
+          ? Number((originalPrice * (1 - (discountPercent / 100))).toFixed(2))
+          : Number(product.price ?? originalPrice);
+      const hasPromotion = publicPriceResolved
+        ? discountedPrice < originalPrice
+        : Boolean(promotion) && discountedPrice < originalPrice;
 
       return {
         ...product,
@@ -2742,7 +2750,7 @@ function App() {
     const loadValiCategories = async () => {
       const { data, error } = await fetchAllSupabaseRows((from, to) =>
         supabase
-          .from("vali_products")
+          .from("storefront_vali_products")
           .select("site_main_category, site_sub_category")
           .eq("show", true)
           .order("id", { ascending: true })
@@ -2809,13 +2817,9 @@ function App() {
 
       const normalizeValiProduct = (p) => {
         const filters = extractValiFilters(p);
-        const basePrice = Number(p.price_partner || p.price_client || 0);
-        const markupPercent = findMarkupPercent(
-          activeMarkups,
-          p.site_main_category,
-          p.site_sub_category
-        );
-        const finalPrice = Number((basePrice + (basePrice * markupPercent / 100)).toFixed(2));
+        const basePrice = Number(p.public_price || 0);
+        const markupPercent = 0;
+        const finalPrice = basePrice;
         const title = getBgText(p.name) || p.model || "VALI продукт";
         const availability = getValiAvailability(p);
         const stockStatus = availability.label;
@@ -2837,6 +2841,8 @@ function App() {
         originalPrice: finalPrice,
         basePrice,
         markupPercent,
+        publicOldPrice: Number(p.public_old_price || finalPrice),
+        publicPriceResolved: true,
         stock: stockStatus,
         inStock: availability.type === "in_stock",
         availabilityType: availability.type,
@@ -2901,7 +2907,7 @@ function App() {
         ),
         fetchAllSupabaseRows(() =>
           supabase
-            .from("vali_products")
+            .from("storefront_vali_products")
             .select(VALI_PRODUCT_SELECT)
             .eq("show", true)
             .order("id", { ascending: true })
@@ -2967,6 +2973,7 @@ function App() {
   const [notice, setNotice] = useState("");
   const [sendingBuilder, setSendingBuilder] = useState(false);
   const [sendingOrder, setSendingOrder] = useState(false);
+  const orderIdempotencyKeyRef = React.useRef("");
   const [megaOpen, setMegaOpen] = useState(false);
 const [activeMega, setActiveMega] = useState(megaCategories[0]);
 
@@ -3179,7 +3186,6 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     const city = checkoutForm?.city?.trim();
     const address = checkoutForm?.address?.trim();
     const email = checkoutForm?.email?.trim();
-    const comment = checkoutForm?.comment?.trim();
 
     if (!customerName || !phone || !city || !address) {
       setNotice("Попълнете име, телефон, град и адрес.");
@@ -3212,90 +3218,62 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       ? "bank"
       : (customPcBuildItem?.payment_method || "bank");
     const resolvedPaymentMethod = isCustomPcBuildOrder ? customPaymentMethod : paymentMethod;
-    const resolvedPaymentLabel = isCustomPcBuildOrder
-      ? (customPaymentMethod === "tbi" ? (customPcBuildItem?.payment_label || "На изплащане чрез TBI Bank") : "Предварително плащане по банков път")
-      : (
-      paymentMethods.find((method) => method.id === paymentMethod)?.title || paymentMethod
-    );
+    const requestItems = cartItems.flatMap((item) => {
+      const quantity = Number(item.quantity || 1);
+      if (item.is_custom_pc_build || item.source === "config") {
+        return Object.values(item.parts || {})
+          .flatMap((part) => Array.isArray(part) ? part : [part])
+          .filter(Boolean)
+          .map((part) => ({
+            product_id: part.id,
+            catalog_number: part.catalog_number || undefined,
+            quantity,
+          }));
+      }
+      return [{
+        product_id: item.id,
+        catalog_number: item.catalog_number || undefined,
+        quantity,
+      }];
+    });
 
-    const orderPayload = {
-      customer_name: customerName,
-      customer_phone: phone,
-      customer_email: email || null,
-      customer_city: city,
-      customer_address: address,
-      customer_comment: comment || null,
-      items: cartItems.map((item) => ({
-        id: item.id,
-        name: item.name || item.title || item.product_name,
-        title: item.title || item.name || item.product_name,
-        product_name: item.product_name || item.name || item.title,
-        image: item.image || item.image_url || item.thumbnail || item.main_image || item.images?.[0] || item.imageUrl || "",
-        image_url: item.image_url || item.image || item.thumbnail || item.main_image || item.images?.[0] || item.imageUrl || "",
-        images: item.images || (item.image ? [item.image] : []),
-        catalog_number: item.catalog_number || item.reference_number || item.sku || item.code || "",
-        reference_number: item.reference_number || item.catalog_number || item.sku || item.code || "",
-        sku: item.sku || null,
-        code: item.code || null,
-        barcode: item.barcode || null,
-        serial: item.serial || item.serial_number || null,
-        quantity: item.quantity || item.qty || 1,
-        price: item.price || item.unit_price || 0,
-        unit_price: item.unit_price || item.price || 0,
-        warranty: item.warranty || item.warranty_months || item.guarantee || item.guarantee_months || item.product_warranty || "",
-        warranty_months: item.warranty_months || null,
-        guarantee: item.guarantee || null,
-        guarantee_months: item.guarantee_months || null,
-        product_warranty: item.product_warranty || null,
-        description: item.description || null,
-        specs: item.specs || null,
-        attributes: item.attributes || null,
-        characteristics: item.characteristics || item.specs || item.attributes || item.description || "",
-        availability_label: item.availabilityLabel || item.stockStatus || item.stock || "",
-        availability_type: item.availabilityType || "",
-        stock_quantity: item.stockQty ?? null,
-        parts: item.parts || null,
-        is_custom_pc_build: Boolean(item.is_custom_pc_build || item.source === "config"),
-        payment_method: item.payment_method || null,
-        payment_label: item.payment_label || null,
-      })),
-      subtotal: cartSubtotal,
-      vat: cartVat,
-      shipping: cartDelivery,
-      total: cartGrandTotal,
-      payment_method: resolvedPaymentMethod,
-      payment_label: resolvedPaymentLabel,
-      is_custom_pc_build: isCustomPcBuildOrder,
-      payment_status: "pending",
-      status: "Приета",
-      user_id: userSession?.user?.id || null,
-      created_at: new Date().toISOString(),
-    };
-
-    let { data, error } = await supabase
-      .from("orders")
-      .insert([orderPayload])
-      .select();
-
-    if (error && String(error.message || "").includes("user_id")) {
-      const { user_id: _userId, ...legacyOrderPayload } = orderPayload;
-      const retryResult = await supabase
-        .from("orders")
-        .insert([legacyOrderPayload])
-        .select();
-
-      data = retryResult.data;
-      error = retryResult.error;
+    if (!orderIdempotencyKeyRef.current) {
+      orderIdempotencyKeyRef.current = globalThis.crypto?.randomUUID?.().replaceAll("-", "_")
+        || `order_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     }
 
-    setSendingOrder(false);
-
-    if (error) {
-      setNotice(error.message || JSON.stringify(error, null, 2));
+    let savedOrder;
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(userSession?.access_token ? { Authorization: `Bearer ${userSession.access_token}` } : {}),
+        },
+        body: JSON.stringify({
+          items: requestItems,
+          customer_name: customerName,
+          phone,
+          email: email || undefined,
+          city,
+          delivery_address: address,
+          payment_method: resolvedPaymentMethod,
+          idempotency_key: orderIdempotencyKeyRef.current,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.order) {
+        throw new Error(result?.error || "Поръчката не може да бъде създадена.");
+      }
+      savedOrder = result.order;
+    } catch (error) {
+      setSendingOrder(false);
+      setNotice(error.message || "Поръчката не може да бъде създадена.");
       return false;
     }
 
-    const savedOrder = Array.isArray(data) ? data[0] : data;
+    setSendingOrder(false);
+    const orderToken = orderIdempotencyKeyRef.current;
     let emailWarning = "";
 
     try {
@@ -3303,8 +3281,9 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orderId: savedOrder?.id,
-          customerEmail: savedOrder?.customer_email || email || "",
+          orderId: savedOrder.id,
+          customerEmail: savedOrder.customer_email || email || "",
+          orderToken,
         }),
       });
       const emailResult = await emailResponse.json().catch(() => null);
@@ -3318,7 +3297,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     }
 
     setNotice(emailWarning || "Поръчката е изпратена успешно.");
-    setDocumentOrder(savedOrder || { ...orderPayload, id: Date.now(), created_at: new Date().toISOString() });
+    setDocumentOrder(savedOrder);
     setDocumentCustomer(customerProfile || {
       full_name: customerName,
       phone,
@@ -3327,12 +3306,14 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     });
 
     clearCart();
+    orderIdempotencyKeyRef.current = "";
     setCartOpen(false);
     setCheckoutOpen(false);
 
     if (resolvedPaymentMethod === "tbi") {
       await handleTbiCheckout({
         orderId: savedOrder?.id,
+        orderToken,
         displayName: `Поръчка ${savedOrder?.order_number || savedOrder?.id || ""}`,
       });
     }
@@ -3358,7 +3339,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       setTbiLoading(true);
       setNotice("");
       const requestBody = target?.orderId
-        ? { order_id: target.orderId }
+        ? { order_id: target.orderId, order_token: target.orderToken }
         : { product_id: target?.id, quantity: 1 };
 
       const response = await fetch("/api/tbi", {

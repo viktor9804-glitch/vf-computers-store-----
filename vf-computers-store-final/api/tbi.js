@@ -11,7 +11,7 @@ import {
   validateRequestSize,
 } from "./_tbi.js";
 
-const ALLOWED_BODY_KEYS = new Set(["product_id", "order_id", "quantity", "customer"]);
+const ALLOWED_BODY_KEYS = new Set(["product_id", "order_id", "order_token", "quantity", "customer"]);
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
