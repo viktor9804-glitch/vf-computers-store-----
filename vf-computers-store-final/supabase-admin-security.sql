@@ -1,5 +1,5 @@
 -- Run this in Supabase SQL Editor.
--- IMPORTANT: replace the email below with the real admin email before running.
+-- Primary VF Computers administrator.
 
 create table if not exists public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -9,13 +9,13 @@ create table if not exists public.admin_users (
 insert into public.admin_users (user_id)
 select id
 from auth.users
-where lower(email) = lower('REPLACE_WITH_ADMIN_EMAIL')
+where lower(email) = lower('v.f-computers@abv.bg')
 on conflict (user_id) do nothing;
 
 do $$
 begin
   if not exists (select 1 from public.admin_users) then
-    raise exception 'No admin user configured. Replace REPLACE_WITH_ADMIN_EMAIL before running this migration.';
+    raise exception 'The configured VF Computers admin user is missing from Supabase Auth.';
   end if;
 end
 $$;

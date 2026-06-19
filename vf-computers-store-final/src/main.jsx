@@ -3380,7 +3380,10 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
           price: Number(data.amount || 0),
           reference: data.reference,
         });
-        setShowTbi(true);
+        // A new popup opened after the async order/API flow is commonly blocked
+        // by browsers. Redirecting the current tab is reliable and the TBI
+        // success/fail URLs return the customer to the storefront.
+        window.location.assign(data.url);
         return true;
       } else {
         setNotice(data?.error || "TBI финансирането временно не е налично.");
