@@ -3,9 +3,19 @@
 
 create extension if not exists pgcrypto;
 
+-- Keep the production orders schema compatible with the current storefront
+-- before creating the TBI relation. Existing values are preserved.
+alter table public.orders
+  add column if not exists payment_method text not null default 'cod',
+  add column if not exists payment_label text,
+  add column if not exists is_custom_pc_build boolean not null default false,
+  add column if not exists payment_status text not null default 'pending',
+  add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.tbi_applications (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid references public.orders(id) on delete set null,
+  -- Production orders.id is bigint in the deployed VF Computers schema.
+  order_id bigint references public.orders(id) on delete set null,
   product_id text,
   tbi_reference text not null unique,
   status text not null default 'pending'
