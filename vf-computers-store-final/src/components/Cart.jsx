@@ -3,7 +3,7 @@ import { CreditCard, Minus, Plus, Trash2, X } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatDisplayPrice, formatPrice } from "../utils/format";
 
-export default function Cart({ deliveryProvider, handleTbiCheckout }) {
+export default function Cart({ deliveryProvider, tbiAvailable = false, onTbiCheckout }) {
   const {
     cartOpen,
     setCartOpen,
@@ -66,15 +66,11 @@ export default function Cart({ deliveryProvider, handleTbiCheckout }) {
           <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>
             {hasCustomPcBuild ? "Изпрати заявка за конфигурация" : "Завърши поръчката"}
           </button>
-          {!hasCustomPcBuild && (
+          {!hasCustomPcBuild && tbiAvailable && (
             <button
               className="drawer-tbi-btn"
               disabled={!cartItems.length}
-              onClick={() => handleTbiCheckout({
-                name: cartItems.map((item) => item.name).join(", "),
-                price: cartGrandTotal,
-                isGross: true,
-              })}
+              onClick={onTbiCheckout}
             >
               <CreditCard size={17} />
               Купи количката на изплащане с TBI

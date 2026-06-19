@@ -2562,6 +2562,7 @@ function App() {
   useEffect(() => {
     if (window.location.hash === "#admin") window.location.hash = "";
   }, []);
+
   const {
     cartItems,
     cartCount,
@@ -2958,6 +2959,7 @@ function App() {
   const [showTbi, setShowTbi] = useState(false);
   const [tbiLoading, setTbiLoading] = useState(false);
   const [tbiProduct, setTbiProduct] = useState(null);
+  const [tbiAvailable, setTbiAvailable] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(null);
@@ -2967,6 +2969,27 @@ function App() {
   const [sendingOrder, setSendingOrder] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
 const [activeMega, setActiveMega] = useState(megaCategories[0]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/tbi", { headers: { Accept: "application/json" } })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (!cancelled) setTbiAvailable(Boolean(data?.enabled));
+      })
+      .catch(() => {
+        if (!cancelled) setTbiAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!tbiAvailable && builderPaymentMethod === "tbi") {
+      setBuilderPaymentMethod("bank");
+    }
+  }, [builderPaymentMethod, tbiAvailable]);
   const baseComponentPools = useMemo(() => ({
     cpu: products.filter(isCpu),
     motherboard: products.filter(isMotherboard),
@@ -3185,8 +3208,13 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
 
     const isCustomPcBuildOrder = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
     const customPcBuildItem = cartItems.find((item) => item.is_custom_pc_build || item.source === "config");
-    const resolvedPaymentMethod = isCustomPcBuildOrder ? (customPcBuildItem?.payment_method || "bank") : paymentMethod;
-    const resolvedPaymentLabel = isCustomPcBuildOrder ? (customPcBuildItem?.payment_label || "Предварително плащане по банков път") : (
+    const customPaymentMethod = customPcBuildItem?.payment_method === "tbi" && !tbiAvailable
+      ? "bank"
+      : (customPcBuildItem?.payment_method || "bank");
+    const resolvedPaymentMethod = isCustomPcBuildOrder ? customPaymentMethod : paymentMethod;
+    const resolvedPaymentLabel = isCustomPcBuildOrder
+      ? (customPaymentMethod === "tbi" ? (customPcBuildItem?.payment_label || "На изплащане чрез TBI Bank") : "Предварително плащане по банков път")
+      : (
       paymentMethods.find((method) => method.id === paymentMethod)?.title || paymentMethod
     );
 
@@ -3302,11 +3330,10 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     setCartOpen(false);
     setCheckoutOpen(false);
 
-    if (!isCustomPcBuildOrder && paymentMethod === "tbi") {
+    if (resolvedPaymentMethod === "tbi") {
       await handleTbiCheckout({
-        name: cartItems.map((item) => item.name).join(", "),
-        price: cartGrandTotal,
-        isGross: true,
+        orderId: savedOrder?.id,
+        displayName: `Поръчка ${savedOrder?.order_number || savedOrder?.id || ""}`,
       });
     }
 
@@ -3322,38 +3349,54 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     });
   }, [products, activeCategory, query, priceLimit]);
 
-  const handleTbiCheckout = async (product) => {
+  const handleTbiCheckout = async (target) => {
     try {
+      if (!tbiAvailable) {
+        setNotice("TBI финансирането временно не е налично.");
+        return false;
+      }
       setTbiLoading(true);
-      const checkoutPrice = product.isGross ? Number(product.price || 0) : calculateGross(product.price);
+      setNotice("");
+      const requestBody = target?.orderId
+        ? { order_id: target.orderId }
+        : { product_id: target?.id, quantity: 1 };
 
       const response = await fetch("/api/tbi", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: product.name,
-          price: checkoutPrice,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       setTbiLoading(false);
 
-      if (data.url) {
+      if (response.ok && data?.url) {
         setTbiUrl(data.url);
-        setTbiProduct({ ...product, price: checkoutPrice });
+        setTbiProduct({
+          name: target?.displayName || target?.name || "Избрани продукти",
+          price: Number(data.amount || 0),
+          reference: data.reference,
+        });
         setShowTbi(true);
+        return true;
       } else {
-        setNotice("TBI връзката не е налична.");
+        setNotice(data?.error || "TBI финансирането временно не е налично.");
+        return false;
       }
-    } catch (err) {
+    } catch {
       setTbiLoading(false);
-      console.error(err);
-      setNotice("Грешка при TBI заявката.");
+      setNotice("Неуспешна връзка с TBI. Моля, опитайте отново.");
+      return false;
     }
+  };
+
+  const openCartTbiCheckout = () => {
+    setPaymentMethod("tbi");
+    setCartOpen(false);
+    setCheckoutOpen(true);
   };
 
   const navLinks = (
@@ -3619,17 +3662,19 @@ const headerProps = {
                   >
                     {product.canOrder === false ? "Не е наличен" : "Добави"}
                   </button>
-                  <button
-                    className="tbi-btn"
-                    disabled={product.canOrder === false}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      handleTbiCheckout(product);
-                    }}
-                  >
-                    Купи на изплащане
-                  </button>
+                  {tbiAvailable && (
+                    <button
+                      className="tbi-btn"
+                      disabled={product.canOrder === false}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleTbiCheckout(product);
+                      }}
+                    >
+                      Купи на изплащане
+                    </button>
+                  )}
                 </div>
               </div>
             </article>
@@ -3827,6 +3872,7 @@ const headerProps = {
             setBuilderGame={setBuilderGame}
             builderPaymentMethod={builderPaymentMethod}
             setBuilderPaymentMethod={setBuilderPaymentMethod}
+            tbiAvailable={tbiAvailable}
             builderSelectedList={builderSelectedList}
             builderNetTotal={builderNetTotal}
             builderVatTotal={builderVatTotal}
@@ -3900,6 +3946,7 @@ const headerProps = {
           products={products}
           addToCart={addToCart}
           handleTbiCheckout={handleTbiCheckout}
+          tbiAvailable={tbiAvailable}
           HeaderComponent={SiteHeader}
           headerProps={headerProps}
           loadingProducts={loadingProducts}
@@ -3912,7 +3959,8 @@ const headerProps = {
   <Suspense fallback={null}>
     <Cart
       deliveryProvider={deliverySettings.provider}
-      handleTbiCheckout={handleTbiCheckout}
+      tbiAvailable={tbiAvailable}
+      onTbiCheckout={openCartTbiCheckout}
     />
 
     <Checkout
@@ -3922,6 +3970,7 @@ const headerProps = {
       bankInfo={bankInfo}
       sendOrder={sendOrder}
       sendingOrder={sendingOrder}
+      tbiAvailable={tbiAvailable}
     />
   </Suspense>
   </>

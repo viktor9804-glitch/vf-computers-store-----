@@ -9,6 +9,7 @@ export default function Product({
   products,
   addToCart,
   handleTbiCheckout,
+  tbiAvailable = false,
   HeaderComponent,
   headerProps,
   loadingProducts = false,
@@ -85,9 +86,11 @@ export default function Product({
 
                 <div className="product-page-actions-inline">
                   <button onClick={() => addToCart(product.id)}>Добави в количката</button>
-                  <button className="tbi-btn" onClick={() => handleTbiCheckout(product)}>
-                    Купи на изплащане
-                  </button>
+                  {tbiAvailable && (
+                    <button className="tbi-btn" onClick={() => handleTbiCheckout(product)}>
+                      Купи на изплащане
+                    </button>
+                  )}
                 </div>
               </div>
 

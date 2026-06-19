@@ -10,6 +10,7 @@ export default function Checkout({
   bankInfo,
   sendOrder,
   sendingOrder,
+  tbiAvailable = false,
 }) {
   const { checkoutOpen, setCheckoutOpen, cartGrandTotal, cartItems } = useCart();
   const [form, setForm] = useState({
@@ -24,21 +25,30 @@ export default function Checkout({
   const hasCustomPcBuild = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
   const customPcBuildItem = cartItems.find((item) => item.is_custom_pc_build || item.source === "config");
   const customPcPaymentMethod = customPcBuildItem?.payment_method || "bank";
-  const customPcPaymentLabel = customPcBuildItem?.payment_label || "Предварително плащане по банков път";
-  const customPcPaymentText = customPcPaymentMethod === "tbi"
-    ? "Заявката ще бъде обработена като покупка на изплащане чрез TBI Bank. След изпращане ще се свържем с вас за потвърждение и оформяне на финансирането."
+  const availableCustomPaymentMethod = customPcPaymentMethod === "tbi" && !tbiAvailable ? "bank" : customPcPaymentMethod;
+  const customPcPaymentLabel = availableCustomPaymentMethod === "tbi"
+    ? (customPcBuildItem?.payment_label || "На изплащане чрез TBI Bank")
+    : "Предварително плащане по банков път";
+  const customPcPaymentText = availableCustomPaymentMethod === "tbi"
+    ? "След записване на поръчката ще се отвори защитената TBI заявка за финансиране."
     : "След изпращане на заявката ще се свържем с вас за потвърждение и банкови данни.";
 
   useEffect(() => {
-    if (hasCustomPcBuild && paymentMethod !== customPcPaymentMethod) {
-      setPaymentMethod(customPcPaymentMethod);
+    if (hasCustomPcBuild && paymentMethod !== availableCustomPaymentMethod) {
+      setPaymentMethod(availableCustomPaymentMethod);
       return;
     }
 
     if (!hasCustomPcBuild && paymentMethod === "bank_transfer_required") {
       setPaymentMethod("cod");
     }
-  }, [customPcPaymentMethod, hasCustomPcBuild, paymentMethod, setPaymentMethod]);
+  }, [availableCustomPaymentMethod, hasCustomPcBuild, paymentMethod, setPaymentMethod]);
+
+  useEffect(() => {
+    if (!tbiAvailable && paymentMethod === "tbi") {
+      setPaymentMethod("cod");
+    }
+  }, [paymentMethod, setPaymentMethod, tbiAvailable]);
 
   if (!checkoutOpen) return null;
 
@@ -116,7 +126,7 @@ export default function Checkout({
             </div>
           ) : (
             <div className="payment-options">
-              {paymentMethods.map((method) => (
+              {paymentMethods.filter((method) => method.id !== "tbi" || tbiAvailable).map((method) => (
                 <label
                   className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
                   key={method.id}

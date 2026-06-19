@@ -86,6 +86,7 @@ export default function BuilderPage({
   setBuilderGame,
   builderPaymentMethod,
   setBuilderPaymentMethod,
+  tbiAvailable = false,
   builderSelectedList,
   builderNetTotal,
   builderVatTotal,
@@ -118,7 +119,7 @@ export default function BuilderPage({
     ? "На изплащане чрез TBI Bank"
     : "Предварително плащане по банков път";
   const builderPaymentText = builderPaymentMethod === "tbi"
-    ? "Заявката ще бъде обработена като покупка на изплащане чрез TBI Bank. След изпращане ще се свържем с вас за потвърждение и оформяне на финансирането."
+    ? "След записване на поръчката ще се отвори защитената TBI заявка за финансиране."
     : "Конфигурациите, сглобени чрез 'Сглоби PC', се изпълняват само след предварително плащане по банков път. След изпращане на заявката ще се свържем с вас за потвърждение и банкови данни.";
 
   return (
@@ -294,18 +295,20 @@ export default function BuilderPage({
                   <b>Предварително плащане по банков път</b>
                 </div>
               </label>
-              <label className={`payment-option ${builderPaymentMethod === "tbi" ? "active" : ""}`}>
-                <input
-                  type="radio"
-                  name="builder-payment"
-                  value="tbi"
-                  checked={builderPaymentMethod === "tbi"}
-                  onChange={() => setBuilderPaymentMethod("tbi")}
-                />
-                <div>
-                  <b>На изплащане чрез TBI Bank</b>
-                </div>
-              </label>
+              {tbiAvailable && (
+                <label className={`payment-option ${builderPaymentMethod === "tbi" ? "active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="builder-payment"
+                    value="tbi"
+                    checked={builderPaymentMethod === "tbi"}
+                    onChange={() => setBuilderPaymentMethod("tbi")}
+                  />
+                  <div>
+                    <b>На изплащане чрез TBI Bank</b>
+                  </div>
+                </label>
+              )}
             </div>
             <p>{builderPaymentText}</p>
           </div>
