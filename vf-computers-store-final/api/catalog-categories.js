@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { handleVisitorRequest } from "./_visitors.js";
 
 const PAGE_SIZE = 1000;
 let memoryCache = null;
@@ -46,6 +47,10 @@ async function loadUniqueCategories(supabase) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.action === "visitors") {
+    return handleVisitorRequest(req, res);
+  }
+
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "METHOD_NOT_ALLOWED" });

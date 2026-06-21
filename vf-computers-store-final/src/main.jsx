@@ -2250,7 +2250,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
 
     const loadVisitorStats = async (recordVisit = false) => {
       try {
-        const response = await fetch("/api/visitors", {
+        const response = await fetch("/api/catalog-categories?action=visitors", {
           method: recordVisit ? "POST" : "GET",
           credentials: "same-origin",
           headers: { Accept: "application/json" },

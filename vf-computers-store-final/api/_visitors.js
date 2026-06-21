@@ -19,7 +19,7 @@ async function loadStats(supabase) {
   return normalizeStats(data);
 }
 
-export default async function handler(req, res) {
+export async function handleVisitorRequest(req, res) {
   if (req.method !== "GET" && req.method !== "POST") {
     res.setHeader("Allow", "GET, POST");
     return sendJson(res, 405, { error: "Method not allowed" });
