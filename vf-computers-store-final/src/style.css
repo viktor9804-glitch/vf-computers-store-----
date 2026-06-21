@@ -29,6 +29,9 @@ button,input,select,textarea{font:inherit}
 .header-inner{min-height:84px;display:flex;align-items:center;gap:18px}
 .header-top{display:grid;grid-template-columns:minmax(250px,auto) minmax(280px,1fr) auto;align-items:center;gap:22px}
 .header-bottom{display:flex;align-items:center;gap:20px;min-height:42px}
+.visitor-counter{margin-left:auto;display:flex;align-items:center;gap:9px;border:1px solid rgba(34,197,94,.28);background:rgba(34,197,94,.08);color:#d4d4dc;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:750;white-space:nowrap}
+.visitor-counter b{color:#fff;font-weight:950}
+.visitor-live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.9);flex:0 0 auto}
 .brand{display:flex;align-items:center;gap:13px;min-width:250px}
 .logo-wrap{width:62px;height:62px;border-radius:18px;border:1px solid rgba(239,68,68,.55);background:#000;display:grid;place-items:center;overflow:hidden;box-shadow:var(--glow);position:relative}
 .logo-wrap:after{content:"";position:absolute;inset:-2px;background:linear-gradient(120deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);animation:shine 4s infinite}
@@ -55,6 +58,7 @@ button,input,select,textarea{font:inherit}
 .mobile-panel{position:fixed;inset:0;z-index:60;background:rgba(5,6,11,.96);backdrop-filter:blur(18px);padding:28px;display:flex;flex-direction:column;gap:25px}
 .mobile-close{align-self:flex-end;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;border-radius:14px;padding:10px}
 .mobile-brand{font-size:34px;font-weight:950}
+.mobile-panel .visitor-counter{margin-left:0;align-self:flex-start}
 .mobile-panel nav{display:grid;gap:16px;font-size:24px;font-weight:900}
 .mobile-call{background:var(--red2);padding:16px;border-radius:18px;text-align:center;font-weight:900}
 
@@ -261,7 +265,8 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
 .send-order{width:100%;font-size:16px;margin-top:14px;padding:15px}
 
 @media (max-width:1100px){
-  .desktop-nav,.header-bottom,.phone-chip{display:none}
+  .desktop-nav,.phone-chip{display:none}
+  .header-bottom{justify-content:space-between}
   .product-grid,.service-grid{grid-template-columns:repeat(2,1fr)}
   .category-layout{grid-template-columns:1fr}
   .filters-sidebar{position:static;max-height:none}
@@ -269,6 +274,7 @@ h2{font-size:44px;line-height:1.05;margin:8px 0 0;letter-spacing:-.04em}
   .hero-copy h1{font-size:58px}
 }
 @media (max-width:860px){
+  .header-bottom{display:none}
   .header-shell{min-height:76px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding-top:8px;padding-bottom:8px;gap:14px}
   .header-top{display:flex;align-items:center;width:100%;gap:12px}
   .brand{min-width:0}

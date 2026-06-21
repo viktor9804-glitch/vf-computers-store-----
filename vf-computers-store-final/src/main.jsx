@@ -1222,6 +1222,9 @@ function CookieConsent() {
   const saveConsent = (accepted, analytics = false) => {
     localStorage.setItem("vf_cookie_consent", accepted ? "accepted" : "declined");
     localStorage.setItem("vf_cookie_analytics", analytics ? "yes" : "no");
+    window.dispatchEvent(new CustomEvent("vf-analytics-consent", {
+      detail: { allowed: Boolean(analytics) },
+    }));
     setVisible(false);
   };
 
@@ -2240,7 +2243,49 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(null);
   const [searchTerm, setSearchTerm] = useState(query || "");
+  const [visitorStats, setVisitorStats] = useState(null);
   const headerMegaCategories = dynamicMegaCategories?.length ? dynamicMegaCategories : megaCategories;
+  useEffect(() => {
+    let active = true;
+
+    const loadVisitorStats = async (recordVisit = false) => {
+      try {
+        const response = await fetch("/api/visitors", {
+          method: recordVisit ? "POST" : "GET",
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (active) {
+          setVisitorStats({
+            today: Math.max(0, Number(data.today) || 0),
+            month: Math.max(0, Number(data.month) || 0),
+          });
+        }
+      } catch {
+        // The storefront remains usable if statistics are temporarily unavailable.
+      }
+    };
+
+    loadVisitorStats(localStorage.getItem("vf_cookie_analytics") === "yes");
+    const onConsent = (event) => {
+      if (event.detail?.allowed) loadVisitorStats(true);
+    };
+    window.addEventListener("vf-analytics-consent", onConsent);
+    return () => {
+      active = false;
+      window.removeEventListener("vf-analytics-consent", onConsent);
+    };
+  }, []);
+
+  const visitorCounter = visitorStats && (
+    <div className="visitor-counter" title="Уникални посетители">
+      <span className="visitor-live-dot" />
+      <span>Днес: <b>{visitorStats.today.toLocaleString("bg-BG")}</b></span>
+      <span>Този месец: <b>{visitorStats.month.toLocaleString("bg-BG")}</b></span>
+    </div>
+  );
   const handleSearchSubmit = (event) => {
     event.preventDefault();
     const value = searchTerm.trim();
@@ -2324,6 +2369,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
             <nav className="desktop-nav">
               {navLinks}
             </nav>
+            {visitorCounter}
           </div>
         </div>
       </header>
@@ -2337,6 +2383,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
         <div className="mobile-panel">
           <button className="mobile-close" onClick={() => setMobileOpen(false)}><X /></button>
           <div className="mobile-brand">ВФ <span>Компютри</span></div>
+          {visitorCounter}
           <nav>{navLinks}</nav>
           <div className="mobile-categories">
             <h3>Категории</h3>
