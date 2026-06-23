@@ -6,6 +6,7 @@ import { calculateDisplayPrice } from "../utils/format";
 import { collectFilterValues, normalizeText, sortFilterValues } from "../utils/text";
 
 const PRODUCTS_PER_PAGE = 50;
+const LOGO_URL = "/VF_logo_header.webp";
 const AVAILABILITY_OPTIONS = [
   { type: "in_stock", label: "В наличност" },
   { type: "out_of_stock", label: "Няма наличност" },
@@ -33,6 +34,7 @@ export default function Category({
   addToCart,
   HeaderComponent,
   headerProps,
+  loadingProducts = false,
 }) {
   const { categoryName } = useParams();
   const navigate = useNavigate();
@@ -222,12 +224,20 @@ export default function Category({
             />
 
             <div className="products-area">
+              {!loadingProducts && (
               <p className="products-count">
                 Показани {visibleProducts.length} от {filteredProducts.length} продукта
               </p>
+              )}
 
               <div className="product-grid">
-                {categoryProducts.length === 0 ? (
+                {loadingProducts ? (
+                  <div className="category-loading-products">
+                    <img src={LOGO_URL} alt="ВФ Компютри" />
+                    <div className="vf-loading-ring" />
+                    <p>Зареждане на продукти...</p>
+                  </div>
+                ) : categoryProducts.length === 0 ? (
                   <p className="empty-products">
                     Няма продукти в тази категория.
                   </p>

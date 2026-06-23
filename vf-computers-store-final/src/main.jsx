@@ -4140,6 +4140,7 @@ const headerProps = {
       addToCart={addToCart}
       HeaderComponent={SiteHeader}
       headerProps={headerProps}
+      loadingProducts={loadingProducts}
     />
   }
 />
