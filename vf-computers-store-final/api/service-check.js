@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const supabase = createServerSupabase();
     const { data, error } = await supabase
       .from("service_protocols")
-      .select("public_code,device_type,brand,model,status,updated_at,completed_at")
+      .select("public_code,device_type,brand,model,status,public_work_summary,public_services,public_total_price,currency,updated_at,completed_at")
       .eq("public_code", code)
       .limit(1)
       .maybeSingle();

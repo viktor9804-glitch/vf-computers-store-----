@@ -48,12 +48,26 @@ export function toPublicWarranty(row) {
 }
 
 export function toPublicService(row) {
+  const publicServices = Array.isArray(row.public_services)
+    ? row.public_services
+        .map((item) => ({
+          name: text(item?.name, 160),
+          scanned_at: item?.scanned_at || null,
+          price: Number.isFinite(Number(item?.price)) ? Number(item.price) : null,
+        }))
+        .filter((item) => item.name)
+    : [];
+
   return {
     public_code: row.public_code,
     device_type: row.device_type || null,
     brand: row.brand || null,
     model: row.model || null,
     status: row.status || "accepted",
+    public_work_summary: row.public_work_summary || null,
+    public_services: publicServices,
+    public_total_price: Number.isFinite(Number(row.public_total_price)) ? Number(row.public_total_price) : null,
+    currency: row.currency || "EUR",
     updated_at: row.updated_at || null,
     completed_at: row.completed_at || null,
   };

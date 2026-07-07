@@ -34,6 +34,14 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function formatMoney(value, currency = "EUR") {
+  if (!Number.isFinite(Number(value))) return "-";
+  return new Intl.NumberFormat("bg-BG", {
+    style: "currency",
+    currency: currency || "EUR",
+  }).format(Number(value));
+}
+
 export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCode = normalizeCode(searchParams.get("code"));
@@ -153,7 +161,27 @@ export default function ServiceCheck({ HeaderComponent, headerProps = {} }) {
                   <div><dt>Устройство:</dt><dd>{[protocol.device_type, protocol.brand, protocol.model].filter(Boolean).join(" ") || "-"}</dd></div>
                   <div><dt>Последна промяна:</dt><dd>{formatDateTime(protocol.updated_at)}</dd></div>
                   <div><dt>Статус:</dt><dd>{STATUS_LABELS[status] || status}</dd></div>
+                  <div><dt>Сума за плащане:</dt><dd>{formatMoney(protocol.public_total_price, protocol.currency)}</dd></div>
                 </dl>
+                <section className="service-public-services">
+                  <h3>Извършени дейности</h3>
+                  {protocol.public_work_summary && <p>{protocol.public_work_summary}</p>}
+                  {protocol.public_services?.length ? (
+                    <div className="service-public-list">
+                      {protocol.public_services.map((item, index) => (
+                        <div className="service-public-row" key={`${item.name}-${index}`}>
+                          <div>
+                            <strong>{item.name}</strong>
+                            <span>{formatDateTime(item.scanned_at)}</span>
+                          </div>
+                          <b>{formatMoney(item.price, protocol.currency)}</b>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="service-public-empty">Все още няма отбелязани дейности.</p>
+                  )}
+                </section>
               </>
             )}
           </article>

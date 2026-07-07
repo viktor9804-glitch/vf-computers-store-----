@@ -271,7 +271,8 @@ begin
 end;
 $$;
 
-grant execute on function public.upsert_service_protocol(jsonb) to anon, authenticated;
+grant usage on schema public to anon, authenticated, service_role;
+grant execute on function public.upsert_service_protocol(jsonb) to anon, authenticated, service_role;
 
 create or replace function public.delete_service_protocol(next_protocol_number text)
 returns boolean
@@ -287,4 +288,6 @@ begin
 end;
 $$;
 
-grant execute on function public.delete_service_protocol(text) to anon, authenticated;
+grant execute on function public.delete_service_protocol(text) to anon, authenticated, service_role;
+
+notify pgrst, 'reload schema';
