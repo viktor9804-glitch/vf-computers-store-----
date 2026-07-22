@@ -1,5 +1,7 @@
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -9,22 +11,67 @@ const supabase = createClient(
 const VALI_API_BASE = process.env.VALI_API_BASE;
 const VALI_API_TOKEN = process.env.VALI_API_TOKEN;
 const DRY_RUN = process.env.VALI_SYNC_DRY_RUN === "true";
+const MAX_ATTEMPTS = 4;
 
-async function valiFetch(path) {
-  const separator = path.includes("?") ? "&" : "?";
-  const url = `${VALI_API_BASE}${path}${separator}api_token=${VALI_API_TOKEN}`;
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" }
-  });
+async function withRetry(label, operation) {
+  let lastError;
 
-  const text = await res.text();
-
-  if (!res.ok) {
-    throw new Error(`Vali API ${res.status}: ${text}`);
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt === MAX_ATTEMPTS) break;
+      const delay = attempt * 1500;
+      console.warn(`${label} failed (attempt ${attempt}/${MAX_ATTEMPTS}); retrying in ${delay} ms.`);
+      await wait(delay);
+    }
   }
 
-  return JSON.parse(text);
+  throw lastError;
+}
+
+async function valiFetch(path) {
+  return withRetry(`VALI request ${path}`, async () => {
+    const separator = path.includes("?") ? "&" : "?";
+    const url = `${VALI_API_BASE}${path}${separator}api_token=${encodeURIComponent(VALI_API_TOKEN)}`;
+
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(60_000),
+    });
+
+    const text = await res.text();
+
+    if (!res.ok) {
+      throw new Error(`Vali API ${res.status}: ${text.slice(0, 300)}`);
+    }
+
+    return JSON.parse(text);
+  });
+}
+
+async function runFullCatalogSync() {
+  console.log("Importing new products with a full catalog sync...");
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [fileURLToPath(new URL("./sync-vali-products.js", import.meta.url))], {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: "inherit",
+    });
+
+    child.once("error", reject);
+    child.once("exit", (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`Full catalog sync failed (${signal || `exit code ${code}`}).`));
+    });
+  });
 }
 
 function getValiItems(response) {
@@ -117,24 +164,30 @@ async function run() {
       }));
 
     for (let index = 0; !DRY_RUN && index < updates.length; index += 500) {
-      const { error } = await supabase
-        .from("vali_products")
-        .upsert(updates.slice(index, index + 500), { onConflict: "id" });
-      if (error) throw error;
+      const batch = updates.slice(index, index + 500);
+      await withRetry("Supabase availability update", async () => {
+        const { error } = await supabase
+          .from("vali_products")
+          .upsert(batch, { onConflict: "id" });
+        if (error) throw error;
+      });
     }
 
     const remoteIds = new Set(remoteProducts.map((product) => String(product.id)));
     const staleIds = [...existingIds].filter((id) => !remoteIds.has(id));
     for (let index = 0; !DRY_RUN && index < staleIds.length; index += 100) {
-      const { error } = await supabase
-        .from("vali_products")
-        .update({
-          show: false,
-          status: 0,
-          updated_at: now,
-        })
-        .in("id", staleIds.slice(index, index + 100));
-      if (error) throw error;
+      const batch = staleIds.slice(index, index + 100);
+      await withRetry("Supabase stale product deactivation", async () => {
+        const { error } = await supabase
+          .from("vali_products")
+          .update({
+            show: false,
+            status: 0,
+            updated_at: now,
+          })
+          .in("id", batch);
+        if (error) throw error;
+      });
     }
 
     const newProducts = remoteProducts.filter((product) => !existingIds.has(String(product.id)));
@@ -143,7 +196,11 @@ async function run() {
     console.log("DEACTIVATED STALE:", staleIds.length);
     console.log("NEW PRODUCTS REQUIRING FULL SYNC:", newProducts.length);
     if (newProducts.length > 0) {
-      console.log("Run npm run sync:vali:full to import their full catalog data.");
+      if (DRY_RUN) {
+        console.log("DRY RUN: a real run would start a full catalog sync to import them.");
+      } else {
+        await runFullCatalogSync();
+      }
     }
   } catch (error) {
     console.error("SYNC ERROR:", error.message);

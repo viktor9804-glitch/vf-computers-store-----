@@ -6,6 +6,8 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const PER_PAGE = 500;
+const DATABASE_BATCH_SIZE = 100;
+const MAX_ATTEMPTS = 4;
 const BASE_URL = (process.env.VALI_API_BASE || "https://www.vali.bg/api/v1").replace(/\/$/, "");
 const DRY_RUN = process.env.VALI_SYNC_DRY_RUN === "true";
 
@@ -91,20 +93,53 @@ function mapCategory(product) {
   return [mainCategory, subCategory];
 }
 
-async function valiGet(path) {
-  const separator = path.includes("?") ? "&" : "?";
-  const res = await fetch(`${BASE_URL}${path}${separator}api_token=${encodeURIComponent(VALI_TOKEN)}`, {
-    headers: {
-      Accept: "application/json",
-    },
-  });
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`VALI error ${res.status}: ${text.slice(0, 300)}`);
+async function withRetry(label, operation) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt === MAX_ATTEMPTS) break;
+      const delay = attempt * 1500;
+      console.warn(`${label} failed (attempt ${attempt}/${MAX_ATTEMPTS}); retrying in ${delay} ms.`);
+      await wait(delay);
+    }
   }
 
-  return res.json();
+  throw lastError;
+}
+
+async function valiGet(path) {
+  return withRetry(`VALI request ${path}`, async () => {
+    const separator = path.includes("?") ? "&" : "?";
+    const res = await fetch(`${BASE_URL}${path}${separator}api_token=${encodeURIComponent(VALI_TOKEN)}`, {
+      headers: {
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(60_000),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`VALI error ${res.status}: ${text.slice(0, 300)}`);
+    }
+
+    return res.json();
+  });
+}
+
+async function upsertRows(table, rows, options) {
+  for (let index = 0; index < rows.length; index += DATABASE_BATCH_SIZE) {
+    const batch = rows.slice(index, index + DATABASE_BATCH_SIZE);
+    await withRetry(`Supabase ${table} upsert`, async () => {
+      const { error } = await supabase.from(table).upsert(batch, options);
+      if (error) throw error;
+    });
+  }
 }
 
 function toRow(product) {
@@ -206,10 +241,7 @@ async function main() {
     raw: category,
   }));
   if (!DRY_RUN) {
-    const { error: categoriesError } = await supabase
-      .from("vali_categories")
-      .upsert(categoryRows, { onConflict: "id" });
-    if (categoriesError) throw categoriesError;
+    await upsertRows("vali_categories", categoryRows, { onConflict: "id" });
   }
 
   const first = await valiGet(`/products/full?page=1&per_page=${PER_PAGE}`);
@@ -248,11 +280,7 @@ async function main() {
     }
 
     if (!DRY_RUN) {
-      const { error } = await supabase
-        .from("vali_products")
-        .upsert(rows, { onConflict: "id" });
-
-      if (error) throw error;
+      await upsertRows("vali_products", rows, { onConflict: "id" });
     }
 
     imported += rows.length;
@@ -282,15 +310,18 @@ async function main() {
     .filter((id) => !remoteIds.has(String(id)));
 
   for (let index = 0; !DRY_RUN && index < staleIds.length; index += 100) {
-    const { error } = await supabase
-      .from("vali_products")
-      .update({
-        show: false,
-        status: 0,
-        updated_at: new Date().toISOString(),
-      })
-      .in("id", staleIds.slice(index, index + 100));
-    if (error) throw error;
+    const staleBatch = staleIds.slice(index, index + 100);
+    await withRetry("Supabase stale product deactivation", async () => {
+      const { error } = await supabase
+        .from("vali_products")
+        .update({
+          show: false,
+          status: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", staleBatch);
+      if (error) throw error;
+    });
   }
 
   console.log("VALI sync finished.");
