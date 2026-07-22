@@ -1,45 +1,40 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
+import { matchesCatalogSearchText, normalizeCatalogSearch } from "../lib/catalogSearch";
 
-const normalizeSearch = (value) => String(value || "").trim().toLowerCase();
 const PRODUCTS_PER_PAGE = 50;
 
-const getSearchText = (product) => {
-  return [
+const getSearchValues = (product) => (
+  [
     product.title,
     product.name,
     product.model,
-    product.description,
     product.category,
     product.mainCategory,
     product.manufacturer,
     product.catalog_number,
     product.reference_number,
-    product.barcode,
-  ].map((value) => String(value || "")).join(" ");
-};
+  ]
+);
 
 export default function SearchPage({
   products,
   addToCart,
   HeaderComponent,
   headerProps,
+  loadingProducts = false,
 }) {
   const [searchParams] = useSearchParams();
   const q = searchParams.get("q") || "";
-  const normalizedQuery = normalizeSearch(q);
+  const normalizedQuery = normalizeCatalogSearch(q);
   const Header = HeaderComponent;
   const [page, setPage] = useState(1);
 
   const results = useMemo(() => {
     if (!normalizedQuery) return [];
 
-    const terms = normalizedQuery.split(/\s+/).filter(Boolean);
-    return products.filter((product) => {
-      const haystack = normalizeSearch(getSearchText(product));
-      return terms.every((term) => haystack.includes(term));
-    });
+    return products.filter((product) => matchesCatalogSearchText(getSearchValues(product), normalizedQuery));
   }, [products, normalizedQuery]);
 
   useEffect(() => {
@@ -62,11 +57,15 @@ export default function SearchPage({
             <div>
               <p className="section-label">Търсене</p>
               <h2>Резултати за: {q}</h2>
-              <p className="search-results-count">Намерени {results.length} продукта</p>
+              <p className="search-results-count">
+                {loadingProducts ? "Търсим в целия каталог…" : `Намерени ${results.length} продукта`}
+              </p>
             </div>
           </div>
 
-          {results.length === 0 ? (
+          {loadingProducts ? (
+            <p className="empty-products">Зареждаме всички резултати…</p>
+          ) : results.length === 0 ? (
             <p className="empty-products">Няма намерени продукти.</p>
           ) : (
             <div className="product-grid">

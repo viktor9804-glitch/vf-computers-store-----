@@ -23,6 +23,7 @@ import MegaMenu from "./components/MegaMenu";
 import ProductCard from "./components/ProductCard";
 import ProductFilters from "./components/ProductFilters";
 import ProductGallery from "./components/ProductGallery";
+import LiveSearchBox from "./components/LiveSearchBox";
 import Home from "./pages/Home";
 import { useScrollTop } from "./hooks/useScrollTop";
 import { getOptimizedImageUrl, getProductImageSrcSet, restoreOriginalImage } from "./utils/images";
@@ -2103,7 +2104,7 @@ const ProductPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCatego
   if (!product) {
     return (
       <>
-      <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} />
+      <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} searchProducts={products} />
       <div className="product-page-not-found">
         <h2>Продуктът не е намерен</h2>
 
@@ -2122,7 +2123,7 @@ const ProductPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCatego
 
   return (
     <>
-    <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} />
+    <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} searchProducts={products} />
     <div className="product-page">
 
       <div className="container">
@@ -2237,12 +2238,10 @@ function LoadingScreen() {
     </div>
   );
 }
-function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, setCartOpen, userSession, openAuth, setProfileOpen, query = "", setQuery = () => {} }) {
-  const navigate = useNavigate();
+function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, setCartOpen, userSession, openAuth, setProfileOpen, query = "", setQuery = () => {}, searchProducts = [] }) {
   const [megaOpen, setMegaOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(query || "");
   const [visitorStats, setVisitorStats] = useState(null);
   const headerMegaCategories = dynamicMegaCategories?.length ? dynamicMegaCategories : megaCategories;
   useEffect(() => {
@@ -2286,14 +2285,6 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
       <span>Този месец: <b>{visitorStats.month.toLocaleString("bg-BG")}</b></span>
     </div>
   );
-  const handleSearchSubmit = (event) => {
-    event.preventDefault();
-    const value = searchTerm.trim();
-    if (!value) return;
-    setQuery(value);
-    navigate(`/search?q=${encodeURIComponent(value)}`);
-    setMobileOpen(false);
-  };
   const navLinks = (
     <>
       <a href="/" onClick={() => setMobileOpen(false)}>Начало</a>
@@ -2323,18 +2314,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
                 <small>ПРОДАЖБА • РЕМОНТ • ПОДДРЪЖКА</small>
               </span>
             </a>
-            <form className="search-box" onSubmit={handleSearchSubmit}>
-              <Search size={18} />
-              <input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") handleSearchSubmit(event);
-                }}
-                placeholder="Търси компютър, видеокарта, SSD..."
-              />
-              <button type="submit" aria-label="Търси"><Search size={16} /></button>
-            </form>
+            <LiveSearchBox query={query} setQuery={setQuery} searchProducts={searchProducts} />
             <div className="header-actions">
               <a className="phone-chip" href={`tel:${storeInfo.rawPhone}`}><Phone size={16} /> {storeInfo.phone}</a>
               {userSession ? (
@@ -2350,6 +2330,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
               )}
               <button
                 className="cart-button"
+                aria-label="Отвори количката"
                 onClick={() => {
                   setMobileOpen(false);
                   setCartOpen((prev) => !prev);
@@ -2358,7 +2339,7 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
                 <ShoppingCart size={19} />
                 {cartCount > 0 && <span>{cartCount}</span>}
               </button>
-              <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)}><Menu /></button>
+              <button className="mobile-menu-btn" aria-label="Отвори менюто" onClick={() => setMobileOpen(true)}><Menu /></button>
             </div>
           </div>
           <div className="header-bottom">
@@ -2381,8 +2362,15 @@ function SiteHeader({ dynamicMegaCategories = megaCategories, cartCount = 0, set
       )}
       {mobileOpen && (
         <div className="mobile-panel">
-          <button className="mobile-close" onClick={() => setMobileOpen(false)}><X /></button>
+          <button className="mobile-close" aria-label="Затвори менюто" onClick={() => setMobileOpen(false)}><X /></button>
           <div className="mobile-brand">ВФ <span>Компютри</span></div>
+          <LiveSearchBox
+            className="search-box mobile-search-box"
+            query={query}
+            setQuery={setQuery}
+            searchProducts={searchProducts}
+            onNavigate={() => setMobileOpen(false)}
+          />
           {visitorCounter}
           <nav>{navLinks}</nav>
           <div className="mobile-categories">
@@ -2570,6 +2558,7 @@ const CategoryPage = ({ products, addToCart, handleTbiCheckout, dynamicMegaCateg
       setProfileOpen={setProfileOpen}
       query={query}
       setQuery={setQuery}
+      searchProducts={products}
     />
     <div className="category-page">
       <div className="container products-section">
@@ -3636,6 +3625,7 @@ const headerProps = {
   setProfileOpen,
   query,
   setQuery,
+  searchProducts: products,
 };
 
   return (
@@ -3651,7 +3641,7 @@ const headerProps = {
       <div className="rgb-bg" />
       <div className="scanline" />
 
-      <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} />
+      <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} searchProducts={products} />
       <section className="hero">
         <div className="container hero-grid">
           <div className="hero-copy">
@@ -4062,7 +4052,7 @@ const headerProps = {
       path="/builder"
       element={
         <>
-          <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} />
+          <SiteHeader dynamicMegaCategories={dynamicMegaCategories} cartCount={cartCount} setCartOpen={setCartOpen} userSession={userSession} openAuth={openAuth} setProfileOpen={setProfileOpen} query={query} setQuery={setQuery} searchProducts={products} />
           <BuilderPage
             pcBuilderSteps={pcBuilderSteps}
             componentPools={componentPools}
@@ -4102,6 +4092,7 @@ const headerProps = {
           addToCart={addToCart}
           HeaderComponent={SiteHeader}
           headerProps={headerProps}
+          loadingProducts={loadingProducts}
         />
       }
     />
