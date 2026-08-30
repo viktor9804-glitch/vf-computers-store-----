@@ -46,8 +46,13 @@ export default function Product({
   }
 
   const images = product.images?.length ? product.images : [product.image];
-  const technicalSpecs = Object.entries(product.filters || {});
-  const warrantyText = product.warranty ? `${product.warranty} месеца` : "уточнява се при поръчка";
+  const technicalSpecs = Object.entries(product.filters || {}).filter(
+    ([, value]) => normalizeComparableValue(value).trim() !== ""
+  );
+  const warranty = product.warranty || product.filters?.["Гаранция"];
+  const warrantyText = warranty
+    ? /^\d+$/.test(String(warranty).trim()) ? `${warranty} месеца` : String(warranty)
+    : "уточнява се при поръчка";
 
   return (
     <>
