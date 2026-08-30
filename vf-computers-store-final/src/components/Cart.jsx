@@ -9,6 +9,7 @@ export default function Cart({ deliveryProvider, tbiAvailable = false, onTbiChec
     cartOpen,
     setCartOpen,
     cartItems,
+    hasUnavailableItems,
     cartCount,
     cartSubtotal,
     cartVat,
@@ -47,11 +48,12 @@ export default function Cart({ deliveryProvider, tbiAvailable = false, onTbiChec
                 <div className="cart-item-body">
                   <b>{item.name}</b>
                   {item.availabilityLabel && <small>{item.availabilityLabel}</small>}
+                  {item.canOrder === false && <small role="status">Не може да бъде поръчан. Премахнете от количката.</small>}
                   <p>{formatDisplayPrice(item.price, { isGross: item.isGross })}</p>
                   <div className="qty">
                     <button onClick={() => updateQuantity(item.id, -1)}><Minus size={14} /></button>
                     <span>{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, 1)}><Plus size={14} /></button>
+                    <button disabled={item.canOrder === false} onClick={() => updateQuantity(item.id, 1)}><Plus size={14} /></button>
                     <button className="trash" onClick={() => updateQuantity(item.id, -item.quantity)}><Trash2 size={15} /></button>
                   </div>
                 </div>
@@ -64,13 +66,14 @@ export default function Cart({ deliveryProvider, tbiAvailable = false, onTbiChec
           <div className="cart-vat-row"><span>Доставка с {deliveryProvider}</span><b>{cartDelivery === 0 ? "Безплатна" : `от ${formatPrice(deliveryMin)} до ${formatPrice(deliveryMax)} / начислени ${formatPrice(cartDelivery)}`}</b></div>
           <div className="cart-total-row"><span>Общо</span><b>{formatPrice(cartGrandTotal)}</b></div>
           {hasCustomPcBuild && <p className="cart-payment-note">Плащане: {customPcPaymentLabel}</p>}
-          <button disabled={!cartItems.length} onClick={() => setCheckoutOpen(true)}>
+          {hasUnavailableItems && <p role="alert">Премахнете продуктите без наличност или на път, за да продължите.</p>}
+          <button disabled={!cartItems.length || hasUnavailableItems} onClick={() => setCheckoutOpen(true)}>
             {hasCustomPcBuild ? "Изпрати заявка за конфигурация" : "Завърши поръчката"}
           </button>
           {!hasCustomPcBuild && tbiAvailable && (
             <button
               className="drawer-tbi-btn"
-              disabled={!cartItems.length}
+              disabled={!cartItems.length || hasUnavailableItems}
               onClick={onTbiCheckout}
             >
               <CreditCard size={17} />

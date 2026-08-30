@@ -132,7 +132,7 @@ function findBestPromotion(product, promotions) {
 export function assertProductOrderable(product, quantity) {
   if (product.source === "vali") {
     const status = Number(product.row.status);
-    if (product.row.show !== true || status === 0 || status === 5) {
+    if (product.row.show !== true || status === 0 || status === 3 || status === 5) {
       throw new ApiError(409, "PRODUCT_UNAVAILABLE", "Продуктът не може да бъде поръчан.");
     }
     if (status === 2 && quantity > 3) {

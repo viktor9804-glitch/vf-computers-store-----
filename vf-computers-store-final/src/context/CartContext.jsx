@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { isCartItemOrderable, isProductOrderable } from "../utils/availability";
 
 const CartContext = createContext(null);
 
@@ -43,9 +44,12 @@ export function CartProvider({ children }) {
   }, [cart, products]);
 
   const cartItems = useMemo(
-    () => [...standardCartItems, ...cartCustomItems],
-    [standardCartItems, cartCustomItems]
+    () => [...standardCartItems, ...cartCustomItems].map((item) => ({
+      ...item, canOrder: isCartItemOrderable(item, products),
+    })),
+    [standardCartItems, cartCustomItems, products]
   );
+  const hasUnavailableItems = cartItems.some((item) => !isProductOrderable(item));
 
   const cartCount = cartItems.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
   const cartSubtotal = cartItems.reduce(
@@ -71,12 +75,15 @@ export function CartProvider({ children }) {
   const addToCart = (productOrId) => {
     const id = String(productOrId?.id || productOrId?.valiId || productOrId?.vali_id || productOrId);
     if (!id) return;
+    const product = products.find((item) => String(item.id) === id);
+    if (!isProductOrderable(product)) return;
 
     setCart((current) => ({ ...current, [id]: Number(current[id] || 0) + 1 }));
     setCartOpen(true);
   };
 
   const updateQuantity = (id, amount) => {
+    if (amount > 0 && !isProductOrderable(cartItems.find((item) => String(item.id) === String(id)))) return;
     if (String(id).startsWith("config-")) {
       setCartCustomItems((current) => {
         return current
@@ -112,6 +119,7 @@ export function CartProvider({ children }) {
     checkoutOpen,
     setCheckoutOpen,
     cartItems,
+    hasUnavailableItems,
     cartCount,
     cartSubtotal,
     cartVat,

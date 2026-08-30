@@ -12,7 +12,7 @@ export default function Checkout({
   sendingOrder,
   tbiAvailable = false,
 }) {
-  const { checkoutOpen, setCheckoutOpen, cartGrandTotal, cartItems } = useCart();
+  const { checkoutOpen, setCheckoutOpen, cartGrandTotal, cartItems, hasUnavailableItems } = useCart();
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -58,6 +58,10 @@ export default function Checkout({
   };
 
   const handleSendOrder = async () => {
+    if (hasUnavailableItems || !cartItems.length) {
+      setCheckoutError("Количката е празна или съдържа продукти, които не могат да бъдат поръчани.");
+      return;
+    }
     const requiredFields = [
       ["name", "име"],
       ["phone", "телефон"],
@@ -172,7 +176,8 @@ export default function Checkout({
           <CreditCard />
           <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b>{hasCustomPcBuild ? ` • Плащане: ${customPcPaymentLabel}` : ""}</span>
         </div>
-        <button className="send-order" onClick={handleSendOrder} disabled={sendingOrder}>
+        {hasUnavailableItems && <p role="alert">Премахнете продуктите без наличност или на път от количката.</p>}
+        <button className="send-order" onClick={handleSendOrder} disabled={sendingOrder || hasUnavailableItems || !cartItems.length}>
           {sendingOrder
             ? "Изпращане..."
             : hasCustomPcBuild

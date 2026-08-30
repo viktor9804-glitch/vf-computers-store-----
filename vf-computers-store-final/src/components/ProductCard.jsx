@@ -2,9 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { formatDisplayPrice } from "../utils/format";
+import { isProductOrderable } from "../utils/availability";
 import { getOptimizedImageUrl, getProductImageSrcSet, restoreOriginalImage } from "../utils/images";
 
 export default function ProductCard({ product, addToCart }) {
+  const canOrder = isProductOrderable(product);
   return (
     <Link to={`/product/${product.id}`} className="product-link">
       <article className="product-card">
@@ -50,13 +52,14 @@ export default function ProductCard({ product, addToCart }) {
             </div>
 
             <button
+              disabled={!canOrder}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                addToCart(product.id);
+                if (canOrder) addToCart(product.id);
               }}
             >
-              Добави
+              {canOrder ? "Добави" : product.availabilityLabel || "Не е наличен"}
             </button>
           </div>
         </div>

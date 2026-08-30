@@ -4,6 +4,7 @@ import ProductGallery from "../components/ProductGallery";
 import { useScrollTop } from "../hooks/useScrollTop";
 import { formatDisplayPrice } from "../utils/format";
 import { normalizeComparableValue } from "../utils/text";
+import { isProductOrderable } from "../utils/availability";
 
 export default function Product({
   products,
@@ -46,6 +47,7 @@ export default function Product({
   }
 
   const images = product.images?.length ? product.images : [product.image];
+  const canOrder = isProductOrderable(product);
   const technicalSpecs = Object.entries(product.filters || {}).filter(
     ([, value]) => normalizeComparableValue(value).trim() !== ""
   );
@@ -90,9 +92,11 @@ export default function Product({
                 </div>
 
                 <div className="product-page-actions-inline">
-                  <button onClick={() => addToCart(product.id)}>Добави в количката</button>
+                  <button disabled={!canOrder} onClick={() => addToCart(product.id)}>
+                    {canOrder ? "Добави в количката" : product.availabilityLabel || "Не е наличен"}
+                  </button>
                   {tbiAvailable && (
-                    <button className="tbi-btn" onClick={() => handleTbiCheckout(product)}>
+                    <button className="tbi-btn" disabled={!canOrder} onClick={() => handleTbiCheckout(product)}>
                       Купи на изплащане
                     </button>
                   )}

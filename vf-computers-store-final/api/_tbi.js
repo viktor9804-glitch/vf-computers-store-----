@@ -248,7 +248,7 @@ async function loadProduct(supabase, publicId) {
   }
 
   const row = result.data;
-  if (source === "vali" && [0, 5].includes(Number(row.status))) {
+  if (source === "vali" && [0, 3, 5].includes(Number(row.status))) {
     throw new TbiError(409, "PRODUCT_UNAVAILABLE", "Продуктът не е наличен за финансиране.");
   }
   if (source !== "vali" && Number(row.stock ?? 1) <= 0) {

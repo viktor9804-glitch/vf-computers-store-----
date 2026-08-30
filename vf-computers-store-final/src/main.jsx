@@ -26,6 +26,7 @@ import ProductGallery from "./components/ProductGallery";
 import LiveSearchBox from "./components/LiveSearchBox";
 import Home from "./pages/Home";
 import { useScrollTop } from "./hooks/useScrollTop";
+import { isProductOrderable } from "./utils/availability";
 import { getOptimizedImageUrl, getProductImageSrcSet, restoreOriginalImage } from "./utils/images";
 import "./style.css";
 
@@ -677,7 +678,7 @@ const getValiAvailability = (product = {}) => {
     return {
       label: "На път",
       type: "on_the_way",
-      canOrder: true,
+      canOrder: false,
     };
   }
 
@@ -2623,6 +2624,7 @@ function App() {
 
   const {
     cartItems,
+    hasUnavailableItems,
     cartCount,
     cartSubtotal,
     cartVat,
@@ -3219,14 +3221,14 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     };
   }, [showTbi, tbiUrl]);
   const baseComponentPools = useMemo(() => ({
-    cpu: products.filter(isCpu),
-    motherboard: products.filter(isMotherboard),
-    ram: products.filter(isRam),
-    gpu: products.filter(isGpu),
-    storage: products.filter(isStorage),
-    psu: products.filter(isPsu),
-    case: products.filter(isCase),
-    cooler: products.filter(isCooler),
+    cpu: products.filter((product) => isProductOrderable(product) && isCpu(product)),
+    motherboard: products.filter((product) => isProductOrderable(product) && isMotherboard(product)),
+    ram: products.filter((product) => isProductOrderable(product) && isRam(product)),
+    gpu: products.filter((product) => isProductOrderable(product) && isGpu(product)),
+    storage: products.filter((product) => isProductOrderable(product) && isStorage(product)),
+    psu: products.filter((product) => isProductOrderable(product) && isPsu(product)),
+    case: products.filter((product) => isProductOrderable(product) && isCase(product)),
+    cooler: products.filter((product) => isProductOrderable(product) && isCooler(product)),
   }), [products]);
 
   const builderProducts = useMemo(() => ({
@@ -3364,6 +3366,10 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
     : null;
 
   const addConfigurationToCart = () => {
+    if (builderSelectedList.some((product) => !isProductOrderable(product))) {
+      setBuilderNotice("Конфигурацията съдържа продукт без наличност или на път.");
+      return;
+    }
     if (!builderProducts.cpu || !builderProducts.motherboard || !builderProducts.ram || !builderProducts.gpu) {
       setBuilderNotice("Избери поне процесор, дънна платка, RAM и видеокарта, за да добавиш конфигурацията.");
       return;
@@ -3402,6 +3408,10 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   };
 
   const sendOrder = async (checkoutForm) => {
+    if (hasUnavailableItems) {
+      setNotice("Премахнете продуктите без наличност или на път от количката.");
+      return false;
+    }
     const customerName = checkoutForm?.name?.trim();
     const phone = checkoutForm?.phone?.trim();
     const city = checkoutForm?.city?.trim();
@@ -3552,6 +3562,10 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   }, [products, activeCategory, query, priceLimit]);
 
   const handleTbiCheckout = async (target) => {
+    if (!target?.orderId && !isProductOrderable(target)) {
+      setNotice("Продуктът не може да бъде поръчан в момента.");
+      return false;
+    }
     try {
       if (!tbiAvailable) {
         setNotice("TBI финансирането временно не е налично.");
@@ -3596,6 +3610,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   };
 
   const openCartTbiCheckout = () => {
+    if (hasUnavailableItems) return;
     setPaymentMethod("tbi");
     setCartOpen(false);
     setCheckoutOpen(true);
