@@ -1,6 +1,6 @@
 import { ApiError, text } from "./_serverSecurity.js";
 
-const WARRANTY_CODE_PATTERN = /^VF-(?:WAR|WARRANTY)-[A-Z0-9]{4,12}(?:-[A-Z0-9]{4,16}){1,3}$/;
+const WARRANTY_CODE_PATTERN = /^(?:VF-GW-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}|VF-(?:WAR|WARRANTY)-[A-Z0-9]{4,12}(?:-[A-Z0-9]{4,16}){1,3})$/;
 const SERVICE_CODE_PATTERN = /^VF-SVC-[A-Z0-9]{4,12}(?:-[A-Z0-9]{4,16}){1,3}$/;
 
 const normalizeCode = (value) => text(value, 80).toUpperCase().replace(/\s+/g, "");
@@ -27,7 +27,7 @@ const firstValue = (row, keys) => {
 
 export function toPublicWarranty(row) {
   return {
-    warranty_code: firstValue(row, ["warranty_code", "public_code", "warranty_number"]),
+    warranty_code: firstValue(row, ["public_code", "warranty_code"]),
     product_name: firstValue(row, ["product_name", "product_model"]),
     product_model: firstValue(row, ["product_model"]),
     product_brand: firstValue(row, ["product_brand", "product_manufacturer"]),

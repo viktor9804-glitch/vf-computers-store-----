@@ -25,8 +25,8 @@ export default async function handler(req, res) {
       .select(`
         warranty_code, warranty_number, public_code,
         product_name, product_model, product_brand, product_manufacturer,
-        warranty_start, warranty_start_date, sale_date,
-        warranty_end, warranty_end_date, warranty_until,
+        warranty_start, warranty_start_date, sale_date, starts_at,
+        warranty_end, warranty_end_date, warranty_until, ends_at,
         warranty_months, status,
         warranty_items(product_name, product_model, manufacturer, warranty_months, warranty_end)
       `)

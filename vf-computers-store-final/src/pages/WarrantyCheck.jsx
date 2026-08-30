@@ -9,6 +9,13 @@ const STATUS_LABELS = {
   rejected: "Отказана",
 };
 
+const STATUS_HEADINGS = {
+  active: "Гаранцията е валидна",
+  expired: "Гаранцията е изтекла",
+  service: "Продуктът е в сервиз",
+  rejected: "Гаранцията е отказана",
+};
+
 function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -16,15 +23,17 @@ function formatDate(value) {
 }
 
 function normalizeCode(value) {
-  return String(value || "").trim().toUpperCase();
+  return String(value || "").toUpperCase().replace(/\s+/g, "");
 }
 
 function getDisplayStatus(warranty) {
   if (!warranty) return "active";
   if (warranty.status === "service" || warranty.status === "rejected") return warranty.status;
+  if (warranty.status === "expired") return "expired";
+  if (!warranty.warranty_end) return warranty.status || "active";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const until = new Date(warranty.warranty_end);
+  const until = new Date(`${warranty.warranty_end.slice(0, 10)}T00:00:00`);
   if (Number.isNaN(until.getTime())) return warranty.status || "active";
   return until < today ? "expired" : "active";
 }
@@ -40,6 +49,7 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
   const displayStatus = useMemo(() => getDisplayStatus(warranty), [warranty]);
 
   async function checkWarranty(nextCode = code) {
+    if (loading) return;
     const normalizedCode = normalizeCode(nextCode);
     setWarranty(null);
     setMessage("");
@@ -50,36 +60,34 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
     }
 
     setLoading(true);
-    let data = null;
-    let error = null;
     try {
       const response = await fetch("/api/warranty-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ warranty_code: normalizedCode }),
+        signal: AbortSignal.timeout(15000),
       });
       const result = await response.json().catch(() => null);
-      if (!response.ok) error = new Error(result?.error || "Warranty check failed");
-      else data = result?.warranty || null;
-    } catch (requestError) {
-      error = requestError;
+      if (!response.ok) {
+        setMessage(response.status === 404
+          ? "Няма намерена гаранция с този код. Проверете кода от картата."
+          : response.status === 429
+            ? "Твърде много опити. Изчакайте 10 минути и опитайте отново."
+            : "Проверката временно не е достъпна. Опитайте отново по-късно.");
+        return;
+      }
+      if (!result?.warranty) {
+        setMessage("Проверката временно не е достъпна. Опитайте отново по-късно.");
+        return;
+      }
+      setCode(normalizedCode);
+      setSearchParams({ code: normalizedCode });
+      setWarranty(result.warranty);
+    } catch {
+      setMessage("Неуспешна връзка. Проверете интернет връзката и опитайте отново.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-
-    if (error) {
-      setMessage("Няма намерен запис с този код.");
-      return;
-    }
-
-    const found = data;
-    if (!found) {
-      setMessage("Не е намерена гаранция с този код");
-      return;
-    }
-
-    setSearchParams({ code: normalizedCode });
-    setWarranty(found);
   }
 
   useEffect(() => {
@@ -114,7 +122,12 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
               <Search size={18} />
               <input
                 id="warranty-code"
-                placeholder="VF-WAR-2026-X7K9P2"
+                placeholder="VF-GW-XXXX-XXXX-XXXX"
+                maxLength={80}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                disabled={loading}
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
               />
@@ -124,8 +137,9 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
             </button>
           </form>
 
-          <article className={`warranty-result-card ${warranty ? displayStatus : "empty"}`}>
-            {!warranty && !message && (
+          <article className={`warranty-result-card ${warranty ? displayStatus : "empty"}`} aria-live="polite" aria-busy={loading}>
+            {loading && <><ShieldCheck /><h2>Проверка на гаранцията...</h2></>}
+            {!loading && !warranty && !message && (
               <>
                 <ShieldCheck />
                 <h2>Очаква се код</h2>
@@ -142,8 +156,8 @@ export default function WarrantyCheck({ HeaderComponent, headerProps = {} }) {
 
             {warranty && (
               <>
-                {displayStatus === "expired" ? <X /> : <CheckCircle2 />}
-                <h2>{displayStatus === "expired" ? "Гаранцията е изтекла" : "Гаранцията е валидна"}</h2>
+                {displayStatus === "active" ? <CheckCircle2 /> : <ShieldCheck />}
+                <h2>{STATUS_HEADINGS[displayStatus] || "Данни за гаранцията"}</h2>
                 <dl>
                   <div><dt>Гаранционен код:</dt><dd>{warranty.warranty_code}</dd></div>
                   <div><dt>Продукт:</dt><dd>{warranty.product_name || "-"}</dd></div>
