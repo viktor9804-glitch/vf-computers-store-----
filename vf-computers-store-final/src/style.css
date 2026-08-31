@@ -3529,3 +3529,5 @@ button:disabled{
   font-size: 18px;
   padding: 13px 4px;
 }
+
+.vf-checkout-loyalty{padding:20px;margin:18px 0;border:1px solid #ef444455;border-radius:15px;background:#ef444410;font-size:13px;line-height:1.7}.vf-checkout-loyalty label{display:block;margin:12px 0}.vf-checkout-loyalty input{display:block;max-width:220px;padding:12px;background:#111522;color:white;border:1px solid #ffffff33;border-radius:9px}

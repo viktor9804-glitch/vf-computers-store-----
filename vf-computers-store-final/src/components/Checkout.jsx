@@ -1,9 +1,11 @@
+import LoyaltyCheckout from './LoyaltyCheckout';
 import React, { useEffect, useState } from "react";
 import { CreditCard, X } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../utils/format";
 
 export default function Checkout({
+  session,
   paymentMethods,
   paymentMethod,
   setPaymentMethod,
@@ -21,6 +23,7 @@ export default function Checkout({
     address: "",
     comment: "",
   });
+  const [loyalty, setLoyalty] = useState({points:0,discount:0});
   const [checkoutError, setCheckoutError] = useState("");
   const hasCustomPcBuild = cartItems.some((item) => item.is_custom_pc_build || item.source === "config");
   const customPcBuildItem = cartItems.find((item) => item.is_custom_pc_build || item.source === "config");
@@ -50,6 +53,7 @@ export default function Checkout({
     }
   }, [paymentMethod, setPaymentMethod, tbiAvailable]);
 
+  useEffect(()=>{setLoyalty({points:0,discount:0});},[session?.user?.id,paymentMethod,checkoutOpen]);
   if (!checkoutOpen) return null;
 
   const updateField = (field, value) => {
@@ -75,7 +79,8 @@ export default function Checkout({
       return;
     }
 
-    const sent = await sendOrder(form);
+    if (loyalty.points < 0) { setCheckoutError("Невалиден брой точки."); return; }
+    const sent = await sendOrder({...form,points_to_spend:loyalty.points,loyalty_discount:loyalty.discount});
     if (sent) {
       setForm({
         name: "",
@@ -172,9 +177,11 @@ export default function Checkout({
           )}
         </div>
 
+        {!hasCustomPcBuild && paymentMethod !== "tbi" ? <LoyaltyCheckout key={`${session?.user?.id||'guest'}-${paymentMethod}`} session={session} total={cartGrandTotal} onChange={(points,discount)=>setLoyalty({points,discount})}/> : <p>За конфигурации и TBI поръчки точките се начисляват след потвърдено плащане и доставка; отстъпката с точки не е налична.</p>}
+        {loyalty.discount > 0 && <p>Отстъпка с точки: −{formatPrice(loyalty.discount)}</p>}
         <div className="checkout-summary">
           <CreditCard />
-          <span>Обща сума: <b>{formatPrice(cartGrandTotal)}</b>{hasCustomPcBuild ? ` • Плащане: ${customPcPaymentLabel}` : ""}</span>
+          <span>Обща сума: <b>{formatPrice(cartGrandTotal - loyalty.discount)}</b>{hasCustomPcBuild ? ` • Плащане: ${customPcPaymentLabel}` : ""}</span>
         </div>
         {hasUnavailableItems && <p role="alert">Премахнете продуктите без наличност или на път от количката.</p>}
         <button className="send-order" onClick={handleSendOrder} disabled={sendingOrder || hasUnavailableItems || !cartItems.length}>

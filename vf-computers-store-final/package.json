@@ -13,7 +13,7 @@
     "sync:vali:availability": "node src/sync-vali-fast-prices.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.106.1",
+    "@supabase/supabase-js": "2.106.1",
     "@vitejs/plugin-react": "latest",
     "dotenv": "^17.4.2",
     "lucide-react": "latest",

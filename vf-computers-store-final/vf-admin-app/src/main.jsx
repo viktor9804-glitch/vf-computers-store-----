@@ -23,7 +23,7 @@ import { supabase } from "./supabaseClient";
 import "./style.css";
 
 const STORAGE_BUCKET = "product-images";
-const ORDER_STATUSES = ["Приета", "Обработва се", "Изпратена", "Отказана"];
+const ORDER_STATUSES = ["Приета", "Обработва се", "Изпратена", "Доставена", "Завършена", "Отказана", "Върната"];
 const STATUS_EMAIL_STATUSES = new Set(["Обработва се", "Изпратена"]);
 const EMAIL_API_BASE = import.meta.env.VITE_EMAIL_API_BASE || "https://vf-computers-store.vercel.app";
 
@@ -1171,7 +1171,7 @@ function App() {
   const saveWarrantyRecord = async (record) => {
     const input = warrantyInputs[record.id] || {};
     const months = Number(input.warranty_months || record.warranty_months || 24);
-    const startsAt = record.created_at ? new Date(record.created_at) : new Date();
+    const startsAt = input.starts_at ? new Date(`${input.starts_at}T12:00:00`) : new Date();
     const endsAt = new Date(startsAt);
     endsAt.setMonth(endsAt.getMonth() + months);
 
@@ -1211,8 +1211,7 @@ function App() {
   }, [products, query]);
 
   const warrantyRecords = useMemo(() => {
-    if (!warrantiesUsingOrdersFallback && warranties.length > 0) {
-      return warranties.map((record) => ({
+    const issued = warranties.map((record) => ({
         id: record.id,
         order_id: record.order_id,
         customer_name: record.customer_name,
@@ -1221,13 +1220,13 @@ function App() {
         total: null,
         product_name: record.product_name,
         serial_number: record.serial_number || "",
+        starts_at: record.starts_at || new Date().toISOString().slice(0,10),
         warranty_months: Number(record.warranty_months || 24),
         status: record.status || "Активна",
         notes: record.notes || "",
       }));
-    }
 
-    return orders.map((order) => ({
+    const pending = orders.filter(order => !warranties.some(record => String(record.order_id) === String(order.id))).map((order) => ({
       id: `order-${order.id}`,
       order_id: order.id,
       customer_name: order.customer_name || "Клиент",
@@ -1237,9 +1236,10 @@ function App() {
       product_name: Array.isArray(order.items) ? order.items.map((item) => item.name).join(", ") : "Няма продукти",
       serial_number: "",
       warranty_months: 24,
-      status: order.created_at && new Date(order.created_at) > new Date(new Date().setMonth(new Date().getMonth() - 24)) ? "Активна" : "Изтекла",
+      status: "Неиздадена",
       notes: "",
     }));
+    return [...issued, ...pending];
   }, [orders, warranties, warrantiesUsingOrdersFallback]);
 
   useEffect(() => {
@@ -1247,8 +1247,9 @@ function App() {
     warrantyRecords.forEach((record) => {
       nextInputs[record.id] = {
         serial_number: record.serial_number || "",
+        starts_at: record.starts_at || new Date().toISOString().slice(0,10),
         warranty_months: String(record.warranty_months || 24),
-        status: record.status || "Активна",
+        status: record.status === "Неиздадена" ? "Активна" : record.status || "Активна",
         notes: record.notes || "",
       };
     });
@@ -1607,7 +1608,7 @@ function App() {
                       </span>
                     </div>
                     <div className="order-grid">
-                      <p><strong>Клиент:</strong> {order.customer_name || "-"}</p>
+                      <p><strong>Клиент:</strong> {order.customer_name || "-"}</p><p><strong>Източник:</strong> {order.order_source === "mobile" ? "Мобилно приложение" : "Сайт"} · {order.user_id ? "Регистриран клиент" : "Гост"}</p>{order.loyalty_discount > 0 && <p><strong>Отстъпка с точки:</strong> {formatPrice(order.loyalty_discount)} ({order.loyalty_spent_points} т.)</p>}
                       <p><strong>Телефон:</strong> {order.customer_phone || "-"}</p>
                       <p><strong>Email:</strong> {order.customer_email || "-"}</p>
                       <p><strong>Град:</strong> {order.customer_city || "-"}</p>
@@ -1649,10 +1650,11 @@ function App() {
                     <label>Град<input value={orderForm.customer_city} onChange={(event) => updateOrderForm("customer_city", event.target.value)} /></label>
                     <label className="wide">Адрес<input value={orderForm.customer_address} onChange={(event) => updateOrderForm("customer_address", event.target.value)} /></label>
                     <label>Метод на плащане<input value={orderForm.payment_method} onChange={(event) => updateOrderForm("payment_method", event.target.value)} /></label>
-                    <label>Статус на плащане<input value={orderForm.payment_status} onChange={(event) => updateOrderForm("payment_status", event.target.value)} /></label>
+                    <label>Статус на плащане<select value={orderForm.payment_status} onChange={(event) => updateOrderForm("payment_status", event.target.value)}><option value="pending">Очаква плащане</option><option value="paid">Платена</option><option value="refunded">Възстановена</option><option value="failed">Неуспешно</option></select></label>
                     <label className="wide">Коментар<textarea value={orderForm.customer_comment} onChange={(event) => updateOrderForm("customer_comment", event.target.value)} /></label>
                   </div>
 
+                  <p>Точки се начисляват само за регистриран клиент след статус „Доставена“/„Завършена“ и плащане „Платена“. Избирай ги само след действително получаване и плащане.</p>
                   <div className="order-items-box">
                     <h3>Продукти</h3>
                     {getOrderItems(selectedOrder).length === 0 ? <p>Няма продукти.</p> : getOrderItems(selectedOrder).map((item, index) => (
@@ -1670,7 +1672,7 @@ function App() {
 
                   <div className="modal-actions">
                     <button className="save-btn" disabled={orderSaving} onClick={saveOrder}><Save size={18} />{orderSaving ? "Запазване..." : "Запази промени"}</button>
-                    <button className="danger-action" disabled={orderSaving} onClick={deleteOrder}><Trash2 size={18} />Изтрий поръчката</button>
+                    <button className="danger-action" disabled={orderSaving || !!selectedOrder.user_id} title={selectedOrder.user_id ? "Историята на клиента се пази. Използвай отказ или връщане." : "Изтрий"} onClick={deleteOrder}><Trash2 size={18} />Изтрий поръчката</button>
                   </div>
                 </section>
               </div>
@@ -1722,6 +1724,7 @@ function App() {
                       </p>
                       <small>{record.product_name || "Няма продукти"}</small>
                       <div className="form-grid" style={{ marginTop: 12 }}>
+                        <label>Начална дата на гаранцията<input type="date" value={input.starts_at || ""} onChange={event => setWarrantyInputs(current => ({...current,[record.id]:{...current[record.id],starts_at:event.target.value}}))}/></label>
                         <label>
                           Сериен номер
                           <input

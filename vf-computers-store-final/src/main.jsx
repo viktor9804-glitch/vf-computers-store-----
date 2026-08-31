@@ -1,3 +1,5 @@
+import CustomerArea from './components/CustomerArea.jsx';
+import {customerApi} from './lib/customerApi';
 ﻿import {
   BrowserRouter,
   Routes,
@@ -1274,8 +1276,6 @@ function OrderDocumentsModal({ order, customerProfile, onClose }) {
 
   const invoiceNo = `VF-${String(order.id || Date.now()).padStart(6, "0")}`;
   const orderDate = order.created_at ? new Date(order.created_at) : new Date();
-  const warrantyUntil = new Date(orderDate);
-  warrantyUntil.setFullYear(warrantyUntil.getFullYear() + 2);
 
   const buyerName =
     customerProfile?.account_type === "company"
@@ -1309,7 +1309,7 @@ function OrderDocumentsModal({ order, customerProfile, onClose }) {
           <div>
             <p className="section-label">Автоматични документи</p>
             <h2>Документи за поръчка #{order.id}</h2>
-            <p>Фактура, гаранционна карта и приемно-предавателен протокол.</p>
+            <p>Документи за поръчката. Реално издадените гаранции са в „Моят профил → Гаранции“.</p>
           </div>
           <div>
             <button className="profile-primary" onClick={printDocuments}>Печат / Запази PDF</button>
@@ -1360,6 +1360,8 @@ function OrderDocumentsModal({ order, customerProfile, onClose }) {
               ))}
             </tbody>
             <tfoot>
+              <tr><td colSpan="3">Доставка</td><td>{formatPrice(Number(order.shipping || 0))}</td></tr>
+              {Number(order.loyalty_discount) > 0 && <tr><td colSpan="3">Отстъпка с точки</td><td>−{formatPrice(Number(order.loyalty_discount))}</td></tr>}
               <tr>
                 <td colSpan="3">Общо</td>
                 <td>{formatPrice(total)}</td>
@@ -1368,37 +1370,6 @@ function OrderDocumentsModal({ order, customerProfile, onClose }) {
           </table>
 
           <p className="document-note">Документът е автоматично генериран от онлайн системата на ВФ Компютри.</p>
-        </div>
-
-        <div className="document-page">
-          <header className="document-header">
-            <div>
-              <h1>ГАРАНЦИОННА КАРТА</h1>
-              <p>Към поръчка #{order.id}</p>
-            </div>
-            <div>
-              <b>ВФ Компютри</b>
-              <p>Тел: 0876 126 326</p>
-            </div>
-          </header>
-
-          <section className="document-section">
-            <p><b>Клиент:</b> {buyerName}</p>
-            <p><b>Дата на покупка:</b> {orderDate.toLocaleDateString("bg-BG")}</p>
-            <p><b>Ориентировъчна гаранция до:</b> {warrantyUntil.toLocaleDateString("bg-BG")}</p>
-            <p>Гаранцията е според конкретния продукт и условията на производителя/магазина.</p>
-          </section>
-
-          <table className="document-table">
-            <thead><tr><th>Продукт</th><th>Гаранционен статус</th></tr></thead>
-            <tbody>
-              {items.length === 0 ? (
-                <tr><td>Продукти по поръчката</td><td>Според продукта</td></tr>
-              ) : items.map((item, index) => (
-                <tr key={index}><td>{item.name}</td><td>Активна, според продукта</td></tr>
-              ))}
-            </tbody>
-          </table>
         </div>
 
         <div className="document-page">
@@ -1468,7 +1439,7 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
 
   const loadProfile = async () => {
     if (!user?.id) return;
-    const { data, error } = await supabase.from("customer_profiles").select("*").eq("user_id", user.id).maybeSingle();
+    const { data, error } = await supabase.from("vf_customer_details").select("*").eq("user_id", user.id).maybeSingle();
     if (!error && data) {
       setProfileForm({
         account_type: data.account_type || "personal",
@@ -1513,7 +1484,6 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
 
   useEffect(() => {
     loadProfile();
-    loadOrders();
     loadServiceTickets();
   }, [user?.id]);
 
@@ -1526,7 +1496,7 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
     setProfileSaving(true);
     setProfileNotice("");
 
-    const { error } = await supabase.from("customer_profiles").upsert({
+    const { error } = await supabase.from("vf_customer_details").upsert({
       user_id: user.id,
       email: user.email,
       account_type: profileForm.account_type,
@@ -1579,14 +1549,6 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
     await loadServiceTickets();
   };
 
-  const warrantyText = (order) => {
-    const created = order.created_at ? new Date(order.created_at) : null;
-    if (!created || Number.isNaN(created.getTime())) return "Гаранция според продукта";
-    const warrantyUntil = new Date(created);
-    warrantyUntil.setFullYear(warrantyUntil.getFullYear() + 2);
-    return `Гаранция до ${warrantyUntil.toLocaleDateString("bg-BG")}`;
-  };
-
   return (
     <div className="profile-overlay" onClick={onClose}>
       <div className="profile-modal" onClick={(event) => event.stopPropagation()}>
@@ -1602,6 +1564,7 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
         <div className="profile-tabs">
           <button className={tab === "profile" ? "active" : ""} onClick={() => setTab("profile")}>Данни</button>
           <button className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}>Поръчки</button>
+          <button className={tab === "points" ? "active" : ""} onClick={() => setTab("points")}>Точки</button>
           <button className={tab === "warranty" ? "active" : ""} onClick={() => setTab("warranty")}>Гаранции</button>
           <button className={tab === "service" ? "active" : ""} onClick={() => setTab("service")}>Сервиз</button>
         </div>
@@ -1644,45 +1607,7 @@ function CustomerProfileModal({ session, onClose, onLogout }) {
           </div>
         )}
 
-        {tab === "orders" && (
-          <div className="profile-panel">
-            {ordersLoading ? <p className="profile-empty">Зареждане на поръчки...</p> : orders.length === 0 ? (
-              <p className="profile-empty">Все още няма поръчки към този профил.</p>
-            ) : (
-              <div className="profile-list">
-                {orders.map((order) => (
-                  <div className="profile-row" key={order.id}>
-                    <div>
-                      <b>Поръчка #{order.id}</b>
-                      <p>{order.created_at ? new Date(order.created_at).toLocaleString("bg-BG") : "Без дата"}</p>
-                      <small>{Array.isArray(order.items) ? order.items.map((item) => `${item.name} x${item.quantity}`).join(", ") : "Продукти"}</small>
-                    </div>
-                    <strong>{formatPrice(order.total || 0)}</strong>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === "warranty" && (
-          <div className="profile-panel">
-            {orders.length === 0 ? <p className="profile-empty">Гаранциите ще се показват тук след първа поръчка.</p> : (
-              <div className="profile-list">
-                {orders.map((order) => (
-                  <div className="profile-row" key={order.id}>
-                    <div>
-                      <b>Поръчка #{order.id}</b>
-                      <p>{warrantyText(order)}</p>
-                      <small>Ориентировъчно: 2 години гаранция според продукта.</small>
-                    </div>
-                    <span className="status-chip">Активна</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {['orders','points','warranty'].includes(tab) && <div className="profile-panel"><CustomerArea key={user.id} session={session} request={customerApi} initialTab={tab==='warranty'?'warranties':tab}/></div>}
 
         {tab === "service" && (
           <div className="profile-panel">
@@ -3145,6 +3070,12 @@ function App() {
   const [sendingBuilder, setSendingBuilder] = useState(false);
   const [sendingOrder, setSendingOrder] = useState(false);
   const orderIdempotencyKeyRef = React.useRef("");
+  const orderOwnerRef = React.useRef(userSession?.user?.id || null);
+  useEffect(() => {
+    orderOwnerRef.current = userSession?.user?.id || null;
+    orderIdempotencyKeyRef.current = "";
+    setDocumentOrder(null); setDocumentCustomer(null); setCheckoutOpen(false);
+  }, [userSession?.user?.id]);
   const [megaOpen, setMegaOpen] = useState(false);
 const [activeMega, setActiveMega] = useState(megaCategories[0]);
 
@@ -3408,6 +3339,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
   };
 
   const sendOrder = async (checkoutForm) => {
+    const requestOwner = userSession?.user?.id || null;
     if (hasUnavailableItems) {
       setNotice("Премахнете продуктите без наличност или на път от количката.");
       return false;
@@ -3432,7 +3364,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
 
     if (userSession?.user?.id) {
       const { data } = await supabase
-        .from("customer_profiles")
+        .from("vf_customer_details")
         .select("*")
         .eq("user_id", userSession.user.id)
         .maybeSingle();
@@ -3490,6 +3422,8 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
           delivery_address: address,
           payment_method: resolvedPaymentMethod,
           idempotency_key: orderIdempotencyKeyRef.current,
+          points_to_spend: Number(checkoutForm.points_to_spend || 0),
+          ...(checkoutForm.points_to_spend > 0 ? {expected_total_cents: Math.round((cartGrandTotal - checkoutForm.loyalty_discount) * 100)} : {}),
         }),
       });
       const result = await response.json().catch(() => null);
@@ -3527,6 +3461,7 @@ const [activeMega, setActiveMega] = useState(megaCategories[0]);
       emailWarning = "Поръчката е записана, но email-ът не беше изпратен.";
     }
 
+    if (orderOwnerRef.current !== requestOwner) return true;
     setNotice(emailWarning || "Поръчката е изпратена успешно.");
     setDocumentOrder(savedOrder);
     setDocumentCustomer(customerProfile || {
@@ -4008,6 +3943,7 @@ const headerProps = {
 
       {profileOpen && userSession && (
         <CustomerProfileModal
+          key={userSession.user.id}
           session={userSession}
           onClose={() => setProfileOpen(false)}
           onLogout={logoutUser}
@@ -4175,6 +4111,7 @@ const headerProps = {
     />
 
     <Checkout
+          session={userSession}
       paymentMethods={paymentMethods}
       paymentMethod={paymentMethod}
       setPaymentMethod={setPaymentMethod}

@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/mobile", "destination": "/api/orders?vf_mobile=1" },
     {
       "source": "/product/:id",
       "has": [

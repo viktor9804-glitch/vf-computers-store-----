@@ -194,7 +194,7 @@ export const getOrderTotals = (order) => {
   const shipping = numberValue(order?.shipping ?? order?.delivery, 0);
   const total = numberValue(order?.total, subtotal + vat + shipping);
 
-  return { items, subtotal, vat, shipping, total };
+  return { items, subtotal, vat, shipping, total, loyaltyDiscount: numberValue(order?.loyalty_discount, 0) };
 };
 
 const orderItemsRows = (items) => {
@@ -229,8 +229,8 @@ const orderItemsRows = (items) => {
   `).join("");
 };
 
-const totalsTable = ({ subtotal, vat, shipping, total }) => {
-  const productsTotalWithVat = numberValue(subtotal) + numberValue(vat);
+const totalsTable = ({ subtotal, vat, shipping, total, loyaltyDiscount = 0 }) => {
+  const productsTotalWithVat = numberValue(subtotal) + numberValue(vat) + loyaltyDiscount;
 
   return `
     <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:18px;">
@@ -238,6 +238,7 @@ const totalsTable = ({ subtotal, vat, shipping, total }) => {
       <td style="padding:7px 0;color:#4b5563;">Стойност на продуктите</td>
       <td style="padding:7px 0;text-align:right;font-weight:700;">${money(productsTotalWithVat)}</td>
     </tr>
+    ${loyaltyDiscount > 0 ? `<tr><td style="padding:7px 0;color:#4b5563;">Отстъпка с точки</td><td style="padding:7px 0;text-align:right;font-weight:700;">−${money(loyaltyDiscount)}</td></tr>` : ""}
     <tr>
       <td style="padding:7px 0;color:#4b5563;">Доставка</td>
       <td style="padding:7px 0;text-align:right;font-weight:700;">${shipping > 0 ? money(shipping) : "Безплатна"}</td>
