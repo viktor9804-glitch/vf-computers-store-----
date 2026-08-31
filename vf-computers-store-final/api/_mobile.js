@@ -15,7 +15,7 @@ async function authenticated(supabase,req) {
   return {user:data.user,token};
 }
 function cors(req,res) {
-  const allowed=new Set(['https://localhost','capacitor://localhost','https://vf-computers.com','https://www.vf-computers.com',...(process.env.MOBILE_ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean)]);
+  const allowed=new Set(['https://localhost','capacitor://localhost','https://vf-computers.com','https://www.vf-computers.com','http://127.0.0.1:5188','http://localhost:5188',...(process.env.MOBILE_ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean)]);
   const origin=req.headers?.origin;
   if(origin && !allowed.has(origin)) throw new ApiError(403,'ORIGIN_DENIED','Този адрес няма достъп до мобилния сървър.');
   if(origin) res.setHeader('Access-Control-Allow-Origin',origin);
