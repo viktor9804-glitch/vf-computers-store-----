@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ProductGallery from "../components/ProductGallery";
 import { useScrollTop } from "../hooks/useScrollTop";
 import { formatDisplayPrice } from "../utils/format";
 import { normalizeComparableValue } from "../utils/text";
 import { isProductOrderable } from "../utils/availability";
+import { getProductPath } from "../utils/productUrl";
 
 export default function Product({
   products,
@@ -17,11 +18,18 @@ export default function Product({
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const product = products.find((p) => String(p.id) === id);
+  const product = products.find((p) => (
+    String(p.id) === id || String(p.catalog_number || "").toLowerCase() === String(id || "").toLowerCase()
+  ));
   const [selectedImage, setSelectedImage] = useState(0);
   const Header = HeaderComponent;
 
   useScrollTop(id);
+
+  useEffect(() => {
+    if (!product?.catalog_number || String(product.id) !== id) return;
+    navigate(getProductPath(product), { replace: true });
+  }, [id, navigate, product]);
 
   if (!product && loadingProducts) {
     return (
@@ -80,6 +88,9 @@ export default function Product({
               )}
               {product.catalog_number && (
                 <div className="product-catalog-number">Каталожен №: {product.catalog_number}</div>
+              )}
+              {product.source === "vali" && product.reference_number && (
+                <div className="product-catalog-number">Парт №: {product.reference_number}</div>
               )}
               <h1>{product.name}</h1>
 

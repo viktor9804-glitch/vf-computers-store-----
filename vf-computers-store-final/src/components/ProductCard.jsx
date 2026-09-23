@@ -4,11 +4,12 @@ import { CheckCircle2 } from "lucide-react";
 import { formatDisplayPrice } from "../utils/format";
 import { isProductOrderable } from "../utils/availability";
 import { getOptimizedImageUrl, getProductImageSrcSet, restoreOriginalImage } from "../utils/images";
+import { getProductPath } from "../utils/productUrl";
 
 export default function ProductCard({ product, addToCart }) {
   const canOrder = isProductOrderable(product);
   return (
-    <Link to={`/product/${product.id}`} className="product-link">
+    <Link to={getProductPath(product)} className="product-link">
       <article className="product-card">
         <div className="product-image">
           <img
@@ -34,6 +35,9 @@ export default function ProductCard({ product, addToCart }) {
 
           {product.catalog_number && (
             <div className="catalog-number">Каталожен №: {product.catalog_number}</div>
+          )}
+          {product.source === "vali" && product.reference_number && (
+            <div className="catalog-number">Парт №: {product.reference_number}</div>
           )}
 
           <h3>{product.name}</h3>

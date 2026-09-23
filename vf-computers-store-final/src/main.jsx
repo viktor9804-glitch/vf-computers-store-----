@@ -30,6 +30,7 @@ import Home from "./pages/Home";
 import { useScrollTop } from "./hooks/useScrollTop";
 import { isProductOrderable } from "./utils/availability";
 import { getOptimizedImageUrl, getProductImageSrcSet, restoreOriginalImage } from "./utils/images";
+import { getProductPath } from "./utils/productUrl";
 import "./style.css";
 
 const BuilderPage = React.lazy(() => import("./pages/BuilderPage"));
@@ -87,6 +88,7 @@ const PUBLIC_ADMIN_DISABLED = true;
 const STORAGE_BUCKET = "product-images";
 const VALI_PRODUCT_SELECT = [
   "id",
+  "catalog_number",
   "reference_number",
   "manufacturer",
   "status",
@@ -107,6 +109,7 @@ const VALI_PRODUCT_SELECT = [
 
 const VALI_CARD_SELECT = [
   "id",
+  "catalog_number",
   "reference_number",
   "manufacturer",
   "status",
@@ -2956,12 +2959,23 @@ function App() {
           );
         }
 
-        if (productRouteId.startsWith("vali-")) {
+        if (productRouteId.startsWith("vali-") || productRouteId.startsWith("product-")) {
+          const databaseId = productRouteId.replace(/^(vali|product)-/, "");
           const { data, error } = await supabase
             .from("storefront_vali_products")
             .select(VALI_PRODUCT_SELECT)
             .eq("show", true)
-            .eq("id", productRouteId.slice("vali-".length))
+            .eq("id", databaseId)
+            .maybeSingle();
+          return { data: data ? [data] : [], error };
+        }
+
+        if (/^VF-V-/i.test(productRouteId)) {
+          const { data, error } = await supabase
+            .from("storefront_vali_products")
+            .select(VALI_PRODUCT_SELECT)
+            .eq("show", true)
+            .ilike("catalog_number", productRouteId)
             .maybeSingle();
           return { data: data ? [data] : [], error };
         }
@@ -3753,7 +3767,7 @@ const headerProps = {
         <div className="product-grid">
           {filteredProducts.slice(0, 12).map((product) => (
             <Link
-  to={`/product/${product.id}`}
+  to={getProductPath(product)}
   className="product-link"
   key={product.id}
 >
@@ -3806,6 +3820,12 @@ const headerProps = {
                   <span>{product.category}</span>
                   <span className="stars"><Star size={14} /> {product.rating}</span>
                 </div>
+                {product.catalog_number && (
+                  <div className="catalog-number">Каталожен №: {product.catalog_number}</div>
+                )}
+                {product.source === "vali" && product.reference_number && (
+                  <div className="catalog-number">Парт №: {product.reference_number}</div>
+                )}
                 <h3>{product.name}</h3>
                 <div className="specs">
                   <small>

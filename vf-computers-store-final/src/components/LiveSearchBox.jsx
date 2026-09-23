@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { loadCatalogSearchIndex, searchCatalog } from "../lib/catalogSearch";
 import { getOptimizedImageUrl, restoreOriginalImage } from "../utils/images";
+import { getProductPath } from "../utils/productUrl";
 
 const MIN_QUERY_LENGTH = 2;
 const SEARCH_DELAY = 180;
@@ -106,7 +107,7 @@ export default function LiveSearchBox({
   const openProduct = (product) => {
     setOpen(false);
     onNavigate();
-    navigate(`/product/${encodeURIComponent(product.id)}`);
+    navigate(getProductPath(product));
   };
 
   const handleSubmit = (event) => {

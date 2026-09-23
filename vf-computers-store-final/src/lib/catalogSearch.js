@@ -4,6 +4,7 @@ const PAGE_SIZE = 1000;
 const SEARCH_FIELDS = [
   "id",
   "title:name->0->>text",
+  "catalog_number",
   "reference_number",
   "manufacturer",
   "status",
@@ -78,6 +79,8 @@ const prepareProduct = (product, source = "vali") => {
   return {
     id,
     source,
+    catalog_number: product.catalog_number || "",
+    reference_number: product.reference_number || "",
     title,
     model: product.model || "",
     manufacturer: product.manufacturer || "",
